@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beauty Art - Панель управления</title>
+    <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Forum', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 50%, #7D3673 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Логотип и название - Glass эффект */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 25px 30px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
+        }
+        .logo {
+            width: 80px;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+        .company-name {
+            font-family: 'Forum', serif;
+            font-size: 2.5em;
+            font-weight: 400;
+            color: white;
+            text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4);
+            letter-spacing: 2px;
+        }
+        
+        /* Бегущая строка (теперь над заголовком H1) */
+        .marquee-wrapper {
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 14px 0;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: scroll 28s linear infinite;
+        }
+        .marquee-track:hover {
+            animation-play-state: paused;
+        }
+        .marquee-content {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            color: white;
+            font-size: 1.1em;
+            font-family: 'Forum', serif;
+            font-weight: 400;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .marquee-separator {
+            color: #E33D78;
+            font-size: 1.8em;
+            line-height: 1;
+            margin: 0 30px;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-family: 'Forum', serif;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .block {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(28, 13, 46, 0.3);
+            border: 2px solid rgba(84, 66, 115, 0.2);
+        }
+        .block-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #1C0D2E;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Forum', serif;
+            font-weight: 400;
+            border-bottom: 3px solid #78A6C7;
+            padding-bottom: 15px;
+        }
+        
+        /* Таймеры */
+        .timers-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .timer-card {
+            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.5s ease;
+            border: 2px solid rgba(125, 54, 115, 0.3);
+        }
+        .timer-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            animation: pulse 4s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        /* Красный градиент для дня дедлайна */
+        .timer-card.urgent {
+            background: linear-gradient(135deg, #E33D78 0%, #7D3673 100%);
+            box-shadow: 0 4px 20px rgba(227, 61, 120, 0.6);
+        }
+        .timer-card.urgent::before {
+            animation: pulse-urgent 2s infinite ease-in-out;
+        }
+        @keyframes pulse-urgent {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.15); opacity: 1; }
+        }
+        
+        .timer-title {
+            font-size: 0.95em;
+            opacity: 0.95;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            font-weight: 400;
+            font-family: 'Forum', serif;
+        }
+        .timer-value {
+            font-size: 2em;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'Forum', serif;
+        }
+        .timer-label {
+            font-size: 0.8em;
+            opacity: 0.85;
+            margin-top: 5px;
+            position: relative;
+            z-index: 1;
+            font-family: 'Forum', serif;
+        }
+
+        /* Сетки колонок */
+        .three-columns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .two-columns {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .three-columns, .two-columns { grid-template-columns: 1fr; }
+        }
+        
+        .column {
+            background: #f8f9fb;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid rgba(84, 66, 115, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        .column-title {
+            font-size: 1.3em;
+            font-weight: 400;
+            color: #544273;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #78A6C7;
+            font-family: 'Forum', serif;
+        }
+        .column-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+        
+        /* Карточки таблиц */
+        .table-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            display: block;
+        }
+        .table-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(84, 66, 115, 0.2);
+            border-color: #78A6C7;
+        }
+        .table-card h3 {
+            font-size: 1em;
+            margin-bottom: 4px;
+            color: #544273;
+            font-family: 'Forum', serif;
+            font-weight: 400;
+        }
+        .table-card p {
+            font-size: 0.85em;
+            color: #666;
+            font-family: 'Forum', serif;
+        }
+        
+        /* Неактивная кнопка */
+        .table-card.disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .table-card.disabled h3 {
+            color: #999;
+        }
+        .badge-soon {
+            display: inline-block;
+            background: #E33D78;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 5px;
+            vertical-align: middle;
+            font-family: 'Forum', serif;
+        }
+        
+        /* Ссылка на регламент */
+        .regulation-link {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px dashed #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #544273;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-weight: 400;
+            font-family: 'Forum', serif;
+        }
+        .regulation-link:hover {
+            color: #7D3673;
+            gap: 12px;
+        }
+        .regulation-link.disabled {
+            color: #94a3b8;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .icon { font-size: 1.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Логотип и название компании - Glass эффект -->
+        <div class="header">
+            <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+            <div class="company-name">Beauty Art</div>
+        </div>
+        
+        <!-- Бегущая строка с целями (теперь НАД заголовком) -->
+        <div class="marquee-wrapper">
+            <div class="marquee-track">
+                <div class="marquee-content">
+                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span class="marquee-separator">•</span>
+                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span class="marquee-separator">•</span>
+                </div>
+                <div class="marquee-content">
+                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span class="marquee-separator">•</span>
+                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span class="marquee-separator">•</span>
+                </div>
+            </div>
+        </div>
+
+        <h1>Панель управления компанией</h1>
+        
+        <!-- Блок 1: Управление компанией -->
+        <div class="block">
+            <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
+            <div class="three-columns">
+                <div class="column">
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1cJGvUwr0DC3f2bRh_5Q2VeivtDyhpmpqOWYbvPEWjgs/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Функциональная стратегия</h3>
+                            <p>Стратегическое планирование</p>
+                        </a>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1dzhhdjCeNe4-cwU4_y-2caX6PvO9TG3yAxBH2OB_VEY/edit" target="_blank" class="table-card">
+                            <h3>Схема RACI</h3>
+                            <p>Матрица ответственности</p>
+                        </a>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1QggOaNjI7y-i3xZIiZrdVH_q1xsmHYpMwVRH9n1wliY/edit?gid=203679960#gid=203679960" target="_blank" class="table-card">
+                            <h3>Маркетинговая стратегия</h3>
+                            <p>План маркетинговых активностей</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Блок 2: Логистика и доставка -->
+        <div class="block">
+            <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
+            
+            <div class="timers-container">
+                <div class="timer-card" id="timer-card-weekly">
+                    <div class="timer-title">📦 Формирование еженедельной заявки</div>
+                    <div class="timer-value" id="timer-weekly">--д --ч --м --с</div>
+                    <div class="timer-label">Дедлайн: понедельник, 12:00</div>
+                </div>
+                <div class="timer-card" id="timer-card-monthly">
+                    <div class="timer-title">📈 Формирование потребности</div>
+                    <div class="timer-value" id="timer-monthly">--д --ч --м --с</div>
+                    <div class="timer-label">Дедлайн: 17-е число месяца, 12:00</div>
+                </div>
+            </div>
+
+            <div class="three-columns">
+                <div class="column">
+                    <div class="column-title">Управление закупками</div>
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1arhP0SlodgIDGcSV_E7DFny772ExkRXGS0llKjhfwzw/edit?gid=596168910#gid=596168910" target="_blank" class="table-card">
+                            <h3>База товаров</h3>
+                            <p>Единый реестр товаров</p>
+                        </a>
+                        <div class="table-card disabled">
+                            <h3>Месячная потребность (план/факт) <span class="badge-soon">скоро</span></h3>
+                            <p>Плановый расчёт на месяц</p>
+                        </div>
+                        <a href="https://docs.google.com/spreadsheets/d/1sR1_kxrv4xy7r7-SNg3YQqeKfQmt4s7PBKmXgKbCa5I/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Еженедельные заявки</h3>
+                            <p>Текущие заявки на закупку</p>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1SsHpXXy7Gm0mTHuxpMX-p5VPtp_UFmOc0QdffQqyA8s/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Отчет по реализации потребности</h3>
+                            <p>Факт выполнения заявок</p>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1iYyzAie6x3H5nWO0biFXoZp694YhS5Qp/edit?usp=sharing&ouid=111894160779270511410&rtpof=true&sd=true" target="_blank" class="table-card">
+                            <h3>Реестр платежей</h3>
+                            <p>Управление и отслеживание платежей</p>
+                        </a>
+                        <div class="regulation-link disabled">
+                            📄 Регламент (в разработке)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="column-title">Калькулятор потребности</div>
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1phz8_haUkVjqosNeDyjNe5O1f0xnMBLifEZlvZEhJgM/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Калькулятор потребности Ozon</h3>
+                            <p>Расчёт потребности для Ozon</p>
+                        </a>
+                        <div class="table-card disabled">
+                            <h3>Калькулятор потребности WB <span class="badge-soon">скоро</span></h3>
+                            <p>Расчёт потребности для Wildberries</p>
+                        </div>
+                        <div class="regulation-link disabled">
+                            📄 Регламент (в разработке)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="column-title">Калькулятор закупок</div>
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1v-7wH76vwrMSqHsVrvArNIDLnEVRQ7WQg75AWi0A0OU/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Калькулятор закупок Ozon</h3>
+                            <p>Расчёт для Ozon</p>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1I1jTRsu6PFjcvljguxj5BBiw34PdTIQf1XfNkXokEMs/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Калькулятор закупок WB</h3>
+                            <p>Расчёт для Wildberries</p>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1hv1R7XAFRoI6EBJlQzYqpI8vie_lSEZ117M7NQ9CoiE/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>Калькулятор закупок Ozon ООО</h3>
+                            <p>Расчёт для Ozon (ООО)</p>
+                        </a>
+                        <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">
+                            📄 Регламент
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Блок 3: Коммерческая деятельность -->
+        <div class="block">
+            <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
+            
+            <div class="timers-container">
+                <div class="timer-card" id="timer-card-sales">
+                    <div class="timer-title">💰 Формирование плана продаж</div>
+                    <div class="timer-value" id="timer-sales">--д --ч --м --с</div>
+                    <div class="timer-label">Дедлайн: 15-е число месяца, 12:00</div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="column">
+                    <div class="column-title">Продвижение и реклама</div>
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/1GwyVCyQQKBKnU67JPtECjiwYPUyzPQwCh3zIF1AtsaI/edit?usp=sharing" target="_blank" class="table-card">
+                            <h3>Отчет SMM</h3>
+                            <p>Метрики и результаты SMM</p>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/110zZ6aGFr3LzqiZKfnfMQubTwGmztEmPN0n2AmRoXBw/edit?usp=sharing" target="_blank" class="table-card">
+                            <h3>Отчет реклама</h3>
+                            <p>Эффективность рекламных кампаний</p>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="column">
+                    <div class="column-title">Анализ текущего положения на рынке</div>
+                    <div class="column-items">
+                        <a href="https://docs.google.com/spreadsheets/d/15qn4t1PnVdAOIj9bxznHNNv3R57BV_kIpUSOWNf5eYM/edit?usp=share_link" target="_blank" class="table-card">
+                            <h3>План продаж Ozon</h3>
+                            <p>Планирование и анализ продаж</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрипт для динамических таймеров -->
+    <script>
+        function updateTimers() {
+            const now = new Date();
+
+            let nextMonday = new Date(now);
+            const day = now.getDay();
+            const daysUntilMonday = (1 + 7 - day) % 7;
+            nextMonday.setDate(now.getDate() + daysUntilMonday);
+            
+            if (day === 1 && now.getHours() >= 12) {
+                nextMonday.setDate(nextMonday.getDate() + 7);
+            }
+            nextMonday.setHours(12, 0, 0, 0);
+
+            let next17th = new Date(now.getFullYear(), now.getMonth(), 17, 12, 0, 0);
+            if (now.getDate() > 17 || (now.getDate() === 17 && now.getHours() >= 12)) {
+                next17th.setMonth(next17th.getMonth() + 1);
+            }
+
+            let next15th = new Date(now.getFullYear(), now.getMonth(), 15, 12, 0, 0);
+            if (now.getDate() > 15 || (now.getDate() === 15 && now.getHours() >= 12)) {
+                next15th.setMonth(next15th.getMonth() + 1);
+            }
+
+            function getTimeDiff(target) {
+                const diff = target - now;
+                if (diff <= 0) return "00д 00ч 00м 00с";
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                return `${days}д ${hours.toString().padStart(2, '0')}ч ${minutes.toString().padStart(2, '0')}м ${seconds.toString().padStart(2, '0')}с`;
+            }
+
+            function isDeadlineDay(target) {
+                return now.getDate() === target.getDate() &&
+                       now.getMonth() === target.getMonth() &&
+                       now.getFullYear() === target.getFullYear();
+            }
+
+            document.getElementById('timer-weekly').textContent = getTimeDiff(nextMonday);
+            document.getElementById('timer-monthly').textContent = getTimeDiff(next17th);
+            document.getElementById('timer-sales').textContent = getTimeDiff(next15th);
+
+            const weeklyCard = document.getElementById('timer-card-weekly');
+            const monthlyCard = document.getElementById('timer-card-monthly');
+            const salesCard = document.getElementById('timer-card-sales');
+            
+            weeklyCard.classList.toggle('urgent', isDeadlineDay(nextMonday));
+            monthlyCard.classList.toggle('urgent', isDeadlineDay(next17th));
+            salesCard.classList.toggle('urgent', isDeadlineDay(next15th));
+        }
+
+        setInterval(updateTimers, 1000);
+        updateTimers();
+    </script>
+</body>
+</html>
