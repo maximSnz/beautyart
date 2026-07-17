@@ -61,7 +61,7 @@
             border-bottom: 3px solid #78A6C7; padding-bottom: 15px;
         }
         
-        /* ТАЙМЛАЙН НЕДЕЛИ (ЧИСТЫЙ, БЕЗ ТОЧКИ) */
+        /* ТАЙМЛАЙН НЕДЕЛИ */
         .timeline-container {
             background: #f8f9fb; border-radius: 12px; padding: 25px 20px;
             margin-bottom: 20px; border: 2px solid rgba(84, 66, 115, 0.2);
@@ -95,6 +95,27 @@
         .timeline-stage.active strong { color: white; }
         .timeline-stage.passed { background: rgba(120, 166, 199, 0.2); color: #544273; }
         .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
+
+        /* Стили для динамической подписи 17-го числа */
+        .deadline-alert {
+            display: none; /* Скрыто по умолчанию */
+            margin-top: 6px;
+            font-weight: 700;
+            color: #1C0D2E;
+            font-size: 0.95em;
+            text-shadow: 0 0 10px rgba(227, 61, 120, 0.6);
+            animation: blink 1.5s infinite alternate;
+        }
+        /* Показываем алерт внутри активного этапа четного дня (когда идет корректировка) */
+        .timeline-stage.active .deadline-alert {
+            display: block;
+            color: white; /* На активном фоне текст белый */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        @keyframes blink {
+            from { opacity: 0.7; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1.02); }
+        }
 
         /* ОТДЕЛЬНЫЙ ТАЙМЕР ДО 17-ГО ЧИСЛА */
         .deadline-timer-card {
@@ -281,7 +302,7 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <!-- Чистый таймлайн без точки -->
+            <!-- Чистый таймлайн -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
@@ -296,6 +317,8 @@
                     </div>
                     <div class="timeline-stage" id="stage-3">
                         <strong>Чт</strong>Корректировка в т.ч.<br>с учетом наполняемости паллет
+                        <!-- Динамическая подпись для 17-го числа -->
+                        <div class="deadline-alert" id="day-17-alert">Формирование потребности</div>
                     </div>
                     <div class="timeline-stage" id="stage-4">
                         <strong>Пт</strong>Резерв
@@ -328,7 +351,7 @@
                         <a href="https://docs.google.com/spreadsheets/d/1SsHpXXy7Gm0mTHuxpMX-p5VPtp_UFmOc0QdffQqyA8s/edit?gid=1129317678#gid=1129317678" target="_blank" class="table-card">
                             <h3>Еженедельные заявки</h3><p>Заявки на закупку и контроль реализации потребности</p>
                         </a>
-                        <div class="regulation-link disabled">📄 Регламент (в разработке)</div>
+                        <div class="regulation-link disabled"> Регламент (в разработке)</div>
                     </div>
                 </div>
                 <div class="column">
@@ -412,6 +435,8 @@
                 document.getElementById('stage-5')
             ];
             const statusText = document.getElementById('current-week-status');
+            const alert17 = document.getElementById('day-17-alert');
+            
             stages.forEach(el => el && el.classList.remove('active', 'passed'));
 
             let statusMessage = "";
@@ -420,7 +445,16 @@
             else if (day === 4) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active'); statusMessage = "🟣 Корректировка в т.ч. с учетом наполняемости паллет"; }
             else if (day === 5) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active'); statusMessage = "⚪ Резервный день"; }
             else { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('passed'); stages[4].classList.add('active'); statusMessage = "🌙 Выходные дни"; }
+            
             if (statusText) statusText.textContent = statusMessage;
+
+            // Логика отображения алерта 17-го числа
+            // Показываем только если сегодня 17-е И этот этап активен (Четверг)
+            if (date === 17 && day === 4) {
+                alert17.style.display = 'block';
+            } else {
+                alert17.style.display = 'none';
+            }
 
             // === ТАЙМЕР ДО 17-ГО ЧИСЛА ===
             let next17th = new Date(year, month, 17, 12, 0, 0);
