@@ -17,37 +17,23 @@
         
         /* Логотип и название */
         .header {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 20px;
-            padding: 25px 30px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
+            padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
         }
         .logo { width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
         .company-name {
-            font-family: 'Forum', serif;
-            font-size: 2.5em;
-            font-weight: 400;
-            color: white;
-            text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4);
-            letter-spacing: 2px;
+            font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
+            text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
         }
         
         /* Бегущая строка */
         .marquee-wrapper {
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 14px 0;
-            margin-bottom: 15px;
+            overflow: hidden; background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 14px 0; margin-bottom: 15px;
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .marquee-track { display: flex; width: max-content; animation: scroll 28s linear infinite; }
@@ -75,10 +61,10 @@
             border-bottom: 3px solid #78A6C7; padding-bottom: 15px;
         }
         
-        /* ТАЙМЛАЙН НЕДЕЛИ */
+        /* ТАЙМЛАЙН НЕДЕЛИ (ЧИСТЫЙ, БЕЗ ТОЧКИ) */
         .timeline-container {
             background: #f8f9fb; border-radius: 12px; padding: 25px 20px;
-            margin-bottom: 30px; border: 2px solid rgba(84, 66, 115, 0.2); position: relative;
+            margin-bottom: 20px; border: 2px solid rgba(84, 66, 115, 0.2);
         }
         .timeline-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -87,28 +73,16 @@
         }
         .timeline-status-text { color: #E33D78; font-size: 1em; font-weight: 400; }
         
-        /* Обертка для трека и маячка */
-        .timeline-wrapper {
-            position: relative;
-            height: 70px;
-            margin-top: 10px;
-        }
-
         .timeline-track {
-            position: relative;
-            height: 100%;
-            background: #e5e7eb;
-            border-radius: 35px;
-            overflow: hidden; /* Обрезаем только фоны этапов по краям */
-            display: flex;
-            z-index: 1;
+            position: relative; height: 70px; background: #e5e7eb;
+            border-radius: 35px; overflow: hidden; display: flex;
         }
         
         .timeline-stage {
-            flex: 1;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.85em; color: #6b7280; position: relative; z-index: 2;
-            transition: all 0.4s ease; padding: 0 5px; text-align: center; line-height: 1.3;
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; font-size: 0.85em; color: #6b7280;
+            position: relative; z-index: 2; transition: all 0.4s ease;
+            padding: 0 5px; text-align: center; line-height: 1.3;
             border-right: 1px solid rgba(255,255,255,0.3);
         }
         .timeline-stage:last-child { border-right: none; }
@@ -121,54 +95,21 @@
         .timeline-stage.active strong { color: white; }
         .timeline-stage.passed { background: rgba(120, 166, 199, 0.2); color: #544273; }
         .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
-        
-        /* ИСПРАВЛЕНИЕ 1: Glass-точка */
-        .timeline-cursor {
-            position: absolute; top: 50%; left: 0%; 
-            transform: translate(-50%, -50%);
-            width: 36px; height: 36px;
-            
-            /* Эффект стекла */
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            
-            /* Четкая обводка */
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            z-index: 10;
-            box-shadow: 0 4px 12px rgba(28, 13, 46, 0.3);
-            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .timeline-cursor::after {
-            content: ''; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); width: 10px; height: 10px;
-            background: #E33D78; border-radius: 50%;
-            box-shadow: 0 0 8px rgba(227, 61, 120, 0.8);
-        }
 
-        /* ИСПРАВЛЕНИЕ 2: Маячок (пунктир + подпись) вынесен из трека */
-        .deadline-marker-container {
-            position: absolute;
-            top: -20px; /* Поднимаем над треком */
-            bottom: -20px; /* Опускаем под трек */
-            width: 2px;
-            z-index: 20; /* Поверх всего */
-            pointer-events: none;
-            transition: left 0.5s ease;
+        /* ОТДЕЛЬНЫЙ ТАЙМЕР ДО 17-ГО ЧИСЛА */
+        .deadline-timer-card {
+            background: linear-gradient(135deg, #544273 0%, #7D3673 100%);
+            color: white; padding: 15px 20px; border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 15px rgba(84, 66, 115, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
         }
-        .deadline-line {
-            width: 100%; height: 100%;
-            background: repeating-linear-gradient(to bottom, #1C0D2E 0, #1C0D2E 6px, transparent 6px, transparent 12px);
-            opacity: 0.8;
-        }
-        .deadline-label {
-            position: absolute; top: -30px; left: 50%;
-            transform: translateX(-50%);
-            background: #1C0D2E; color: white;
-            font-size: 0.75em; padding: 4px 10px; border-radius: 12px;
-            white-space: nowrap; font-family: 'Forum', serif; font-weight: 600;
-            box-shadow: 0 2px 8px rgba(28, 13, 46, 0.3);
+        .deadline-timer-info { font-family: 'Forum', serif; }
+        .deadline-timer-title { font-size: 1.1em; font-weight: 600; margin-bottom: 4px; }
+        .deadline-timer-desc { font-size: 0.85em; opacity: 0.9; }
+        .deadline-timer-value {
+            font-size: 1.8em; font-weight: 400; font-variant-numeric: tabular-nums;
+            font-family: 'Forum', serif; text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         /* Сетки */
@@ -183,6 +124,7 @@
             .four-columns, .three-columns, .two-columns { grid-template-columns: 1fr; }
             .timeline-stage { font-size: 0.7em; }
             .timeline-stage strong { font-size: 0.9em; }
+            .deadline-timer-card { flex-direction: column; text-align: center; gap: 10px; }
         }
         
         .column {
@@ -339,43 +281,41 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
+            <!-- Чистый таймлайн без точки -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
-                
-                <!-- Новая структура: wrapper содержит и трек, и маячок -->
-                <div class="timeline-wrapper">
-                    <!-- Маячок вынесен ОТДЕЛЬНО от трека -->
-                    <div class="deadline-marker-container" id="deadline-17th-marker" style="display: none;">
-                        <div class="deadline-label">Формирование потребности (17-е)</div>
-                        <div class="deadline-line"></div>
+                <div class="timeline-track">
+                    <div class="timeline-stage" id="stage-1">
+                        <strong>Пн</strong>Формирование<br>заявки
                     </div>
-
-                    <div class="timeline-track">
-                        <div class="timeline-stage" id="stage-1">
-                            <strong>Пн</strong>Формирование<br>заявки
-                        </div>
-                        <div class="timeline-stage" id="stage-2">
-                            <strong>Вт-Ср</strong>Согласование<br>с поставщиком
-                        </div>
-                        <div class="timeline-stage" id="stage-3">
-                            <strong>Чт</strong>Корректировка в т.ч.<br>с учетом наполняемости паллет
-                        </div>
-                        <div class="timeline-stage" id="stage-4">
-                            <strong>Пт</strong>Резерв
-                        </div>
-                        <div class="timeline-stage" id="stage-5">
-                            <strong>Сб-Вс</strong>Выходные
-                        </div>
-                        <!-- Курсор внутри трека -->
-                        <div class="timeline-cursor" id="week-cursor"></div>
+                    <div class="timeline-stage" id="stage-2">
+                        <strong>Вт-Ср</strong>Согласование<br>с поставщиком
+                    </div>
+                    <div class="timeline-stage" id="stage-3">
+                        <strong>Чт</strong>Корректировка в т.ч.<br>с учетом наполняемости паллет
+                    </div>
+                    <div class="timeline-stage" id="stage-4">
+                        <strong>Пт</strong>Резерв
+                    </div>
+                    <div class="timeline-stage" id="stage-5">
+                        <strong>Сб-Вс</strong>Выходные
                     </div>
                 </div>
             </div>
 
-            <div class="three-columns">
+            <!-- Отдельный таймер до 17-го числа -->
+            <div class="deadline-timer-card">
+                <div class="deadline-timer-info">
+                    <div class="deadline-timer-title">📅 Формирование потребности</div>
+                    <div class="deadline-timer-desc">Дедлайн: 17-е число каждого месяца, 12:00</div>
+                </div>
+                <div class="deadline-timer-value" id="timer-17th">--д --ч --м --с</div>
+            </div>
+
+            <div style="margin-top: 30px;" class="three-columns">
                 <div class="column">
                     <div class="column-title">Управление закупками</div>
                     <div class="column-items">
@@ -465,15 +405,7 @@
             const month = now.getMonth();
             const year = now.getFullYear();
             
-            // Таймлайн
-            const currentDayNum = day === 0 ? 7 : day;
-            const totalMinutesInWeek = 7 * 24 * 60;
-            const currentMinutes = ((currentDayNum - 1) * 24 * 60) + (hour * 60) + minute;
-            const weekProgress = (currentMinutes / totalMinutesInWeek) * 100;
-
-            const cursor = document.getElementById('week-cursor');
-            if (cursor) cursor.style.left = `${weekProgress}%`;
-
+            // === ТАЙМЛАЙН НЕДЕЛИ ===
             const stages = [
                 document.getElementById('stage-1'), document.getElementById('stage-2'),
                 document.getElementById('stage-3'), document.getElementById('stage-4'),
@@ -485,32 +417,22 @@
             let statusMessage = "";
             if (day === 1) { stages[0].classList.add('active'); statusMessage = "🟢 Формирование еженедельной заявки"; }
             else if (day === 2 || day === 3) { stages[0].classList.add('passed'); stages[1].classList.add('active'); statusMessage = "🔵 Согласование заявки с поставщиком"; }
-            else if (day === 4) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active'); statusMessage = " Корректировка в т.ч. с учетом наполняемости паллет"; }
-            else if (day === 5) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active'); statusMessage = " Резервный день"; }
+            else if (day === 4) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active'); statusMessage = "🟣 Корректировка в т.ч. с учетом наполняемости паллет"; }
+            else if (day === 5) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active'); statusMessage = "⚪ Резервный день"; }
             else { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('passed'); stages[4].classList.add('active'); statusMessage = "🌙 Выходные дни"; }
             if (statusText) statusText.textContent = statusMessage;
 
-            // Маячок 17-го
-            const marker = document.getElementById('deadline-17th-marker');
-            const monday = new Date(now);
-            monday.setDate(now.getDate() - (currentDayNum - 1));
-            const deadline17 = new Date(year, month, 17);
-            const sunday = new Date(monday);
-            sunday.setDate(monday.getDate() + 6);
-            
-            if (deadline17 >= monday && deadline17 <= sunday) {
-                marker.style.display = 'block';
-                const diffMs = deadline17.getTime() - monday.getTime();
-                const diffDays = diffMs / (1000 * 60 * 60 * 24);
-                const markerPos = (diffDays / 7) * 100;
-                marker.style.left = `${markerPos}%`;
-            } else {
-                marker.style.display = 'none';
+            // === ТАЙМЕР ДО 17-ГО ЧИСЛА ===
+            let next17th = new Date(year, month, 17, 12, 0, 0);
+            if (date > 17 || (date === 17 && hour >= 12)) {
+                next17th.setMonth(next17th.getMonth() + 1);
             }
 
-            // Таймер продаж
+            // === ТАЙМЕР ПЛАНА ПРОДАЖ (15-е число) ===
             let next15th = new Date(year, month, 15, 12, 0, 0);
-            if (date > 15 || (date === 15 && hour >= 12)) next15th.setMonth(next15th.getMonth() + 1);
+            if (date > 15 || (date === 15 && hour >= 12)) {
+                next15th.setMonth(next15th.getMonth() + 1);
+            }
 
             function getTimeDiff(target) {
                 const diff = target - now;
@@ -521,10 +443,18 @@
                 const seconds = Math.floor((diff % (1000 * 60)) / 1000);
                 return `${days}д ${hours.toString().padStart(2, '0')}ч ${minutes.toString().padStart(2, '0')}м ${seconds.toString().padStart(2, '0')}с`;
             }
+
             function isDeadlineDay(target) {
-                return now.getDate() === target.getDate() && now.getMonth() === target.getMonth() && now.getFullYear() === target.getFullYear();
+                return now.getDate() === target.getDate() && 
+                       now.getMonth() === target.getMonth() && 
+                       now.getFullYear() === target.getFullYear();
             }
 
+            // Обновление таймера 17-го
+            const timer17Val = document.getElementById('timer-17th');
+            if (timer17Val) timer17Val.textContent = getTimeDiff(next17th);
+
+            // Обновление таймера продаж
             const salesTimerVal = document.getElementById('timer-sales');
             const salesCard = document.getElementById('timer-card-sales');
             if (salesTimerVal) salesTimerVal.textContent = getTimeDiff(next15th);
