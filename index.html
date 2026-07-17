@@ -141,7 +141,7 @@
             height: 70px;
             background: #e5e7eb;
             border-radius: 35px;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
         }
         
@@ -184,20 +184,22 @@
         }
         .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
         
-        /* Движущаяся точка */
+        /* Движущаяся точка - GLASS EFFECT */
         .timeline-cursor {
             position: absolute;
             top: 50%;
-            left: 0%; /* Будет меняться через JS */
+            left: 0%; 
             transform: translate(-50%, -50%);
-            width: 28px;
-            height: 28px;
-            background: white;
-            border: 4px solid #E33D78;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             z-index: 10;
-            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.6);
-            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* Плавная анимация движения */
+            box-shadow: 0 4px 15px rgba(28, 13, 46, 0.3);
+            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .timeline-cursor::after {
             content: '';
@@ -205,13 +207,45 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             background: #E33D78;
             border-radius: 50%;
+            box-shadow: 0 0 8px rgba(227, 61, 120, 0.8);
+        }
+
+        /* Маячок дедлайна 17-го числа */
+        .deadline-marker {
+            position: absolute;
+            top: -10px;
+            bottom: -10px;
+            width: 2px;
+            background: repeating-linear-gradient(to bottom, #1C0D2E 0, #1C0D2E 6px, transparent 6px, transparent 12px);
+            z-index: 5;
+            opacity: 0.8;
+            transition: left 0.5s ease;
+            pointer-events: none;
+        }
+        .deadline-marker-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1C0D2E;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+            font-family: 'Forum', serif;
         }
 
         /* Сетки колонок */
+        .four-columns {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
         .three-columns {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -222,8 +256,12 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
         }
-        @media (max-width: 900px) {
-            .three-columns, .two-columns { grid-template-columns: 1fr; }
+        @media (max-width: 1000px) {
+            .four-columns { grid-template-columns: repeat(2, 1fr); }
+            .three-columns { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .four-columns, .three-columns, .two-columns { grid-template-columns: 1fr; }
             .timeline-stage { font-size: 0.7em; }
             .timeline-stage strong { font-size: 0.9em; }
         }
@@ -317,6 +355,77 @@
         .regulation-link:hover { color: #7D3673; gap: 12px; }
         .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
         
+        /* ТАЙМЕР КОММЕРЧЕСКОЙ ДЕЯТЕЛЬНОСТИ (ВОЗВРАЩЕННЫЕ СТИЛИ) */
+        .timers-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .timer-card {
+            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.5s ease;
+            border: 2px solid rgba(125, 54, 115, 0.3);
+        }
+        .timer-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            animation: pulse 4s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        .timer-card.urgent {
+            background: linear-gradient(135deg, #E33D78 0%, #7D3673 100%);
+            box-shadow: 0 4px 20px rgba(227, 61, 120, 0.6);
+        }
+        .timer-card.urgent::before {
+            animation: pulse-urgent 2s infinite ease-in-out;
+        }
+        @keyframes pulse-urgent {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.15); opacity: 1; }
+        }
+        .timer-title {
+            font-size: 0.95em;
+            opacity: 0.95;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            font-weight: 400;
+            font-family: 'Forum', serif;
+        }
+        .timer-value {
+            font-size: 2em;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'Forum', serif;
+        }
+        .timer-label {
+            font-size: 0.8em;
+            opacity: 0.85;
+            margin-top: 5px;
+            position: relative;
+            z-index: 1;
+            font-family: 'Forum', serif;
+        }
+        
         .icon { font-size: 1.5em; }
     </style>
 </head>
@@ -334,11 +443,11 @@
                 <div class="marquee-content">
                     <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
-                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
                 </div>
                 <div class="marquee-content">
-                    <span> Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
                     <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
@@ -348,10 +457,10 @@
 
         <h1>Панель управления компанией</h1>
         
-        <!-- Блок 1: Управление компанией -->
+        <!-- Блок 1: Управление компанией (4 колонки) -->
         <div class="block">
             <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
-            <div class="three-columns">
+            <div class="four-columns">
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
                     <div class="column-items">
@@ -383,6 +492,15 @@
                         </a>
                     </div>
                 </div>
+                <div class="column">
+                    <div class="column-title">Управление персоналом</div>
+                    <div class="column-items">
+                        <div class="table-card disabled">
+                            <h3>График отпусков <span class="badge-soon">скоро</span></h3>
+                            <p>Планирование отпусков сотрудников</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -390,13 +508,18 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <!-- Интерактивный таймлайн недели (5 этапов) -->
+            <!-- Интерактивный таймлайн недели (5 этапов + маячок 17-го) -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
                 <div class="timeline-track">
+                    <!-- Маячок дедлайна 17-го числа -->
+                    <div class="deadline-marker" id="deadline-17th-marker" style="display: none;">
+                        <div class="deadline-marker-label">17-е число</div>
+                    </div>
+                    
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>
                         Формирование<br>заявки
@@ -407,7 +530,7 @@
                     </div>
                     <div class="timeline-stage" id="stage-3">
                         <strong>Чт</strong>
-                        Корректировка<br>(паллеты)
+                        Корректировка в т.ч.<br>с учетом наполняемости паллет
                     </div>
                     <div class="timeline-stage" id="stage-4">
                         <strong>Пт</strong>
@@ -488,6 +611,7 @@
         <div class="block">
             <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
             
+            <!-- Таймер плана продаж (стили возвращены!) -->
             <div class="timers-container">
                 <div class="timer-card" id="timer-card-sales">
                     <div class="timer-title">💰 Формирование плана продаж</div>
@@ -524,79 +648,91 @@
         </div>
     </div>
 
-    <!-- Скрипт для таймлайна и таймера -->
+    <!-- Скрипт для таймлайна и таймеров -->
     <script>
         function updateDashboard() {
             const now = new Date();
             const day = now.getDay(); // 0=Вс, 1=Пн, ..., 6=Сб
             const hour = now.getHours();
             const minute = now.getMinutes();
+            const date = now.getDate();
+            const month = now.getMonth();
+            const year = now.getFullYear();
             
-            // Расчет прогресса недели (0% = начало понедельника 00:00, 100% = конец воскресенья 23:59)
-            const currentDayNum = day === 0 ? 7 : day; // Вс=7 для удобства расчета
+            // === ТАЙМЛАЙН НЕДЕЛИ ===
+            const currentDayNum = day === 0 ? 7 : day;
             const totalMinutesInWeek = 7 * 24 * 60;
             const currentMinutes = ((currentDayNum - 1) * 24 * 60) + (hour * 60) + minute;
             const weekProgress = (currentMinutes / totalMinutesInWeek) * 100;
 
-            // Обновление позиции курсора
             const cursor = document.getElementById('week-cursor');
-            if (cursor) {
-                cursor.style.left = `${weekProgress}%`;
-            }
+            if (cursor) cursor.style.left = `${weekProgress}%`;
 
-            // Элементы этапов
             const stages = [
-                document.getElementById('stage-1'), // Пн
-                document.getElementById('stage-2'), // Вт-Ср
-                document.getElementById('stage-3'), // Чт
-                document.getElementById('stage-4'), // Пт
-                document.getElementById('stage-5')  // Сб-Вс
+                document.getElementById('stage-1'),
+                document.getElementById('stage-2'),
+                document.getElementById('stage-3'),
+                document.getElementById('stage-4'),
+                document.getElementById('stage-5')
             ];
             const statusText = document.getElementById('current-week-status');
-
-            // Сброс классов
             stages.forEach(el => el && el.classList.remove('active', 'passed'));
 
             let statusMessage = "";
-
-            // Логика определения активного этапа
             if (day === 1) { 
-                // Понедельник
                 stages[0].classList.add('active');
                 statusMessage = "🟢 Формирование еженедельной заявки";
             } else if (day === 2 || day === 3) {
-                // Вторник или Среда
                 stages[0].classList.add('passed');
                 stages[1].classList.add('active');
-                statusMessage = "🔵 Согласование заявки с поставщиком";
+                statusMessage = " Согласование заявки с поставщиком";
             } else if (day === 4) {
-                // Четверг
                 stages[0].classList.add('passed');
                 stages[1].classList.add('passed');
                 stages[2].classList.add('active');
-                statusMessage = "🟣 Корректировка заявки (наполняемость паллет)";
+                statusMessage = "🟣 Корректировка в т.ч. с учетом наполняемости паллет";
             } else if (day === 5) {
-                // Пятница
                 stages[0].classList.add('passed');
                 stages[1].classList.add('passed');
                 stages[2].classList.add('passed');
                 stages[3].classList.add('active');
-                statusMessage = "⚪ Резервный день";
+                statusMessage = " Резервный день";
             } else {
-                // Суббота (6) или Воскресенье (0)
                 stages[0].classList.add('passed');
                 stages[1].classList.add('passed');
                 stages[2].classList.add('passed');
                 stages[3].classList.add('passed');
-                stages[4].classList.add('active'); // Можно сделать active или просто passed, но active покажет что мы "внутри" выходных
-                statusMessage = " Выходные дни";
+                stages[4].classList.add('active');
+                statusMessage = "🌙 Выходные дни";
             }
-
             if (statusText) statusText.textContent = statusMessage;
 
-            // --- ТАЙМЕР ДЛЯ ПЛАНА ПРОДАЖ (15-е число) ---
-            let next15th = new Date(now.getFullYear(), now.getMonth(), 15, 12, 0, 0);
-            if (now.getDate() > 15 || (now.getDate() === 15 && now.getHours() >= 12)) {
+            // === МАЯЧОК 17-ГО ЧИСЛА НА ТАЙМЛАЙНЕ ===
+            const marker = document.getElementById('deadline-17th-marker');
+            // Определяем дату понедельника текущей недели
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - (currentDayNum - 1));
+            // Дата 17-го числа текущего месяца
+            const deadline17 = new Date(year, month, 17);
+            
+            // Если 17-е попадает в текущую неделю (между понедельником и воскресеньем)
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            if (deadline17 >= monday && deadline17 <= sunday) {
+                marker.style.display = 'block';
+                // Вычисляем позицию 17-го относительно начала недели (0-100%)
+                const diffMs = deadline17.getTime() - monday.getTime();
+                const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                const markerPos = (diffDays / 7) * 100;
+                marker.style.left = `${markerPos}%`;
+            } else {
+                marker.style.display = 'none';
+            }
+
+            // === ТАЙМЕР ПЛАНА ПРОДАЖ (15-е число) ===
+            let next15th = new Date(year, month, 15, 12, 0, 0);
+            if (date > 15 || (date === 15 && hour >= 12)) {
                 next15th.setMonth(next15th.getMonth() + 1);
             }
 
@@ -623,9 +759,8 @@
             if (salesCard) salesCard.classList.toggle('urgent', isDeadlineDay(next15th));
         }
 
-        // Запускаем обновление каждую секунду для плавности курсора
         setInterval(updateDashboard, 1000);
-        updateDashboard(); // Первичный вызов
+        updateDashboard();
     </script>
 </body>
 </html>
