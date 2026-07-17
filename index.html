@@ -111,7 +111,7 @@
             padding-bottom: 15px;
         }
         
-        /* ТАЙМЛАЙН НЕДЕЛИ (5 ЭТАПОВ) */
+        /* ТАЙМЛАЙН НЕДЕЛИ */
         .timeline-container {
             background: #f8f9fb;
             border-radius: 12px;
@@ -141,7 +141,8 @@
             height: 70px;
             background: #e5e7eb;
             border-radius: 35px;
-            overflow: visible;
+            /* ИСПРАВЛЕНИЕ 4: Обрезаем всё лишнее по краям */
+            overflow: hidden; 
             display: flex;
         }
         
@@ -184,60 +185,69 @@
         }
         .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
         
-        /* Движущаяся точка - GLASS EFFECT */
+        /* ИСПРАВЛЕНИЕ 1: Улучшенный Glass-эффект точки */
         .timeline-cursor {
             position: absolute;
             top: 50%;
             left: 0%; 
             transform: translate(-50%, -50%);
-            width: 32px;
-            height: 32px;
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 2px solid rgba(255, 255, 255, 0.6);
+            width: 36px; /* Чуть крупнее для заметности */
+            height: 36px;
+            
+            /* Полупрозрачный белый фон + сильное размытие */
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            
+            /* Белая обводка для контраста */
+            border: 2px solid rgba(255, 255, 255, 0.8);
             border-radius: 50%;
             z-index: 10;
-            box-shadow: 0 4px 15px rgba(28, 13, 46, 0.3);
+            box-shadow: 0 4px 15px rgba(28, 13, 46, 0.4);
             transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
+        /* Внутренняя точка-акцент */
         .timeline-cursor::after {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background: #E33D78;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(227, 61, 120, 0.8);
+            box-shadow: 0 0 10px rgba(227, 61, 120, 0.9);
         }
 
-        /* Маячок дедлайна 17-го числа */
+        /* ИСПРАВЛЕНИЕ 2 и 3: Маячок дедлайна 17-го числа */
         .deadline-marker {
             position: absolute;
-            top: -10px;
-            bottom: -10px;
+            top: -15px; /* Поднимаем выше трека */
+            bottom: -15px;
             width: 2px;
+            /* Пунктирная линия темного цвета */
             background: repeating-linear-gradient(to bottom, #1C0D2E 0, #1C0D2E 6px, transparent 6px, transparent 12px);
             z-index: 5;
-            opacity: 0.8;
+            opacity: 0.9;
             transition: left 0.5s ease;
             pointer-events: none;
         }
         .deadline-marker-label {
             position: absolute;
-            top: -25px;
+            top: -32px; /* Плашка над линией */
             left: 50%;
             transform: translateX(-50%);
             background: #1C0D2E;
             color: white;
-            font-size: 0.7em;
-            padding: 2px 8px;
-            border-radius: 10px;
+            font-size: 0.75em;
+            padding: 4px 10px;
+            border-radius: 12px;
             white-space: nowrap;
             font-family: 'Forum', serif;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(28, 13, 46, 0.3);
         }
 
         /* Сетки колонок */
@@ -355,7 +365,7 @@
         .regulation-link:hover { color: #7D3673; gap: 12px; }
         .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
         
-        /* ТАЙМЕР КОММЕРЧЕСКОЙ ДЕЯТЕЛЬНОСТИ (ВОЗВРАЩЕННЫЕ СТИЛИ) */
+        /* Таймер коммерческой деятельности */
         .timers-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -443,7 +453,7 @@
                 <div class="marquee-content">
                     <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
-                    <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
                 </div>
                 <div class="marquee-content">
@@ -508,7 +518,7 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <!-- Интерактивный таймлайн недели (5 этапов + маячок 17-го) -->
+            <!-- Интерактивный таймлайн недели -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
@@ -517,7 +527,7 @@
                 <div class="timeline-track">
                     <!-- Маячок дедлайна 17-го числа -->
                     <div class="deadline-marker" id="deadline-17th-marker" style="display: none;">
-                        <div class="deadline-marker-label">17-е число</div>
+                        <div class="deadline-marker-label">Формирование потребности (17-е)</div>
                     </div>
                     
                     <div class="timeline-stage" id="stage-1">
@@ -611,7 +621,6 @@
         <div class="block">
             <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
             
-            <!-- Таймер плана продаж (стили возвращены!) -->
             <div class="timers-container">
                 <div class="timer-card" id="timer-card-sales">
                     <div class="timer-title">💰 Формирование плана продаж</div>
@@ -685,7 +694,7 @@
             } else if (day === 2 || day === 3) {
                 stages[0].classList.add('passed');
                 stages[1].classList.add('active');
-                statusMessage = " Согласование заявки с поставщиком";
+                statusMessage = "🔵 Согласование заявки с поставщиком";
             } else if (day === 4) {
                 stages[0].classList.add('passed');
                 stages[1].classList.add('passed');
@@ -696,7 +705,7 @@
                 stages[1].classList.add('passed');
                 stages[2].classList.add('passed');
                 stages[3].classList.add('active');
-                statusMessage = " Резервный день";
+                statusMessage = "⚪ Резервный день";
             } else {
                 stages[0].classList.add('passed');
                 stages[1].classList.add('passed');
@@ -709,21 +718,26 @@
 
             // === МАЯЧОК 17-ГО ЧИСЛА НА ТАЙМЛАЙНЕ ===
             const marker = document.getElementById('deadline-17th-marker');
+            
             // Определяем дату понедельника текущей недели
             const monday = new Date(now);
             monday.setDate(now.getDate() - (currentDayNum - 1));
+            
             // Дата 17-го числа текущего месяца
             const deadline17 = new Date(year, month, 17);
             
-            // Если 17-е попадает в текущую неделю (между понедельником и воскресеньем)
+            // Проверяем, попадает ли 17-е в текущую неделю (между Пн и Вс)
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
             
             if (deadline17 >= monday && deadline17 <= sunday) {
                 marker.style.display = 'block';
                 // Вычисляем позицию 17-го относительно начала недели (0-100%)
+                // Разница в миллисекундах между 17-м и понедельником
                 const diffMs = deadline17.getTime() - monday.getTime();
+                // Переводим в дни (с дробной частью, чтобы учесть время суток)
                 const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                // Переводим в проценты ширины трека
                 const markerPos = (diffDays / 7) * 100;
                 marker.style.left = `${markerPos}%`;
             } else {
