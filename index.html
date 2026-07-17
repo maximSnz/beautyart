@@ -64,7 +64,7 @@
         /* ТАЙМЛАЙН НЕДЕЛИ */
         .timeline-container {
             background: #f8f9fb; border-radius: 12px; padding: 25px 20px;
-            margin-bottom: 20px; border: 2px solid rgba(84, 66, 115, 0.2);
+            margin-bottom: 30px; border: 2px solid rgba(84, 66, 115, 0.2);
         }
         .timeline-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -98,7 +98,7 @@
 
         /* Стили для динамической подписи 17-го числа */
         .deadline-alert {
-            display: none; /* Скрыто по умолчанию */
+            display: none;
             margin-top: 6px;
             font-weight: 700;
             color: #1C0D2E;
@@ -106,31 +106,15 @@
             text-shadow: 0 0 10px rgba(227, 61, 120, 0.6);
             animation: blink 1.5s infinite alternate;
         }
-        /* Показываем алерт внутри активного этапа четного дня (когда идет корректировка) */
+        /* Показываем алерт внутри активного этапа */
         .timeline-stage.active .deadline-alert {
             display: block;
-            color: white; /* На активном фоне текст белый */
+            color: white;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         @keyframes blink {
             from { opacity: 0.7; transform: scale(0.98); }
             to { opacity: 1; transform: scale(1.02); }
-        }
-
-        /* ОТДЕЛЬНЫЙ ТАЙМЕР ДО 17-ГО ЧИСЛА */
-        .deadline-timer-card {
-            background: linear-gradient(135deg, #544273 0%, #7D3673 100%);
-            color: white; padding: 15px 20px; border-radius: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 15px rgba(84, 66, 115, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        .deadline-timer-info { font-family: 'Forum', serif; }
-        .deadline-timer-title { font-size: 1.1em; font-weight: 600; margin-bottom: 4px; }
-        .deadline-timer-desc { font-size: 0.85em; opacity: 0.9; }
-        .deadline-timer-value {
-            font-size: 1.8em; font-weight: 400; font-variant-numeric: tabular-nums;
-            font-family: 'Forum', serif; text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         /* Сетки */
@@ -145,7 +129,6 @@
             .four-columns, .three-columns, .two-columns { grid-template-columns: 1fr; }
             .timeline-stage { font-size: 0.7em; }
             .timeline-stage strong { font-size: 0.9em; }
-            .deadline-timer-card { flex-direction: column; text-align: center; gap: 10px; }
         }
         
         .column {
@@ -311,17 +294,19 @@
                 <div class="timeline-track">
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>Формирование<br>заявки
+                        <div class="deadline-alert" id="alert-stage-1">Формирование потребности</div>
                     </div>
                     <div class="timeline-stage" id="stage-2">
                         <strong>Вт-Ср</strong>Согласование<br>с поставщиком
+                        <div class="deadline-alert" id="alert-stage-2">Формирование потребности</div>
                     </div>
                     <div class="timeline-stage" id="stage-3">
                         <strong>Чт</strong>Корректировка в т.ч.<br>с учетом наполняемости паллет
-                        <!-- Динамическая подпись для 17-го числа -->
-                        <div class="deadline-alert" id="day-17-alert">Формирование потребности</div>
+                        <div class="deadline-alert" id="alert-stage-3">Формирование потребности</div>
                     </div>
                     <div class="timeline-stage" id="stage-4">
                         <strong>Пт</strong>Резерв
+                        <div class="deadline-alert" id="alert-stage-4">Формирование потребности</div>
                     </div>
                     <div class="timeline-stage" id="stage-5">
                         <strong>Сб-Вс</strong>Выходные
@@ -329,16 +314,7 @@
                 </div>
             </div>
 
-            <!-- Отдельный таймер до 17-го числа -->
-            <div class="deadline-timer-card">
-                <div class="deadline-timer-info">
-                    <div class="deadline-timer-title">📅 Формирование потребности</div>
-                    <div class="deadline-timer-desc">Дедлайн: 17-е число каждого месяца, 12:00</div>
-                </div>
-                <div class="deadline-timer-value" id="timer-17th">--д --ч --м --с</div>
-            </div>
-
-            <div style="margin-top: 30px;" class="three-columns">
+            <div class="three-columns">
                 <div class="column">
                     <div class="column-title">Управление закупками</div>
                     <div class="column-items">
@@ -435,31 +411,31 @@
                 document.getElementById('stage-5')
             ];
             const statusText = document.getElementById('current-week-status');
-            const alert17 = document.getElementById('day-17-alert');
             
+            // Скрываем все алерты перед проверкой
+            for(let i=1; i<=4; i++) {
+                const alertEl = document.getElementById(`alert-stage-${i}`);
+                if(alertEl) alertEl.style.display = 'none';
+            }
+
             stages.forEach(el => el && el.classList.remove('active', 'passed'));
 
             let statusMessage = "";
-            if (day === 1) { stages[0].classList.add('active'); statusMessage = "🟢 Формирование еженедельной заявки"; }
-            else if (day === 2 || day === 3) { stages[0].classList.add('passed'); stages[1].classList.add('active'); statusMessage = "🔵 Согласование заявки с поставщиком"; }
-            else if (day === 4) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active'); statusMessage = "🟣 Корректировка в т.ч. с учетом наполняемости паллет"; }
-            else if (day === 5) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active'); statusMessage = "⚪ Резервный день"; }
-            else { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('passed'); stages[4].classList.add('active'); statusMessage = "🌙 Выходные дни"; }
+            let activeStageIndex = -1;
+
+            if (day === 1) { stages[0].classList.add('active'); statusMessage = " Формирование еженедельной заявки"; activeStageIndex = 0; }
+            else if (day === 2 || day === 3) { stages[0].classList.add('passed'); stages[1].classList.add('active'); statusMessage = " Согласование заявки с поставщиком"; activeStageIndex = 1; }
+            else if (day === 4) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active'); statusMessage = " Корректировка в т.ч. с учетом наполняемости паллет"; activeStageIndex = 2; }
+            else if (day === 5) { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active'); statusMessage = "⚪ Резервный день"; activeStageIndex = 3; }
+            else { stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('passed'); stages[4].classList.add('active'); statusMessage = "🌙 Выходные дни"; activeStageIndex = 4; }
             
             if (statusText) statusText.textContent = statusMessage;
 
             // Логика отображения алерта 17-го числа
-            // Показываем только если сегодня 17-е И этот этап активен (Четверг)
-            if (date === 17 && day === 4) {
-                alert17.style.display = 'block';
-            } else {
-                alert17.style.display = 'none';
-            }
-
-            // === ТАЙМЕР ДО 17-ГО ЧИСЛА ===
-            let next17th = new Date(year, month, 17, 12, 0, 0);
-            if (date > 17 || (date === 17 && hour >= 12)) {
-                next17th.setMonth(next17th.getMonth() + 1);
+            // Показываем только если сегодня 17-е И этот этап является рабочим (Пн-Пт)
+            if (date === 17 && activeStageIndex >= 0 && activeStageIndex <= 3) {
+                const alertEl = document.getElementById(`alert-stage-${activeStageIndex + 1}`);
+                if (alertEl) alertEl.style.display = 'block';
             }
 
             // === ТАЙМЕР ПЛАНА ПРОДАЖ (15-е число) ===
@@ -483,10 +459,6 @@
                        now.getMonth() === target.getMonth() && 
                        now.getFullYear() === target.getFullYear();
             }
-
-            // Обновление таймера 17-го
-            const timer17Val = document.getElementById('timer-17th');
-            if (timer17Val) timer17Val.textContent = getTimeDiff(next17th);
 
             // Обновление таймера продаж
             const salesTimerVal = document.getElementById('timer-sales');
