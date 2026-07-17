@@ -43,7 +43,7 @@
             letter-spacing: 2px;
         }
         
-        /* Бегущая строка (теперь над заголовком H1) */
+        /* Бегущая строка */
         .marquee-wrapper {
             overflow: hidden;
             background: rgba(255, 255, 255, 0.15);
@@ -59,9 +59,7 @@
             width: max-content;
             animation: scroll 28s linear infinite;
         }
-        .marquee-track:hover {
-            animation-play-state: paused;
-        }
+        .marquee-track:hover { animation-play-state: paused; }
         .marquee-content {
             display: flex;
             align-items: center;
@@ -113,78 +111,81 @@
             padding-bottom: 15px;
         }
         
-        /* Таймеры */
-        .timers-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .timer-card {
-            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
-            color: white;
-            padding: 20px;
+        /* ТАЙМЛАЙН НЕДЕЛИ */
+        .timeline-container {
+            background: #f8f9fb;
             border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.3);
+            padding: 25px 20px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(84, 66, 115, 0.2);
             position: relative;
-            overflow: hidden;
-            transition: background 0.5s ease;
-            border: 2px solid rgba(125, 54, 115, 0.3);
         }
-        .timer-card::before {
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-family: 'Forum', serif;
+            color: #544273;
+            font-size: 1.1em;
+        }
+        .timeline-track {
+            position: relative;
+            height: 60px;
+            background: #e5e7eb;
+            border-radius: 30px;
+            overflow: hidden;
+            display: flex;
+        }
+        .timeline-stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            color: #6b7280;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+            padding: 0 10px;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .timeline-stage.active {
+            color: white;
+            font-weight: 600;
+            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
+            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.3);
+        }
+        .timeline-stage.passed {
+            background: rgba(120, 166, 199, 0.3);
+            color: #544273;
+        }
+        
+        /* Движущаяся точка */
+        .timeline-cursor {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            background: white;
+            border: 4px solid #E33D78;
+            border-radius: 50%;
+            z-index: 3;
+            box-shadow: 0 4px 12px rgba(227, 61, 120, 0.5);
+            transition: left 1s linear;
+        }
+        .timeline-cursor::after {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
-            animation: pulse 4s infinite ease-in-out;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        
-        /* Красный градиент для дня дедлайна */
-        .timer-card.urgent {
-            background: linear-gradient(135deg, #E33D78 0%, #7D3673 100%);
-            box-shadow: 0 4px 20px rgba(227, 61, 120, 0.6);
-        }
-        .timer-card.urgent::before {
-            animation: pulse-urgent 2s infinite ease-in-out;
-        }
-        @keyframes pulse-urgent {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.15); opacity: 1; }
-        }
-        
-        .timer-title {
-            font-size: 0.95em;
-            opacity: 0.95;
-            margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
-            font-weight: 400;
-            font-family: 'Forum', serif;
-        }
-        .timer-value {
-            font-size: 2em;
-            font-weight: 400;
-            font-variant-numeric: tabular-nums;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            font-family: 'Forum', serif;
-        }
-        .timer-label {
-            font-size: 0.8em;
-            opacity: 0.85;
-            margin-top: 5px;
-            position: relative;
-            z-index: 1;
-            font-family: 'Forum', serif;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: #E33D78;
+            border-radius: 50%;
         }
 
         /* Сетки колонок */
@@ -200,6 +201,7 @@
         }
         @media (max-width: 900px) {
             .three-columns, .two-columns { grid-template-columns: 1fr; }
+            .timeline-stage { font-size: 0.7em; }
         }
         
         .column {
@@ -255,16 +257,13 @@
             font-family: 'Forum', serif;
         }
         
-        /* Неактивная кнопка */
         .table-card.disabled {
             background: #f0f0f0;
             cursor: not-allowed;
             opacity: 0.6;
             pointer-events: none;
         }
-        .table-card.disabled h3 {
-            color: #999;
-        }
+        .table-card.disabled h3 { color: #999; }
         .badge-soon {
             display: inline-block;
             background: #E33D78;
@@ -277,7 +276,6 @@
             font-family: 'Forum', serif;
         }
         
-        /* Ссылка на регламент */
         .regulation-link {
             margin-top: auto;
             padding-top: 15px;
@@ -292,40 +290,33 @@
             font-weight: 400;
             font-family: 'Forum', serif;
         }
-        .regulation-link:hover {
-            color: #7D3673;
-            gap: 12px;
-        }
-        .regulation-link.disabled {
-            color: #94a3b8;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
+        .regulation-link:hover { color: #7D3673; gap: 12px; }
+        .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
         
         .icon { font-size: 1.5em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Логотип и название компании - Glass эффект -->
+        <!-- Логотип и название -->
         <div class="header">
             <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
             <div class="company-name">Beauty Art</div>
         </div>
         
-        <!-- Бегущая строка с целями (теперь НАД заголовком) -->
+        <!-- Бегущая строка -->
         <div class="marquee-wrapper">
             <div class="marquee-track">
                 <div class="marquee-content">
                     <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
-                    <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
                 </div>
                 <div class="marquee-content">
-                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span> Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
-                    <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
                 </div>
             </div>
@@ -333,12 +324,10 @@
 
         <h1>Панель управления компанией</h1>
         
-        <!-- Блок 1: Управление компанией (теперь с 3 подблоками) -->
+        <!-- Блок 1: Управление компанией -->
         <div class="block">
             <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
             <div class="three-columns">
-                
-                <!-- Подблок 1: Стратегическое планирование -->
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
                     <div class="column-items">
@@ -352,8 +341,6 @@
                         </a>
                     </div>
                 </div>
-                
-                <!-- Подблок 2: Управление финансами -->
                 <div class="column">
                     <div class="column-title">Управление финансами</div>
                     <div class="column-items">
@@ -363,8 +350,6 @@
                         </a>
                     </div>
                 </div>
-                
-                <!-- Подблок 3: Контроль качества процессов -->
                 <div class="column">
                     <div class="column-title">Контроль качества процессов</div>
                     <div class="column-items">
@@ -374,24 +359,24 @@
                         </a>
                     </div>
                 </div>
-                
             </div>
         </div>
 
         <!-- Блок 2: Логистика и доставка -->
         <div class="block">
-            <div class="block-title"><span class="icon"></span> Логистика и доставка</div>
+            <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <div class="timers-container">
-                <div class="timer-card" id="timer-card-weekly">
-                    <div class="timer-title">📦 Формирование еженедельной заявки</div>
-                    <div class="timer-value" id="timer-weekly">--д --ч --м --с</div>
-                    <div class="timer-label">Дедлайн: понедельник, 12:00</div>
+            <!-- Интерактивный таймлайн недели -->
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <span>Текущий статус недели:</span>
+                    <span id="current-week-status">Загрузка...</span>
                 </div>
-                <div class="timer-card" id="timer-card-monthly">
-                    <div class="timer-title">📈 Формирование потребности</div>
-                    <div class="timer-value" id="timer-monthly">--д --ч --м --с</div>
-                    <div class="timer-label">Дедлайн: 17-е число месяца, 12:00</div>
+                <div class="timeline-track">
+                    <div class="timeline-stage" id="stage-1">Пн-Вт<br>Формирование заявки</div>
+                    <div class="timeline-stage" id="stage-2">Ср-Чт<br>Согласование с поставщиком</div>
+                    <div class="timeline-stage" id="stage-3">Пт-Вс<br>Выходные / Резерв</div>
+                    <div class="timeline-cursor" id="week-cursor"></div>
                 </div>
             </div>
 
@@ -412,7 +397,7 @@
                             <p>Заявки на закупку и контроль реализации потребности</p>
                         </a>
                         <div class="regulation-link disabled">
-                             Регламент (в разработке)
+                             📄 Регламент (в разработке)
                         </div>
                     </div>
                 </div>
@@ -450,7 +435,7 @@
                             <p>Расчёт для Ozon (ООО)</p>
                         </a>
                         <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">
-                            📄 Регламент
+                             Регламент
                         </a>
                     </div>
                 </div>
@@ -497,26 +482,61 @@
         </div>
     </div>
 
-    <!-- Скрипт для динамических таймеров -->
+    <!-- Скрипт для таймлайна и таймера -->
     <script>
-        function updateTimers() {
+        function updateDashboard() {
             const now = new Date();
-
-            let nextMonday = new Date(now);
-            const day = now.getDay();
-            const daysUntilMonday = (1 + 7 - day) % 7;
-            nextMonday.setDate(now.getDate() + daysUntilMonday);
+            const day = now.getDay(); // 0=Вс, 1=Пн, ..., 6=Сб
+            const hour = now.getHours();
+            const minute = now.getMinutes();
             
-            if (day === 1 && now.getHours() >= 12) {
-                nextMonday.setDate(nextMonday.getDate() + 7);
-            }
-            nextMonday.setHours(12, 0, 0, 0);
+            // Расчет прогресса недели (0% = начало понедельника, 100% = конец воскресенья)
+            // Понедельник = 1, Воскресенье = 0 (но для расчета считаем его 7)
+            const currentDayNum = day === 0 ? 7 : day;
+            const totalMinutesInWeek = 7 * 24 * 60;
+            const currentMinutes = ((currentDayNum - 1) * 24 * 60) + (hour * 60) + minute;
+            const weekProgress = (currentMinutes / totalMinutesInWeek) * 100;
 
-            let next17th = new Date(now.getFullYear(), now.getMonth(), 17, 12, 0, 0);
-            if (now.getDate() > 17 || (now.getDate() === 17 && now.getHours() >= 12)) {
-                next17th.setMonth(next17th.getMonth() + 1);
+            // Обновление позиции курсора
+            const cursor = document.getElementById('week-cursor');
+            if (cursor) {
+                cursor.style.left = `${weekProgress}%`;
             }
 
+            // Обновление статусов этапов
+            const stage1 = document.getElementById('stage-1'); // Пн-Вт
+            const stage2 = document.getElementById('stage-2'); // Ср-Чт
+            const stage3 = document.getElementById('stage-3'); // Пт-Вс
+            const statusText = document.getElementById('current-week-status');
+
+            // Сброс классов
+            [stage1, stage2, stage3].forEach(el => {
+                el.classList.remove('active', 'passed');
+            });
+
+            let statusMessage = "";
+
+            // Логика определения активного этапа
+            if (day >= 1 && day <= 2) { 
+                // Понедельник или Вторник
+                stage1.classList.add('active');
+                statusMessage = "🟢 Формирование еженедельной заявки";
+            } else if (day >= 3 && day <= 4) {
+                // Среда или Четверг
+                stage1.classList.add('passed');
+                stage2.classList.add('active');
+                statusMessage = "🔵 Согласование заявки с поставщиком";
+            } else {
+                // Пятница, Суббота, Воскресенье
+                stage1.classList.add('passed');
+                stage2.classList.add('passed');
+                // stage3 остается нейтральным или можно добавить класс 'passed' если нужно
+                statusMessage = "⚪ Процессы отсутствуют / Выходные";
+            }
+
+            if (statusText) statusText.textContent = statusMessage;
+
+            // --- ОСТАВЛЯЕМ СТАРЫЙ ТАЙМЕР ДЛЯ ПЛАНА ПРОДАЖ (15-е число) ---
             let next15th = new Date(now.getFullYear(), now.getMonth(), 15, 12, 0, 0);
             if (now.getDate() > 15 || (now.getDate() === 15 && now.getHours() >= 12)) {
                 next15th.setMonth(next15th.getMonth() + 1);
@@ -538,21 +558,16 @@
                        now.getFullYear() === target.getFullYear();
             }
 
-            document.getElementById('timer-weekly').textContent = getTimeDiff(nextMonday);
-            document.getElementById('timer-monthly').textContent = getTimeDiff(next17th);
-            document.getElementById('timer-sales').textContent = getTimeDiff(next15th);
-
-            const weeklyCard = document.getElementById('timer-card-weekly');
-            const monthlyCard = document.getElementById('timer-card-monthly');
+            const salesTimerVal = document.getElementById('timer-sales');
             const salesCard = document.getElementById('timer-card-sales');
             
-            weeklyCard.classList.toggle('urgent', isDeadlineDay(nextMonday));
-            monthlyCard.classList.toggle('urgent', isDeadlineDay(next17th));
-            salesCard.classList.toggle('urgent', isDeadlineDay(next15th));
+            if (salesTimerVal) salesTimerVal.textContent = getTimeDiff(next15th);
+            if (salesCard) salesCard.classList.toggle('urgent', isDeadlineDay(next15th));
         }
 
-        setInterval(updateTimers, 1000);
-        updateTimers();
+        // Запускаем обновление каждую секунду для плавности курсора
+        setInterval(updateDashboard, 1000);
+        updateDashboard(); // Первичный вызов
     </script>
 </body>
 </html>
