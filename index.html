@@ -154,18 +154,17 @@
                 padding-bottom: 15px; 
                 scroll-snap-type: x mandatory;
                 -webkit-overflow-scrolling: touch;
-                /* Убираем лишние отступы по бокам у самого контейнера скролла */
                 margin-left: -15px;
                 margin-right: -15px;
                 padding-left: 15px;
                 padding-right: 15px;
             }
             
-            /* ИСПРАВЛЕНИЕ 1: Карточки теперь точно влезают в экран */
+            /* Карточки точно влезают в экран */
             .four-columns > .column, 
             .three-columns > .column, 
             .two-columns > .column {
-                min-width: calc(100vw - 70px); /* 100% ширины экрана минус отступы блока */
+                min-width: calc(100vw - 70px);
                 max-width: calc(100vw - 70px);
                 scroll-snap-align: center;
                 flex-shrink: 0;
@@ -272,7 +271,7 @@
         <div class="marquee-wrapper">
             <div class="marquee-track">
                 <div class="marquee-content">
-                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span> Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
                     <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
@@ -290,7 +289,7 @@
         
         <!-- Блок 1: Управление компанией -->
         <div class="block">
-            <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
+            <div class="block-title"><span class="icon"></span> Управление компанией</div>
             <div class="four-columns">
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
@@ -333,7 +332,8 @@
 
         <!-- Блок 2: Логистика -->
         <div class="block">
-            <div class="block-title"><span class="icon"></span> Логистика и доставка</div>
+            <!-- ИСПРАВЛЕНИЕ: Вернул смайлик 🚚 -->
+            <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
             <!-- Десктопный таймлайн -->
             <div class="timeline-container">
@@ -342,7 +342,6 @@
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
                 <div class="timeline-track">
-                    <!-- ИСПРАВЛЕНИЕ 2: Добавлено слово "заявки" в названия -->
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>Формирование<br>заявки
                         <div class="deadline-alert" id="alert-stage-1">Формирование потребности</div>
