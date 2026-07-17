@@ -111,10 +111,9 @@
             to { opacity: 1; transform: scale(1.02); }
         }
 
-        /* МОБИЛЬНЫЙ ТАЙМЛАЙН (скрыт на десктопе) */
+        /* МОБИЛЬНЫЙ ТАЙМЛАЙН */
         .mobile-timeline-card {
-            display: none; /* Скрыто по умолчанию */
-            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
+            display: none; background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
             color: white; padding: 25px 20px; border-radius: 16px;
             text-align: center; margin-bottom: 30px;
             box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4);
@@ -123,37 +122,56 @@
         }
         .mobile-timeline-day {
             font-size: 1.4em; font-weight: 700; margin-bottom: 10px;
-            font-family: 'Forum', serif; text-transform: uppercase;
-            letter-spacing: 2px;
+            font-family: 'Forum', serif; text-transform: uppercase; letter-spacing: 2px;
         }
-        .mobile-timeline-task {
-            font-size: 1.1em; line-height: 1.4; font-family: 'Forum', serif;
-        }
+        .mobile-timeline-task { font-size: 1.1em; line-height: 1.4; font-family: 'Forum', serif; }
         .mobile-timeline-alert {
             display: none; margin-top: 15px; padding-top: 15px;
             border-top: 2px solid rgba(255,255,255,0.3);
-            font-weight: 700; font-size: 1.2em;
-            animation: blink 1.5s infinite alternate;
+            font-weight: 700; font-size: 1.2em; animation: blink 1.5s infinite alternate;
         }
         @keyframes mobile-pulse {
             0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); }
             50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); }
         }
 
-        /* Сетки */
+        /* СЕТКИ И АДАПТИВНОСТЬ */
         .four-columns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         .three-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .two-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        
         @media (max-width: 1000px) {
             .four-columns { grid-template-columns: repeat(2, 1fr); }
             .three-columns { grid-template-columns: repeat(2, 1fr); }
         }
+        
         @media (max-width: 600px) {
-            .four-columns, .three-columns, .two-columns { grid-template-columns: 1fr; }
+            /* Горизонтальный скролл для блоков с колонками на мобильных */
+            .four-columns, .three-columns, .two-columns { 
+                display: flex; 
+                overflow-x: auto; 
+                gap: 15px; 
+                padding-bottom: 15px; 
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+            }
             
-            /* На мобильных скрываем десктопный таймлайн и показываем мобильную карточку */
+            /* Каждая колонка занимает почти весь экран по ширине */
+            .four-columns > .column, 
+            .three-columns > .column, 
+            .two-columns > .column {
+                min-width: 85vw; /* Ширина карточки на телефоне */
+                scroll-snap-align: center;
+                flex-shrink: 0;
+            }
+
+            /* Скрываем десктопный таймлайн, показываем мобильный */
             .timeline-container { display: none; }
             .mobile-timeline-card { display: block; }
+            
+            /* Убираем лишние отступы у заголовков блоков на мобилке */
+            .block { padding: 20px 15px; }
+            .block-title { font-size: 1.5em; margin-bottom: 15px; }
         }
         
         .column {
@@ -255,7 +273,7 @@
                     <span class="marquee-separator">•</span>
                 </div>
                 <div class="marquee-content">
-                    <span> Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
                     <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
@@ -265,8 +283,10 @@
 
         <h1>Панель управления компанией</h1>
         
+        <!-- Блок 1: Управление компанией -->
         <div class="block">
-            <div class="block-title"><span class="icon"></span> Управление компанией</div>
+            <!-- ИСПРАВЛЕНИЕ 1: Вернул смайлик -->
+            <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
             <div class="four-columns">
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
@@ -307,10 +327,11 @@
             </div>
         </div>
 
+        <!-- Блок 2: Логистика -->
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <!-- ДЕСКТОПНЫЙ ТАЙМЛАЙН (виден только на больших экранах) -->
+            <!-- Десктопный таймлайн -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
@@ -339,11 +360,11 @@
                 </div>
             </div>
 
-            <!-- МОБИЛЬНАЯ КАРТОЧКА (видна только на телефонах) -->
+            <!-- Мобильная карточка текущего этапа -->
             <div class="mobile-timeline-card" id="mobile-timeline">
                 <div class="mobile-timeline-day" id="mobile-day">--</div>
                 <div class="mobile-timeline-task" id="mobile-task">--</div>
-                <div class="mobile-timeline-alert" id="mobile-alert">🔔 ФОРМИРОВАНИЕ ПОТРЕБНОСТИ</div>
+                <div class="mobile-timeline-alert" id="mobile-alert"> ФОРМИРОВАНИЕ ПОТРЕБНОСТИ</div>
             </div>
 
             <div class="three-columns">
@@ -393,6 +414,7 @@
             </div>
         </div>
 
+        <!-- Блок 3: Коммерция -->
         <div class="block">
             <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
             <div class="timers-container">
@@ -484,7 +506,7 @@
             } else if (day === 5) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
                 stages[2].classList.add('passed'); stages[3].classList.add('active'); 
-                statusMessage = "⚪ Резервный день"; 
+                statusMessage = " Резервный день"; 
                 activeStageIndex = 3;
                 dayName = "ПЯТНИЦА";
                 taskName = "Резервный день";
@@ -504,14 +526,12 @@
             if (mobileDay) mobileDay.textContent = dayName;
             if (mobileTask) mobileTask.textContent = taskName;
 
-            // Логика отображения алерта 17-го числа (и в десктопе, и в мобилке)
+            // Логика отображения алерта 17-го числа
             const isDeadline17 = (date === 17 && activeStageIndex >= 0 && activeStageIndex <= 3);
             
             if (isDeadline17) {
-                // Десктопный алерт
                 const alertEl = document.getElementById(`alert-stage-${activeStageIndex + 1}`);
                 if (alertEl) alertEl.style.display = 'block';
-                // Мобильный алерт
                 if (mobileAlert) mobileAlert.style.display = 'block';
             } else {
                 if (mobileAlert) mobileAlert.style.display = 'none';
@@ -539,7 +559,6 @@
                        now.getFullYear() === target.getFullYear();
             }
 
-            // Обновление таймера продаж
             const salesTimerVal = document.getElementById('timer-sales');
             const salesCard = document.getElementById('timer-card-sales');
             if (salesTimerVal) salesTimerVal.textContent = getTimeDiff(next15th);
