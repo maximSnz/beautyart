@@ -111,7 +111,7 @@
             padding-bottom: 15px;
         }
         
-        /* ТАЙМЛАЙН НЕДЕЛИ */
+        /* ТАЙМЛАЙН НЕДЕЛИ (5 ЭТАПОВ) */
         .timeline-container {
             background: #f8f9fb;
             border-radius: 12px;
@@ -123,58 +123,81 @@
         .timeline-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
+            align-items: center;
+            margin-bottom: 20px;
             font-family: 'Forum', serif;
             color: #544273;
-            font-size: 1.1em;
+            font-size: 1.2em;
+            font-weight: 600;
         }
+        .timeline-status-text {
+            color: #E33D78;
+            font-size: 1em;
+            font-weight: 400;
+        }
+        
         .timeline-track {
             position: relative;
-            height: 60px;
+            height: 70px;
             background: #e5e7eb;
-            border-radius: 30px;
+            border-radius: 35px;
             overflow: hidden;
             display: flex;
         }
+        
         .timeline-stage {
             flex: 1;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 0.85em;
             color: #6b7280;
             position: relative;
             z-index: 2;
-            transition: all 0.3s ease;
-            padding: 0 10px;
+            transition: all 0.4s ease;
+            padding: 0 5px;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.3;
+            border-right: 1px solid rgba(255,255,255,0.3);
         }
-        .timeline-stage.active {
-            color: white;
-            font-weight: 600;
-            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
-            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.3);
-        }
-        .timeline-stage.passed {
-            background: rgba(120, 166, 199, 0.3);
+        .timeline-stage:last-child { border-right: none; }
+        
+        .timeline-stage strong {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 4px;
             color: #544273;
         }
+        
+        /* Состояния этапов */
+        .timeline-stage.active {
+            color: white;
+            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.2);
+        }
+        .timeline-stage.active strong { color: white; }
+        
+        .timeline-stage.passed {
+            background: rgba(120, 166, 199, 0.2);
+            color: #544273;
+        }
+        .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
         
         /* Движущаяся точка */
         .timeline-cursor {
             position: absolute;
             top: 50%;
-            left: 0%;
+            left: 0%; /* Будет меняться через JS */
             transform: translate(-50%, -50%);
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             background: white;
             border: 4px solid #E33D78;
             border-radius: 50%;
-            z-index: 3;
-            box-shadow: 0 4px 12px rgba(227, 61, 120, 0.5);
-            transition: left 1s linear;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(227, 61, 120, 0.6);
+            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* Плавная анимация движения */
         }
         .timeline-cursor::after {
             content: '';
@@ -182,8 +205,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background: #E33D78;
             border-radius: 50%;
         }
@@ -202,6 +225,7 @@
         @media (max-width: 900px) {
             .three-columns, .two-columns { grid-template-columns: 1fr; }
             .timeline-stage { font-size: 0.7em; }
+            .timeline-stage strong { font-size: 0.9em; }
         }
         
         .column {
@@ -366,16 +390,34 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <!-- Интерактивный таймлайн недели -->
+            <!-- Интерактивный таймлайн недели (5 этапов) -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
-                    <span id="current-week-status">Загрузка...</span>
+                    <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
                 <div class="timeline-track">
-                    <div class="timeline-stage" id="stage-1">Пн-Вт<br>Формирование заявки</div>
-                    <div class="timeline-stage" id="stage-2">Ср-Чт<br>Согласование с поставщиком</div>
-                    <div class="timeline-stage" id="stage-3">Пт-Вс<br>Выходные / Резерв</div>
+                    <div class="timeline-stage" id="stage-1">
+                        <strong>Пн</strong>
+                        Формирование<br>заявки
+                    </div>
+                    <div class="timeline-stage" id="stage-2">
+                        <strong>Вт-Ср</strong>
+                        Согласование<br>с поставщиком
+                    </div>
+                    <div class="timeline-stage" id="stage-3">
+                        <strong>Чт</strong>
+                        Корректировка<br>(паллеты)
+                    </div>
+                    <div class="timeline-stage" id="stage-4">
+                        <strong>Пт</strong>
+                        Резерв
+                    </div>
+                    <div class="timeline-stage" id="stage-5">
+                        <strong>Сб-Вс</strong>
+                        Выходные
+                    </div>
+                    <!-- Курсор движется поверх этапов -->
                     <div class="timeline-cursor" id="week-cursor"></div>
                 </div>
             </div>
@@ -435,7 +477,7 @@
                             <p>Расчёт для Ozon (ООО)</p>
                         </a>
                         <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">
-                             Регламент
+                             📄 Регламент
                         </a>
                     </div>
                 </div>
@@ -490,9 +532,8 @@
             const hour = now.getHours();
             const minute = now.getMinutes();
             
-            // Расчет прогресса недели (0% = начало понедельника, 100% = конец воскресенья)
-            // Понедельник = 1, Воскресенье = 0 (но для расчета считаем его 7)
-            const currentDayNum = day === 0 ? 7 : day;
+            // Расчет прогресса недели (0% = начало понедельника 00:00, 100% = конец воскресенья 23:59)
+            const currentDayNum = day === 0 ? 7 : day; // Вс=7 для удобства расчета
             const totalMinutesInWeek = 7 * 24 * 60;
             const currentMinutes = ((currentDayNum - 1) * 24 * 60) + (hour * 60) + minute;
             const weekProgress = (currentMinutes / totalMinutesInWeek) * 100;
@@ -503,40 +544,57 @@
                 cursor.style.left = `${weekProgress}%`;
             }
 
-            // Обновление статусов этапов
-            const stage1 = document.getElementById('stage-1'); // Пн-Вт
-            const stage2 = document.getElementById('stage-2'); // Ср-Чт
-            const stage3 = document.getElementById('stage-3'); // Пт-Вс
+            // Элементы этапов
+            const stages = [
+                document.getElementById('stage-1'), // Пн
+                document.getElementById('stage-2'), // Вт-Ср
+                document.getElementById('stage-3'), // Чт
+                document.getElementById('stage-4'), // Пт
+                document.getElementById('stage-5')  // Сб-Вс
+            ];
             const statusText = document.getElementById('current-week-status');
 
             // Сброс классов
-            [stage1, stage2, stage3].forEach(el => {
-                el.classList.remove('active', 'passed');
-            });
+            stages.forEach(el => el && el.classList.remove('active', 'passed'));
 
             let statusMessage = "";
 
             // Логика определения активного этапа
-            if (day >= 1 && day <= 2) { 
-                // Понедельник или Вторник
-                stage1.classList.add('active');
+            if (day === 1) { 
+                // Понедельник
+                stages[0].classList.add('active');
                 statusMessage = "🟢 Формирование еженедельной заявки";
-            } else if (day >= 3 && day <= 4) {
-                // Среда или Четверг
-                stage1.classList.add('passed');
-                stage2.classList.add('active');
+            } else if (day === 2 || day === 3) {
+                // Вторник или Среда
+                stages[0].classList.add('passed');
+                stages[1].classList.add('active');
                 statusMessage = "🔵 Согласование заявки с поставщиком";
+            } else if (day === 4) {
+                // Четверг
+                stages[0].classList.add('passed');
+                stages[1].classList.add('passed');
+                stages[2].classList.add('active');
+                statusMessage = "🟣 Корректировка заявки (наполняемость паллет)";
+            } else if (day === 5) {
+                // Пятница
+                stages[0].classList.add('passed');
+                stages[1].classList.add('passed');
+                stages[2].classList.add('passed');
+                stages[3].classList.add('active');
+                statusMessage = "⚪ Резервный день";
             } else {
-                // Пятница, Суббота, Воскресенье
-                stage1.classList.add('passed');
-                stage2.classList.add('passed');
-                // stage3 остается нейтральным или можно добавить класс 'passed' если нужно
-                statusMessage = "⚪ Процессы отсутствуют / Выходные";
+                // Суббота (6) или Воскресенье (0)
+                stages[0].classList.add('passed');
+                stages[1].classList.add('passed');
+                stages[2].classList.add('passed');
+                stages[3].classList.add('passed');
+                stages[4].classList.add('active'); // Можно сделать active или просто passed, но active покажет что мы "внутри" выходных
+                statusMessage = " Выходные дни";
             }
 
             if (statusText) statusText.textContent = statusMessage;
 
-            // --- ОСТАВЛЯЕМ СТАРЫЙ ТАЙМЕР ДЛЯ ПЛАНА ПРОДАЖ (15-е число) ---
+            // --- ТАЙМЕР ДЛЯ ПЛАНА ПРОДАЖ (15-е число) ---
             let next15th = new Date(now.getFullYear(), now.getMonth(), 15, 12, 0, 0);
             if (now.getDate() > 15 || (now.getDate() === 15 && now.getHours() >= 12)) {
                 next15th.setMonth(next15th.getMonth() + 1);
