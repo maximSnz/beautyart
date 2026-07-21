@@ -72,21 +72,13 @@
             font-size: 1.2em; font-weight: 600;
         }
         .timeline-status-text { color: #E33D78; font-size: 1em; font-weight: 400; }
-        .timeline-subheader {
-            font-size: 0.9em;
-            color: #6b7280;
-            margin-top: 12px;
-            margin-bottom: 8px;
-            font-family: 'Forum', serif;
-            font-weight: 600;
-        }
         
         .timeline-track {
             position: relative; height: 70px; background: #e5e7eb;
             border-radius: 35px; overflow: hidden; display: flex;
         }
         
-        /* Трек дат заявок — чуть ниже основного */
+        /* Трек дат заявок */
         .timeline-track-dates {
             height: 60px;
             margin-top: 10px;
@@ -360,8 +352,7 @@
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
                 
-                <!-- Основной таймлайн (этапы работы) -->
-                <div class="timeline-subheader">📋 Этапы работы с заявкой:</div>
+                <!-- Основной таймлайн (этапы работы) - БЕЗ подзаголовка -->
                 <div class="timeline-track">
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>Формирование<br>заявки
@@ -384,28 +375,27 @@
                     </div>
                 </div>
                 
-                <!-- Второй трек: ДАТЫ заявок -->
-                <div class="timeline-subheader">📅 Рабочие даты заявок:</div>
+                <!-- Второй трек: ДАТЫ заявок - БЕЗ подзаголовка -->
                 <div class="timeline-track timeline-track-dates">
                     <div class="timeline-stage" id="date-stage-1">
-                        <span class="timeline-date-label">Заявка на:</span>
-                        <span class="timeline-date" id="date-value-1">--.--</span>
+                        <span class="timeline-date-label">Работа с заявкой:</span>
+                        <span class="timeline-date" id="date-value-1">--.--.----</span>
                     </div>
                     <div class="timeline-stage" id="date-stage-2">
-                        <span class="timeline-date-label">Заявка на:</span>
-                        <span class="timeline-date" id="date-value-2">--.--</span>
+                        <span class="timeline-date-label">Работа с заявкой:</span>
+                        <span class="timeline-date" id="date-value-2">--.--.----</span>
                     </div>
                     <div class="timeline-stage" id="date-stage-3">
-                        <span class="timeline-date-label">Заявка на:</span>
-                        <span class="timeline-date" id="date-value-3">--.--</span>
+                        <span class="timeline-date-label">Работа с заявкой:</span>
+                        <span class="timeline-date" id="date-value-3">--.--.----</span>
                     </div>
                     <div class="timeline-stage" id="date-stage-4">
-                        <span class="timeline-date-label">Заявка на:</span>
-                        <span class="timeline-date" id="date-value-4">--.--</span>
+                        <span class="timeline-date-label">Работа с заявкой:</span>
+                        <span class="timeline-date" id="date-value-4">-</span>
                     </div>
                     <div class="timeline-stage" id="date-stage-5">
-                        <span class="timeline-date-label">Заявка на:</span>
-                        <span class="timeline-date" id="date-value-5">--.--</span>
+                        <span class="timeline-date-label">Работа с заявкой:</span>
+                        <span class="timeline-date" id="date-value-5">-</span>
                     </div>
                 </div>
             </div>
@@ -513,27 +503,17 @@
             const year = now.getFullYear();
             
             // === РАСЧЕТ ДАТ ЗАЯВОК ===
-            // Текущий понедельник (дата Пн текущей недели)
             const currentMonday = new Date(now);
             if (day === 0) {
-                // Воскресенье — отнимаем 6 дней
                 currentMonday.setDate(date - 6);
             } else {
-                // Пн-Сб: отнимаем (day - 1)
                 currentMonday.setDate(date - (day - 1));
             }
             
-            // Следующий понедельник (+7 дней к текущему)
             const nextMonday = new Date(currentMonday);
             nextMonday.setDate(currentMonday.getDate() + 7);
             
-            // Функция форматирования в DD.MM
-            const formatShort = (d) => {
-                const dd = String(d.getDate()).padStart(2, '0');
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                return `${dd}.${mm}`;
-            };
-            // Функция форматирования в DD.MM.YYYY
+            // Форматирование в DD.MM.YYYY (с годом)
             const formatFull = (d) => {
                 const dd = String(d.getDate()).padStart(2, '0');
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -541,22 +521,25 @@
                 return `${dd}.${mm}.${yyyy}`;
             };
             
-            // Рабочая дата:
-            // - В Пн работаем со СЛЕДУЮЩИМ Пн (формируем новую заявку)
-            // - Во Вт-Вс работаем с ТЕКУЩИМ Пн (заявка этой недели)
+            // Рабочая дата
             const workingDate = (day === 1) ? nextMonday : currentMonday;
             
-            // Заполняем даты в треке дат:
-            // - Пн (этап 1): следующая заявка = nextMonday
-            // - Вт-Вс (этапы 2-5): текущая заявка = currentMonday
-            document.getElementById('date-value-1').textContent = formatShort(nextMonday);
-            document.getElementById('date-value-2').textContent = formatShort(currentMonday);
-            document.getElementById('date-value-3').textContent = formatShort(currentMonday);
-            document.getElementById('date-value-4').textContent = formatShort(currentMonday);
-            document.getElementById('date-value-5').textContent = formatShort(currentMonday);
+            // Заполняем даты в треке дат (все с годом):
+            // - Пн (этап 1): следующая заявка
+            // - Вт-Чт (этапы 2-3): текущая заявка
+            // - Пт и Сб-Вс (этапы 4-5): "-" (не работаем с заявкой)
+            document.getElementById('date-value-1').textContent = formatFull(nextMonday);
+            document.getElementById('date-value-2').textContent = formatFull(currentMonday);
+            document.getElementById('date-value-3').textContent = formatFull(currentMonday);
+            document.getElementById('date-value-4').textContent = '-';
+            document.getElementById('date-value-5').textContent = '-';
             
-            // Мобильная версия
-            document.getElementById('mobile-work-date').textContent = formatFull(workingDate);
+            // Мобильная версия (показывает рабочую дату или "-" если выходные/пятница)
+            if (day === 5 || day === 6 || day === 0) {
+                document.getElementById('mobile-work-date').textContent = '-';
+            } else {
+                document.getElementById('mobile-work-date').textContent = formatFull(workingDate);
+            }
 
             // === ТАЙМЛАЙН НЕДЕЛИ ===
             const stages = [
