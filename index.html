@@ -61,7 +61,7 @@
             border-bottom: 3px solid #78A6C7; padding-bottom: 15px;
         }
         
-        /* === ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ (3 КОЛОНКИ ВИДИМО НА ДЕСКТОПЕ) === */
+        /* === УМНАЯ АДАПТИВНАЯ СЕТКА === */
         .scroll-container {
             display: flex;
             overflow-x: auto;
@@ -74,9 +74,15 @@
         }
         .scroll-container::-webkit-scrollbar { display: none; }
 
-        /* Ширина 370px: 3*370 + 2*20 = 1150px (влезает в 1160px контента) */
+        /* 
+           Ширина вычисляется динамически:
+           - На десктопе: (100% - 40px gaps) / 3, но не больше 380px
+           - Это гарантирует, что 3 колонки ВСЕГДА влезут без скролла
+           - Если элементов >3, остальные уходят в скролл
+        */
         .column {
-            flex: 0 0 370px;
+            flex: 0 0 calc((100% - 40px) / 3);
+            max-width: 380px;
             background: #f8f9fb; border-radius: 12px; padding: 20px;
             border: 2px solid rgba(84, 66, 115, 0.2); display: flex; flex-direction: column;
             scroll-snap-align: start;
@@ -113,7 +119,10 @@
         
         /* Мобильная адаптация */
         @media (max-width: 900px) {
-            .column { flex: 0 0 calc(100vw - 70px); }
+            .column { 
+                flex: 0 0 calc(100vw - 70px); 
+                max-width: none;
+            }
             .timeline-container { display: none; }
             .mobile-timeline-card { display: block; }
             .block { padding: 20px 15px; }
