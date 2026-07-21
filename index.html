@@ -111,6 +111,20 @@
             to { opacity: 1; transform: scale(1.02); }
         }
 
+        /* Блок рабочей даты заявки (Десктоп) */
+        .work-date-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 2px dashed #78A6C7;
+            text-align: center;
+            font-family: 'Forum', serif;
+            color: #544273;
+        }
+        .work-date-label { font-size: 0.9em; opacity: 0.8; margin-bottom: 5px; }
+        .work-date-value { font-size: 1.4em; font-weight: 700; color: #1C0D2E; }
+
         /* МОБИЛЬНЫЙ ТАЙМЛАЙН */
         .mobile-timeline-card {
             display: none; background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
@@ -130,6 +144,14 @@
             border-top: 2px solid rgba(255,255,255,0.3);
             font-weight: 700; font-size: 1.2em; animation: blink 1.5s infinite alternate;
         }
+        /* Рабочая дата на мобильном */
+        .mobile-work-date {
+            margin-top: 15px; padding-top: 15px;
+            border-top: 2px solid rgba(255,255,255,0.3);
+            font-size: 1em; opacity: 0.9;
+        }
+        .mobile-work-date strong { display: block; font-size: 1.3em; margin-top: 5px; }
+        
         @keyframes mobile-pulse {
             0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); }
             50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); }
@@ -146,34 +168,17 @@
         }
         
         @media (max-width: 600px) {
-            /* Горизонтальный скролл для блоков с колонками на мобильных */
             .four-columns, .three-columns, .two-columns { 
-                display: flex; 
-                overflow-x: auto; 
-                gap: 15px; 
-                padding-bottom: 15px; 
-                scroll-snap-type: x mandatory;
-                -webkit-overflow-scrolling: touch;
-                margin-left: -15px;
-                margin-right: -15px;
-                padding-left: 15px;
-                padding-right: 15px;
+                display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; 
+                scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+                margin-left: -15px; margin-right: -15px; padding-left: 15px; padding-right: 15px;
             }
-            
-            /* Карточки точно влезают в экран */
-            .four-columns > .column, 
-            .three-columns > .column, 
-            .two-columns > .column {
-                min-width: calc(100vw - 70px);
-                max-width: calc(100vw - 70px);
-                scroll-snap-align: center;
-                flex-shrink: 0;
+            .four-columns > .column, .three-columns > .column, .two-columns > .column {
+                min-width: calc(100vw - 70px); max-width: calc(100vw - 70px);
+                scroll-snap-align: center; flex-shrink: 0;
             }
-
-            /* Скрываем десктопный таймлайн, показываем мобильный */
             .timeline-container { display: none; }
             .mobile-timeline-card { display: block; }
-            
             .block { padding: 20px 15px; }
             .block-title { font-size: 1.5em; margin-bottom: 15px; }
         }
@@ -192,21 +197,14 @@
             background: white; padding: 15px; border-radius: 10px; text-decoration: none;
             color: #333; transition: all 0.3s ease; border: 2px solid transparent; display: block;
         }
-        .table-card:hover {
-            transform: translateY(-3px); box-shadow: 0 6px 15px rgba(84, 66, 115, 0.2);
-            border-color: #78A6C7;
-        }
-        .table-card h3 {
-            font-size: 1em; margin-bottom: 4px; color: #544273;
-            font-family: 'Forum', serif; font-weight: 400;
-        }
+        .table-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(84, 66, 115, 0.2); border-color: #78A6C7; }
+        .table-card h3 { font-size: 1em; margin-bottom: 4px; color: #544273; font-family: 'Forum', serif; font-weight: 400; }
         .table-card p { font-size: 0.85em; color: #666; font-family: 'Forum', serif; }
         .table-card.disabled { background: #f0f0f0; cursor: not-allowed; opacity: 0.6; pointer-events: none; }
         .table-card.disabled h3 { color: #999; }
         .badge-soon {
             display: inline-block; background: #E33D78; color: white; font-size: 0.7em;
-            padding: 2px 8px; border-radius: 10px; margin-left: 5px; vertical-align: middle;
-            font-family: 'Forum', serif;
+            padding: 2px 8px; border-radius: 10px; margin-left: 5px; vertical-align: middle; font-family: 'Forum', serif;
         }
         .regulation-link {
             margin-top: auto; padding-top: 15px; border-top: 1px dashed #cbd5e1;
@@ -217,10 +215,7 @@
         .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
         
         /* Таймер коммерции */
-        .timers-container {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px; margin-bottom: 30px;
-        }
+        .timers-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .timer-card {
             background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%); color: white;
             padding: 20px; border-radius: 12px; text-align: center;
@@ -232,32 +227,13 @@
             background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
             animation: pulse 4s infinite ease-in-out;
         }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        .timer-card.urgent {
-            background: linear-gradient(135deg, #E33D78 0%, #7D3673 100%);
-            box-shadow: 0 4px 20px rgba(227, 61, 120, 0.6);
-        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.8; } }
+        .timer-card.urgent { background: linear-gradient(135deg, #E33D78 0%, #7D3673 100%); box-shadow: 0 4px 20px rgba(227, 61, 120, 0.6); }
         .timer-card.urgent::before { animation: pulse-urgent 2s infinite ease-in-out; }
-        @keyframes pulse-urgent {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.15); opacity: 1; }
-        }
-        .timer-title {
-            font-size: 0.95em; opacity: 0.95; margin-bottom: 10px; position: relative;
-            z-index: 1; font-weight: 400; font-family: 'Forum', serif;
-        }
-        .timer-value {
-            font-size: 2em; font-weight: 400; font-variant-numeric: tabular-nums;
-            position: relative; z-index: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            font-family: 'Forum', serif;
-        }
-        .timer-label {
-            font-size: 0.8em; opacity: 0.85; margin-top: 5px; position: relative;
-            z-index: 1; font-family: 'Forum', serif;
-        }
+        @keyframes pulse-urgent { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.15); opacity: 1; } }
+        .timer-title { font-size: 0.95em; opacity: 0.95; margin-bottom: 10px; position: relative; z-index: 1; font-weight: 400; font-family: 'Forum', serif; }
+        .timer-value { font-size: 2em; font-weight: 400; font-variant-numeric: tabular-nums; position: relative; z-index: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Forum', serif; }
+        .timer-label { font-size: 0.8em; opacity: 0.85; margin-top: 5px; position: relative; z-index: 1; font-family: 'Forum', serif; }
         .icon { font-size: 1.5em; }
     </style>
 </head>
@@ -271,13 +247,13 @@
         <div class="marquee-wrapper">
             <div class="marquee-track">
                 <div class="marquee-content">
-                    <span> Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
                     <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
                 </div>
                 <div class="marquee-content">
-                    <span> Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
+                    <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
                     <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
@@ -332,7 +308,6 @@
 
         <!-- Блок 2: Логистика -->
         <div class="block">
-            <!-- ИСПРАВЛЕНИЕ: Вернул смайлик 🚚 -->
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
             <!-- Десктопный таймлайн -->
@@ -362,13 +337,24 @@
                         <strong>Сб-Вс</strong>Выходные
                     </div>
                 </div>
+                
+                <!-- Блок рабочей даты заявки (Десктоп) -->
+                <div class="work-date-display">
+                    <div class="work-date-label"> Рабочая дата заявки (с которой работаем):</div>
+                    <div class="work-date-value" id="desktop-work-date">--.--.----</div>
+                </div>
             </div>
 
             <!-- Мобильная карточка текущего этапа -->
             <div class="mobile-timeline-card" id="mobile-timeline">
                 <div class="mobile-timeline-day" id="mobile-day">--</div>
                 <div class="mobile-timeline-task" id="mobile-task">--</div>
-                <div class="mobile-timeline-alert" id="mobile-alert"> ФОРМИРОВАНИЕ ПОТРЕБНОСТИ</div>
+                <div class="mobile-timeline-alert" id="mobile-alert">🔔 ФОРМИРОВАНИЕ ПОТРЕБНОСТИ</div>
+                <!-- Блок рабочей даты заявки (Мобильный) -->
+                <div class="mobile-work-date">
+                    📅 Рабочая дата заявки:
+                    <strong id="mobile-work-date">--.--.----</strong>
+                </div>
             </div>
 
             <div class="three-columns">
@@ -384,7 +370,7 @@
                         <a href="https://docs.google.com/spreadsheets/d/1SsHpXXy7Gm0mTHuxpMX-p5VPtp_UFmOc0QdffQqyA8s/edit?gid=1129317678#gid=1129317678" target="_blank" class="table-card">
                             <h3>Еженедельные заявки</h3><p>Заявки на закупку и контроль реализации потребности</p>
                         </a>
-                        <div class="regulation-link disabled"> Регламент (в разработке)</div>
+                        <div class="regulation-link disabled">📄 Регламент (в разработке)</div>
                     </div>
                 </div>
                 <div class="column">
@@ -462,6 +448,28 @@
             const month = now.getMonth();
             const year = now.getFullYear();
             
+            // === РАСЧЕТ РАБОЧЕЙ ДАТЫ ЗАЯВКИ ===
+            // Логика: В Пн делаем заявку на СЛЕДУЮЩИЙ Пн. Во Вт-Вс работаем с ТЕКУЩИМ Пн.
+            let workDate = new Date(now);
+            if (day === 1) {
+                // Если сегодня понедельник -> берем следующий понедельник (+7 дней)
+                workDate.setDate(date + 7);
+            } else {
+                // Если любой другой день -> берем понедельник текущей недели
+                // (day - 1) это количество дней прошедших с понедельника
+                workDate.setDate(date - (day - 1));
+            }
+            
+            // Форматируем дату в DD.MM.YYYY
+            const dd = String(workDate.getDate()).padStart(2, '0');
+            const mm = String(workDate.getMonth() + 1).padStart(2, '0');
+            const yyyy = workDate.getFullYear();
+            const formattedWorkDate = `${dd}.${mm}.${yyyy}`;
+            
+            // Обновляем отображение рабочей даты
+            document.getElementById('desktop-work-date').textContent = formattedWorkDate;
+            document.getElementById('mobile-work-date').textContent = formattedWorkDate;
+
             // === ТАЙМЛАЙН НЕДЕЛИ ===
             const stages = [
                 document.getElementById('stage-1'), document.getElementById('stage-2'),
@@ -496,7 +504,7 @@
                 taskName = "Формирование заявки";
             } else if (day === 2 || day === 3) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('active'); 
-                statusMessage = " Согласование заявки с поставщиком"; 
+                statusMessage = "🔵 Согласование заявки с поставщиком"; 
                 activeStageIndex = 1;
                 dayName = day === 2 ? "ВТОРНИК" : "СРЕДА";
                 taskName = "Согласование заявки с поставщиком";
@@ -510,7 +518,7 @@
             } else if (day === 5) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
                 stages[2].classList.add('passed'); stages[3].classList.add('active'); 
-                statusMessage = " Резервный день"; 
+                statusMessage = "⚪ Резервный день"; 
                 activeStageIndex = 3;
                 dayName = "ПЯТНИЦА";
                 taskName = "Резервный день";
