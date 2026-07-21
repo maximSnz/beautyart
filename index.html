@@ -67,11 +67,26 @@
             margin-bottom: 30px; border: 2px solid rgba(84, 66, 115, 0.2);
         }
         .timeline-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; font-family: 'Forum', serif; color: #544273;
-            font-size: 1.2em; font-weight: 600;
+            display: flex; 
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px; 
+            font-family: 'Forum', serif; 
+            color: #544273;
+            font-size: 1.2em; 
+            font-weight: 600;
         }
-        .timeline-status-text { color: #E33D78; font-size: 1em; font-weight: 400; }
+        .timeline-status-text { 
+            color: #E33D78; 
+            font-size: 1em; /* Наследует 1.2em от родителя */
+            font-weight: 600; 
+            animation: status-blink 1.5s infinite alternate;
+        }
+        @keyframes status-blink {
+            from { opacity: 0.8; text-shadow: 0 0 5px rgba(227, 61, 120, 0.3); }
+            to { opacity: 1; text-shadow: 0 0 15px rgba(227, 61, 120, 0.8); }
+        }
         
         .timeline-track {
             position: relative; height: 70px; background: #e5e7eb;
@@ -352,7 +367,7 @@
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
                 
-                <!-- Основной таймлайн (этапы работы) - БЕЗ подзаголовка -->
+                <!-- Основной таймлайн -->
                 <div class="timeline-track">
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>Формирование<br>заявки
@@ -375,7 +390,7 @@
                     </div>
                 </div>
                 
-                <!-- Второй трек: ДАТЫ заявок - БЕЗ подзаголовка -->
+                <!-- Второй трек: ДАТЫ заявок -->
                 <div class="timeline-track timeline-track-dates">
                     <div class="timeline-stage" id="date-stage-1">
                         <span class="timeline-date-label">Работа с заявкой:</span>
@@ -513,7 +528,6 @@
             const nextMonday = new Date(currentMonday);
             nextMonday.setDate(currentMonday.getDate() + 7);
             
-            // Форматирование в DD.MM.YYYY (с годом)
             const formatFull = (d) => {
                 const dd = String(d.getDate()).padStart(2, '0');
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -521,20 +535,14 @@
                 return `${dd}.${mm}.${yyyy}`;
             };
             
-            // Рабочая дата
             const workingDate = (day === 1) ? nextMonday : currentMonday;
             
-            // Заполняем даты в треке дат (все с годом):
-            // - Пн (этап 1): следующая заявка
-            // - Вт-Чт (этапы 2-3): текущая заявка
-            // - Пт и Сб-Вс (этапы 4-5): "-" (не работаем с заявкой)
             document.getElementById('date-value-1').textContent = formatFull(nextMonday);
             document.getElementById('date-value-2').textContent = formatFull(currentMonday);
             document.getElementById('date-value-3').textContent = formatFull(currentMonday);
             document.getElementById('date-value-4').textContent = '-';
             document.getElementById('date-value-5').textContent = '-';
             
-            // Мобильная версия (показывает рабочую дату или "-" если выходные/пятница)
             if (day === 5 || day === 6 || day === 0) {
                 document.getElementById('mobile-work-date').textContent = '-';
             } else {
@@ -574,14 +582,14 @@
             if (day === 1) { 
                 stages[0].classList.add('active');
                 dateStages[0].classList.add('active');
-                statusMessage = "🟢 Формирование еженедельной заявки"; 
+                statusMessage = "Формирование еженедельной заявки"; 
                 activeStageIndex = 0; 
                 dayName = "ПОНЕДЕЛЬНИК";
                 taskName = "Формирование заявки";
             } else if (day === 2 || day === 3) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('active'); 
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('active');
-                statusMessage = "🔵 Согласование заявки с поставщиком"; 
+                statusMessage = "Согласование заявки с поставщиком"; 
                 activeStageIndex = 1;
                 dayName = day === 2 ? "ВТОРНИК" : "СРЕДА";
                 taskName = "Согласование заявки с поставщиком";
@@ -590,7 +598,7 @@
                 stages[2].classList.add('active'); 
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
                 dateStages[2].classList.add('active');
-                statusMessage = "🟣 Корректировка заявки в т.ч. с учетом наполняемости паллет"; 
+                statusMessage = "Корректировка заявки в т.ч. с учетом наполняемости паллет"; 
                 activeStageIndex = 2;
                 dayName = "ЧЕТВЕРГ";
                 taskName = "Корректировка заявки в т.ч. с учетом наполняемости паллет";
@@ -599,7 +607,7 @@
                 stages[2].classList.add('passed'); stages[3].classList.add('active'); 
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
                 dateStages[2].classList.add('passed'); dateStages[3].classList.add('active');
-                statusMessage = "⚪ Резервный день"; 
+                statusMessage = "Резервный день"; 
                 activeStageIndex = 3;
                 dayName = "ПЯТНИЦА";
                 taskName = "Резервный день";
@@ -610,7 +618,7 @@
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
                 dateStages[2].classList.add('passed'); dateStages[3].classList.add('passed');
                 dateStages[4].classList.add('active');
-                statusMessage = "🌙 Выходные дни"; 
+                statusMessage = "Выходные дни"; 
                 activeStageIndex = 4;
                 dayName = day === 0 ? "ВОСКРЕСЕНЬЕ" : "СУББОТА";
                 taskName = "Выходные";
