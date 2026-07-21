@@ -67,20 +67,12 @@
             margin-bottom: 30px; border: 2px solid rgba(84, 66, 115, 0.2);
         }
         .timeline-header {
-            display: flex; 
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px; 
-            font-family: 'Forum', serif; 
-            color: #544273;
-            font-size: 1.2em; 
-            font-weight: 600;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 20px; font-family: 'Forum', serif; color: #544273;
+            font-size: 1.2em; font-weight: 600;
         }
         .timeline-status-text { 
-            color: #E33D78; 
-            font-size: 1em;
-            font-weight: 600; 
+            color: #E33D78; font-size: 1em; font-weight: 600; 
             animation: status-blink 1.5s infinite alternate;
         }
         @keyframes status-blink {
@@ -92,12 +84,7 @@
             position: relative; height: 70px; background: #e5e7eb;
             border-radius: 35px; overflow: hidden; display: flex;
         }
-        
-        /* Трек дат заявок */
-        .timeline-track-dates {
-            height: 60px;
-            margin-top: 10px;
-        }
+        .timeline-track-dates { height: 60px; margin-top: 10px; }
         
         .timeline-stage {
             flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -117,54 +104,27 @@
         .timeline-stage.passed { background: rgba(120, 166, 199, 0.2); color: #544273; }
         .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
 
-        /* Дата в треке дат */
         .timeline-date {
-            display: block;
-            font-size: 1em;
-            font-weight: 700;
-            margin-top: 2px;
-            color: #544273;
-            font-family: 'Forum', serif;
+            display: block; font-size: 1em; font-weight: 700; margin-top: 2px;
+            color: #544273; font-family: 'Forum', serif;
         }
-        .timeline-stage.active .timeline-date {
-            color: white;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-        .timeline-stage.passed .timeline-date {
-            color: #544273;
-            opacity: 0.7;
-        }
-        .timeline-date-label {
-            font-size: 0.75em;
-            opacity: 0.8;
-            margin-top: 2px;
-        }
-        .timeline-stage.active .timeline-date-label {
-            opacity: 0.95;
-        }
+        .timeline-stage.active .timeline-date { color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .timeline-stage.passed .timeline-date { color: #544273; opacity: 0.7; }
+        .timeline-date-label { font-size: 0.75em; opacity: 0.8; margin-top: 2px; }
+        .timeline-stage.active .timeline-date-label { opacity: 0.95; }
 
-        /* Динамическая подпись 17-го числа */
         .deadline-alert {
-            display: none; margin-top: 6px; font-weight: 700;
-            color: #1C0D2E; font-size: 0.95em;
-            text-shadow: 0 0 10px rgba(227, 61, 120, 0.6);
-            animation: blink 1.5s infinite alternate;
+            display: none; margin-top: 6px; font-weight: 700; color: #1C0D2E; font-size: 0.95em;
+            text-shadow: 0 0 10px rgba(227, 61, 120, 0.6); animation: blink 1.5s infinite alternate;
         }
-        .timeline-stage.active .deadline-alert {
-            display: block; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        @keyframes blink {
-            from { opacity: 0.7; transform: scale(0.98); }
-            to { opacity: 1; transform: scale(1.02); }
-        }
+        .timeline-stage.active .deadline-alert { display: block; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        @keyframes blink { from { opacity: 0.7; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); } }
 
         /* МОБИЛЬНЫЙ ТАЙМЛАЙН */
         .mobile-timeline-card {
             display: none; background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
-            color: white; padding: 25px 20px; border-radius: 16px;
-            text-align: center; margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 25px 20px; border-radius: 16px; text-align: center; margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); border: 2px solid rgba(255, 255, 255, 0.3);
             animation: mobile-pulse 3s infinite ease-in-out;
         }
         .mobile-timeline-day {
@@ -173,47 +133,40 @@
         }
         .mobile-timeline-task { font-size: 1.1em; line-height: 1.4; font-family: 'Forum', serif; }
         .mobile-timeline-alert {
-            display: none; margin-top: 15px; padding-top: 15px;
-            border-top: 2px solid rgba(255,255,255,0.3);
+            display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.3);
             font-weight: 700; font-size: 1.2em; animation: blink 1.5s infinite alternate;
         }
-        /* Рабочая дата на мобильном */
         .mobile-work-date {
-            margin-top: 15px; padding-top: 15px;
-            border-top: 2px solid rgba(255,255,255,0.3);
+            margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.3);
             font-size: 1em; opacity: 0.95;
         }
-        .mobile-work-date-label {
-            display: block;
-            font-size: 0.85em;
-            opacity: 0.8;
-            margin-bottom: 5px;
-        }
-        .mobile-work-date strong { 
-            display: block; 
-            font-size: 1.5em; 
-            margin-top: 5px; 
-            font-family: 'Forum', serif;
-        }
+        .mobile-work-date-label { display: block; font-size: 0.85em; opacity: 0.8; margin-bottom: 5px; }
+        .mobile-work-date strong { display: block; font-size: 1.5em; margin-top: 5px; font-family: 'Forum', serif; }
 
         @keyframes mobile-pulse {
             0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); }
             50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); }
         }
 
-        /* СЕТКИ И АДАПТИВНОСТЬ */
-        .four-columns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .three-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .two-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        /* === ЕДИНАЯ СЕТКА 3 КОЛОНКИ === */
+        .three-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px; 
+        }
         
-        @media (max-width: 1000px) {
-            .four-columns { grid-template-columns: repeat(2, 1fr); }
-            .three-columns { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 900px) {
+            /* На планшетах тоже 3 колонки, но чуть компактнее */
+            .three-grid { gap: 15px; }
         }
         
         @media (max-width: 600px) {
-            .four-columns, .three-columns, .two-columns { 
-                display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; 
+            /* На мобильных — горизонтальный скролл */
+            .three-grid { 
+                display: flex; 
+                overflow-x: auto; 
+                gap: 15px; 
+                padding-bottom: 15px; 
                 scroll-snap-type: x mandatory;
                 -webkit-overflow-scrolling: touch;
                 margin-left: -15px;
@@ -221,7 +174,7 @@
                 padding-left: 15px;
                 padding-right: 15px;
             }
-            .four-columns > .column, .three-columns > .column, .two-columns > .column {
+            .three-grid > .column {
                 min-width: calc(100vw - 70px);
                 max-width: calc(100vw - 70px);
                 scroll-snap-align: center;
@@ -257,21 +210,12 @@
             padding: 2px 8px; border-radius: 10px; margin-left: 5px; vertical-align: middle; font-family: 'Forum', serif;
         }
         
-        /* Ссылка на регламент / инструкцию */
         .regulation-link {
-            margin-top: auto; 
-            padding-top: 15px; 
-            border-top: 1px dashed #cbd5e1; /* Разделитель только у первой инструкции/регламента */
+            margin-top: auto; padding-top: 15px; border-top: 1px dashed #cbd5e1;
             display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: #544273;
             text-decoration: none; transition: all 0.2s; font-weight: 400; font-family: 'Forum', serif;
         }
-        /* Убираем пунктир у последующих инструкций внутри одного блока */
-        .regulation-link + .regulation-link {
-            border-top: none;
-            padding-top: 5px;
-            margin-top: 0;
-        }
-        
+        .regulation-link + .regulation-link { border-top: none; padding-top: 5px; margin-top: 0; }
         .regulation-link:hover { color: #7D3673; gap: 12px; }
         .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
         
@@ -324,10 +268,10 @@
 
         <h1>Панель управления компанией</h1>
         
-        <!-- Блок 1: Управление компанией -->
+        <!-- Блок 1: Управление компанией (4 элемента → 3 видны, 4-й скроллится на мобилке) -->
         <div class="block">
             <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
-            <div class="four-columns">
+            <div class="three-grid">
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
                     <div class="column-items">
@@ -371,14 +315,12 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
-            <!-- Десктопный таймлайн -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
                 
-                <!-- Основной таймлайн -->
                 <div class="timeline-track">
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>Формирование<br>заявки
@@ -401,7 +343,6 @@
                     </div>
                 </div>
                 
-                <!-- Второй трек: ДАТЫ заявок -->
                 <div class="timeline-track timeline-track-dates">
                     <div class="timeline-stage" id="date-stage-1">
                         <span class="timeline-date-label">Работа с заявкой:</span>
@@ -426,7 +367,6 @@
                 </div>
             </div>
 
-            <!-- Мобильная карточка текущего этапа -->
             <div class="mobile-timeline-card" id="mobile-timeline">
                 <div class="mobile-timeline-day" id="mobile-day">--</div>
                 <div class="mobile-timeline-task" id="mobile-task">--</div>
@@ -437,7 +377,7 @@
                 </div>
             </div>
 
-            <div class="three-columns">
+            <div class="three-grid">
                 <div class="column">
                     <div class="column-title">Управление закупками</div>
                     <div class="column-items">
@@ -486,7 +426,7 @@
             </div>
         </div>
 
-        <!-- Блок 3: Коммерция -->
+        <!-- Блок 3: Коммерция (2 элемента → 2 видны, справа пусто, ширина совпадает с другими блоками) -->
         <div class="block">
             <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
             <div class="timers-container">
@@ -496,7 +436,7 @@
                     <div class="timer-label">Дедлайн: 15-е число месяца, 12:00</div>
                 </div>
             </div>
-            <div class="two-columns">
+            <div class="three-grid">
                 <div class="column">
                     <div class="column-title">Продвижение и реклама</div>
                     <div class="column-items">
@@ -516,6 +456,7 @@
                         </a>
                     </div>
                 </div>
+                <!-- Третья колонка намеренно отсутствует —网格 оставит пустое место справа -->
             </div>
         </div>
     </div>
@@ -530,7 +471,6 @@
             const month = now.getMonth();
             const year = now.getFullYear();
             
-            // === РАСЧЕТ ДАТ ЗАЯВОК ===
             const currentMonday = new Date(now);
             if (day === 0) {
                 currentMonday.setDate(date - 6);
@@ -562,7 +502,6 @@
                 document.getElementById('mobile-work-date').textContent = formatFull(workingDate);
             }
 
-            // === ТАЙМЛАЙН НЕДЕЛИ ===
             const stages = [
                 document.getElementById('stage-1'), document.getElementById('stage-2'),
                 document.getElementById('stage-3'), document.getElementById('stage-4'),
@@ -593,57 +532,36 @@
             let taskName = "";
 
             if (day === 1) { 
-                stages[0].classList.add('active');
-                dateStages[0].classList.add('active');
+                stages[0].classList.add('active'); dateStages[0].classList.add('active');
                 statusMessage = "Формирование еженедельной заявки"; 
-                activeStageIndex = 0; 
-                dayName = "ПОНЕДЕЛЬНИК";
-                taskName = "Формирование заявки";
+                activeStageIndex = 0; dayName = "ПОНЕДЕЛЬНИК"; taskName = "Формирование заявки";
             } else if (day === 2 || day === 3) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('active'); 
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('active');
                 statusMessage = "Согласование заявки с поставщиком"; 
-                activeStageIndex = 1;
-                dayName = day === 2 ? "ВТОРНИК" : "СРЕДА";
-                taskName = "Согласование заявки с поставщиком";
+                activeStageIndex = 1; dayName = day === 2 ? "ВТОРНИК" : "СРЕДА"; taskName = "Согласование заявки с поставщиком";
             } else if (day === 4) { 
-                stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
-                stages[2].classList.add('active'); 
-                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
-                dateStages[2].classList.add('active');
+                stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed'); dateStages[2].classList.add('active');
                 statusMessage = "Корректировка заявки в т.ч. с учетом наполняемости паллет"; 
-                activeStageIndex = 2;
-                dayName = "ЧЕТВЕРГ";
-                taskName = "Корректировка заявки в т.ч. с учетом наполняемости паллет";
+                activeStageIndex = 2; dayName = "ЧЕТВЕРГ"; taskName = "Корректировка заявки в т.ч. с учетом наполняемости паллет";
             } else if (day === 5) { 
-                stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
-                stages[2].classList.add('passed'); stages[3].classList.add('active'); 
-                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
-                dateStages[2].classList.add('passed'); dateStages[3].classList.add('active');
+                stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed'); dateStages[2].classList.add('passed'); dateStages[3].classList.add('active');
                 statusMessage = "Резервный день"; 
-                activeStageIndex = 3;
-                dayName = "ПЯТНИЦА";
-                taskName = "Резервный день";
+                activeStageIndex = 3; dayName = "ПЯТНИЦА"; taskName = "Резервный день";
             } else { 
-                stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
-                stages[2].classList.add('passed'); stages[3].classList.add('passed'); 
-                stages[4].classList.add('active'); 
-                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
-                dateStages[2].classList.add('passed'); dateStages[3].classList.add('passed');
-                dateStages[4].classList.add('active');
+                stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('passed'); stages[4].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed'); dateStages[2].classList.add('passed'); dateStages[3].classList.add('passed'); dateStages[4].classList.add('active');
                 statusMessage = "Выходные дни"; 
-                activeStageIndex = 4;
-                dayName = day === 0 ? "ВОСКРЕСЕНЬЕ" : "СУББОТА";
-                taskName = "Выходные";
+                activeStageIndex = 4; dayName = day === 0 ? "ВОСКРЕСЕНЬЕ" : "СУББОТА"; taskName = "Выходные";
             }
             
             if (statusText) statusText.textContent = statusMessage;
-
             if (mobileDay) mobileDay.textContent = dayName;
             if (mobileTask) mobileTask.textContent = taskName;
 
             const isDeadline17 = (date === 17 && activeStageIndex >= 0 && activeStageIndex <= 3);
-            
             if (isDeadline17) {
                 const alertEl = document.getElementById(`alert-stage-${activeStageIndex + 1}`);
                 if (alertEl) alertEl.style.display = 'block';
@@ -652,7 +570,6 @@
                 if (mobileAlert) mobileAlert.style.display = 'none';
             }
 
-            // === ТАЙМЕР ПЛАНА ПРОДАЖ (15-е число) ===
             let next15th = new Date(year, month, 15, 12, 0, 0);
             if (date > 15 || (date === 15 && hour >= 12)) {
                 next15th.setMonth(next15th.getMonth() + 1);
@@ -669,9 +586,7 @@
             }
 
             function isDeadlineDay(target) {
-                return now.getDate() === target.getDate() && 
-                       now.getMonth() === target.getMonth() && 
-                       now.getFullYear() === target.getFullYear();
+                return now.getDate() === target.getDate() && now.getMonth() === target.getMonth() && now.getFullYear() === target.getFullYear();
             }
 
             const salesTimerVal = document.getElementById('timer-sales');
