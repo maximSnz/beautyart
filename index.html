@@ -256,11 +256,22 @@
             display: inline-block; background: #E33D78; color: white; font-size: 0.7em;
             padding: 2px 8px; border-radius: 10px; margin-left: 5px; vertical-align: middle; font-family: 'Forum', serif;
         }
+        
+        /* Ссылка на регламент / инструкцию */
         .regulation-link {
-            margin-top: auto; padding-top: 15px; border-top: 1px dashed #cbd5e1;
+            margin-top: auto; 
+            padding-top: 15px; 
+            border-top: 1px dashed #cbd5e1; /* Разделитель только у первой инструкции/регламента */
             display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: #544273;
             text-decoration: none; transition: all 0.2s; font-weight: 400; font-family: 'Forum', serif;
         }
+        /* Убираем пунктир у последующих инструкций внутри одного блока */
+        .regulation-link + .regulation-link {
+            border-top: none;
+            padding-top: 5px;
+            margin-top: 0;
+        }
+        
         .regulation-link:hover { color: #7D3673; gap: 12px; }
         .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
         
