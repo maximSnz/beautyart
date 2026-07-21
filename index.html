@@ -61,25 +61,86 @@
             border-bottom: 3px solid #78A6C7; padding-bottom: 15px;
         }
         
-        /* === УМНАЯ АДАПТИВНАЯ СЕТКА === */
+        /* === СКРОЛЛ-КОНТЕЙНЕР СО СТРЕЛКАМИ И ПОЛУЗУНКОМ === */
+        .scroll-wrapper {
+            position: relative;
+        }
+        
         .scroll-container {
             display: flex;
             overflow-x: auto;
             gap: 20px;
-            padding-bottom: 15px;
+            padding-bottom: 12px; /* Место для кастомного скроллбара */
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            scroll-behavior: smooth;
         }
-        .scroll-container::-webkit-scrollbar { display: none; }
 
-        /* 
-           Ширина вычисляется динамически:
-           - На десктопе: (100% - 40px gaps) / 3, но не больше 380px
-           - Это гарантирует, что 3 колонки ВСЕГДА влезут без скролла
-           - Если элементов >3, остальные уходят в скролл
-        */
+        /* Кастомный тонкий скроллбар */
+        .scroll-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        .scroll-container::-webkit-scrollbar-track {
+            background: rgba(84, 66, 115, 0.1);
+            border-radius: 3px;
+        }
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #78A6C7, #E33D78);
+            border-radius: 3px;
+        }
+        .scroll-container::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(90deg, #E33D78, #7D3673);
+        }
+        /* Firefox scrollbar */
+        .scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: #E33D78 rgba(84, 66, 115, 0.1);
+        }
+
+        /* Стрелки навигации */
+        .scroll-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-60%); /* Чуть выше центра, чтобы не перекрывать скроллбар */
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(84, 66, 115, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(28, 13, 46, 0.15);
+            color: #544273;
+            font-size: 1.2em;
+            user-select: none;
+        }
+        .scroll-arrow:hover {
+            background: white;
+            border-color: #E33D78;
+            color: #E33D78;
+            box-shadow: 0 6px 20px rgba(227, 61, 120, 0.3);
+            transform: translateY(-60%) scale(1.1);
+        }
+        .scroll-arrow.left { left: -10px; }
+        .scroll-arrow.right { right: -10px; }
+        
+        /* Показываем стрелки при наведении на wrapper */
+        .scroll-wrapper:hover .scroll-arrow.visible {
+            opacity: 1;
+        }
+        /* Скрываем стрелку если она не нужна (нет контента в ту сторону) */
+        .scroll-arrow:not(.visible) {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        /* Колонки */
         .column {
             flex: 0 0 calc((100% - 40px) / 3);
             max-width: 380px;
@@ -123,6 +184,7 @@
                 flex: 0 0 calc(100vw - 70px); 
                 max-width: none;
             }
+            .scroll-arrow { display: none; } /* На мобильных стрелки не нужны — есть свайп */
             .timeline-container { display: none; }
             .mobile-timeline-card { display: block; }
             .block { padding: 20px 15px; }
@@ -272,40 +334,44 @@
         <!-- Блок 1: Управление компанией -->
         <div class="block">
             <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
-            <div class="scroll-container">
-                <div class="column">
-                    <div class="column-title">Стратегическое планирование</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1cJGvUwr0DC3f2bRh_5Q2VeivtDyhpmpqOWYbvPEWjgs/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>Функциональная стратегия</h3><p>Стратегическое планирование</p>
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1QggOaNjI7y-i3xZIiZrdVH_q1xsmHYpMwVRH9n1wliY/edit?gid=203679960#gid=203679960" target="_blank" class="table-card">
-                            <h3>Маркетинговая стратегия</h3><p>План маркетинговых активностей</p>
-                        </a>
+            <div class="scroll-wrapper">
+                <div class="scroll-arrow left" onclick="scrollBlock(this, -1)">‹</div>
+                <div class="scroll-arrow right" onclick="scrollBlock(this, 1)">›</div>
+                <div class="scroll-container" onscroll="updateArrows(this)">
+                    <div class="column">
+                        <div class="column-title">Стратегическое планирование</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1cJGvUwr0DC3f2bRh_5Q2VeivtDyhpmpqOWYbvPEWjgs/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>Функциональная стратегия</h3><p>Стратегическое планирование</p>
+                            </a>
+                            <a href="https://docs.google.com/spreadsheets/d/1QggOaNjI7y-i3xZIiZrdVH_q1xsmHYpMwVRH9n1wliY/edit?gid=203679960#gid=203679960" target="_blank" class="table-card">
+                                <h3>Маркетинговая стратегия</h3><p>План маркетинговых активностей</p>
+                            </a>
+                        </div>
                     </div>
-                </div>
-                <div class="column">
-                    <div class="column-title">Управление финансами</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1iYyzAie6x3H5nWO0biFXoZp694YhS5Qp/edit?usp=sharing&ouid=111894160779270511410&rtpof=true&sd=true" target="_blank" class="table-card">
-                            <h3>Реестр платежей</h3><p>Управление и отслеживание платежей</p>
-                        </a>
+                    <div class="column">
+                        <div class="column-title">Управление финансами</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1iYyzAie6x3H5nWO0biFXoZp694YhS5Qp/edit?usp=sharing&ouid=111894160779270511410&rtpof=true&sd=true" target="_blank" class="table-card">
+                                <h3>Реестр платежей</h3><p>Управление и отслеживание платежей</p>
+                            </a>
+                        </div>
                     </div>
-                </div>
-                <div class="column">
-                    <div class="column-title">Контроль качества процессов</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1dzhhdjCeNe4-cwU4_y-2caX6PvO9TG3yAxBH2OB_VEY/edit" target="_blank" class="table-card">
-                            <h3>Схема RACI</h3><p>Матрица ответственности</p>
-                        </a>
+                    <div class="column">
+                        <div class="column-title">Контроль качества процессов</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1dzhhdjCeNe4-cwU4_y-2caX6PvO9TG3yAxBH2OB_VEY/edit" target="_blank" class="table-card">
+                                <h3>Схема RACI</h3><p>Матрица ответственности</p>
+                            </a>
+                        </div>
                     </div>
-                </div>
-                <div class="column">
-                    <div class="column-title">Управление персоналом</div>
-                    <div class="column-items">
-                        <div class="table-card disabled">
-                            <h3>График отпусков <span class="badge-soon">скоро</span></h3>
-                            <p>Планирование отпусков сотрудников</p>
+                    <div class="column">
+                        <div class="column-title">Управление персоналом</div>
+                        <div class="column-items">
+                            <div class="table-card disabled">
+                                <h3>График отпусков <span class="badge-soon">скоро</span></h3>
+                                <p>Планирование отпусков сотрудников</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -378,50 +444,54 @@
                 </div>
             </div>
 
-            <div class="scroll-container">
-                <div class="column">
-                    <div class="column-title">Управление закупками</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1arhP0SlodgIDGcSV_E7DFny772ExkRXGS0llKjhfwzw/edit?gid=596168910#gid=596168910" target="_blank" class="table-card">
-                            <h3>База товаров</h3><p>Единый реестр товаров</p>
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1l7fzbyoM7ml5HBeDz9alvJVtpEuX8zVfRwam1aTJaPA/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>Месячная потребность (план/факт)</h3><p>Плановый расчёт на месяц</p>
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1SsHpXXy7Gm0mTHuxpMX-p5VPtp_UFmOc0QdffQqyA8s/edit?gid=1129317678#gid=1129317678" target="_blank" class="table-card">
-                            <h3>Еженедельные заявки</h3><p>Заявки на закупку и контроль реализации потребности</p>
-                        </a>
-                        <div class="regulation-link disabled">📄 Регламент контроля эффективности закупок (в разработке)</div>
-                    </div>
-                </div>
-                <div class="column">
-                    <div class="column-title">Калькулятор потребности</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1phz8_haUkVjqosNeDyjNe5O1f0xnMBLifEZlvZEhJgM/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>Калькулятор потребности Ozon</h3><p>Расчёт потребности для Ozon</p>
-                        </a>
-                        <div class="table-card disabled">
-                            <h3>Калькулятор потребности WB <span class="badge-soon">скоро</span></h3>
-                            <p>Расчёт потребности для Wildberries</p>
+            <div class="scroll-wrapper">
+                <div class="scroll-arrow left" onclick="scrollBlock(this, -1)">‹</div>
+                <div class="scroll-arrow right" onclick="scrollBlock(this, 1)">›</div>
+                <div class="scroll-container" onscroll="updateArrows(this)">
+                    <div class="column">
+                        <div class="column-title">Управление закупками</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1arhP0SlodgIDGcSV_E7DFny772ExkRXGS0llKjhfwzw/edit?gid=596168910#gid=596168910" target="_blank" class="table-card">
+                                <h3>База товаров</h3><p>Единый реестр товаров</p>
+                            </a>
+                            <a href="https://docs.google.com/spreadsheets/d/1l7fzbyoM7ml5HBeDz9alvJVtpEuX8zVfRwam1aTJaPA/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>Месячная потребность (план/факт)</h3><p>Плановый расчёт на месяц</p>
+                            </a>
+                            <a href="https://docs.google.com/spreadsheets/d/1SsHpXXy7Gm0mTHuxpMX-p5VPtp_UFmOc0QdffQqyA8s/edit?gid=1129317678#gid=1129317678" target="_blank" class="table-card">
+                                <h3>Еженедельные заявки</h3><p>Заявки на закупку и контроль реализации потребности</p>
+                            </a>
+                            <div class="regulation-link disabled">📄 Регламент контроля эффективности закупок (в разработке)</div>
                         </div>
-                        <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности Ozon" (в разработке)</div>
-                        <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности WB" (в разработке)</div>
                     </div>
-                </div>
-                <div class="column">
-                    <div class="column-title">Калькулятор закупок</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1v-7wH76vwrMSqHsVrvArNIDLnEVRQ7WQg75AWi0A0OU/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>Калькулятор закупок Ozon</h3><p>Расчёт для Ozon</p>
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1I1jTRsu6PFjcvljguxj5BBiw34PdTIQf1XfNkXokEMs/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>Калькулятор закупок WB</h3><p>Расчёт для Wildberries</p>
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1hv1R7XAFRoI6EBJlQzYqpI8vie_lSEZ117M7NQ9CoiE/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>Калькулятор закупок Ozon ООО</h3><p>Расчёт для Ozon (ООО)</p>
-                        </a>
-                        <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">📄 Инструкция "Калькулятор закупок Ozon"</a>
-                        <div class="regulation-link disabled">📄 Инструкция "Калькулятор закупок WB" (в разработке)</div>
+                    <div class="column">
+                        <div class="column-title">Калькулятор потребности</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1phz8_haUkVjqosNeDyjNe5O1f0xnMBLifEZlvZEhJgM/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>Калькулятор потребности Ozon</h3><p>Расчёт потребности для Ozon</p>
+                            </a>
+                            <div class="table-card disabled">
+                                <h3>Калькулятор потребности WB <span class="badge-soon">скоро</span></h3>
+                                <p>Расчёт потребности для Wildberries</p>
+                            </div>
+                            <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности Ozon" (в разработке)</div>
+                            <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности WB" (в разработке)</div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="column-title">Калькулятор закупок</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1v-7wH76vwrMSqHsVrvArNIDLnEVRQ7WQg75AWi0A0OU/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>Калькулятор закупок Ozon</h3><p>Расчёт для Ozon</p>
+                            </a>
+                            <a href="https://docs.google.com/spreadsheets/d/1I1jTRsu6PFjcvljguxj5BBiw34PdTIQf1XfNkXokEMs/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>Калькулятор закупок WB</h3><p>Расчёт для Wildberries</p>
+                            </a>
+                            <a href="https://docs.google.com/spreadsheets/d/1hv1R7XAFRoI6EBJlQzYqpI8vie_lSEZ117M7NQ9CoiE/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>Калькулятор закупок Ozon ООО</h3><p>Расчёт для Ozon (ООО)</p>
+                            </a>
+                            <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">📄 Инструкция "Калькулятор закупок Ozon"</a>
+                            <div class="regulation-link disabled">📄 Инструкция "Калькулятор закупок WB" (в разработке)</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -437,24 +507,28 @@
                     <div class="timer-label">Дедлайн: 15-е число месяца, 12:00</div>
                 </div>
             </div>
-            <div class="scroll-container">
-                <div class="column">
-                    <div class="column-title">Продвижение и реклама</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/1GwyVCyQQKBKnU67JPtECjiwYPUyzPQwCh3zIF1AtsaI/edit?usp=sharing" target="_blank" class="table-card">
-                            <h3>Отчет SMM</h3><p>Метрики и результаты SMM</p>
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/110zZ6aGFr3LzqiZKfnfMQubTwGmztEmPN0n2AmRoXBw/edit?usp=sharing" target="_blank" class="table-card">
-                            <h3>Отчет реклама</h3><p>Эффективность рекламных кампаний</p>
-                        </a>
+            <div class="scroll-wrapper">
+                <div class="scroll-arrow left" onclick="scrollBlock(this, -1)">‹</div>
+                <div class="scroll-arrow right" onclick="scrollBlock(this, 1)">›</div>
+                <div class="scroll-container" onscroll="updateArrows(this)">
+                    <div class="column">
+                        <div class="column-title">Продвижение и реклама</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/1GwyVCyQQKBKnU67JPtECjiwYPUyzPQwCh3zIF1AtsaI/edit?usp=sharing" target="_blank" class="table-card">
+                                <h3>Отчет SMM</h3><p>Метрики и результаты SMM</p>
+                            </a>
+                            <a href="https://docs.google.com/spreadsheets/d/110zZ6aGFr3LzqiZKfnfMQubTwGmztEmPN0n2AmRoXBw/edit?usp=sharing" target="_blank" class="table-card">
+                                <h3>Отчет реклама</h3><p>Эффективность рекламных кампаний</p>
+                            </a>
+                        </div>
                     </div>
-                </div>
-                <div class="column">
-                    <div class="column-title">Анализ текущего положения на рынке</div>
-                    <div class="column-items">
-                        <a href="https://docs.google.com/spreadsheets/d/15qn4t1PnVdAOIj9bxznHNNv3R57BV_kIpUSOWNf5eYM/edit?usp=share_link" target="_blank" class="table-card">
-                            <h3>План продаж Ozon</h3><p>Планирование и анализ продаж</p>
-                        </a>
+                    <div class="column">
+                        <div class="column-title">Анализ текущего положения на рынке</div>
+                        <div class="column-items">
+                            <a href="https://docs.google.com/spreadsheets/d/15qn4t1PnVdAOIj9bxznHNNv3R57BV_kIpUSOWNf5eYM/edit?usp=share_link" target="_blank" class="table-card">
+                                <h3>План продаж Ozon</h3><p>Планирование и анализ продаж</p>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -462,6 +536,36 @@
     </div>
 
     <script>
+        // === УПРАВЛЕНИЕ СТРЕЛКАМИ СКРОЛЛА ===
+        function updateArrows(container) {
+            const wrapper = container.closest('.scroll-wrapper');
+            if (!wrapper) return;
+            
+            const leftArrow = wrapper.querySelector('.scroll-arrow.left');
+            const rightArrow = wrapper.querySelector('.scroll-arrow.right');
+            
+            const hasScrollLeft = container.scrollLeft > 5;
+            const hasScrollRight = container.scrollLeft + container.clientWidth < container.scrollWidth - 5;
+            
+            if (leftArrow) leftArrow.classList.toggle('visible', hasScrollLeft);
+            if (rightArrow) rightArrow.classList.toggle('visible', hasScrollRight);
+        }
+
+        function scrollBlock(arrowEl, direction) {
+            const wrapper = arrowEl.closest('.scroll-wrapper');
+            const container = wrapper.querySelector('.scroll-container');
+            const scrollAmount = 400; // Ширина примерно одной колонки + gap
+            container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+        }
+
+        // Инициализация стрелок при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.scroll-container').forEach(container => {
+                updateArrows(container);
+            });
+        });
+
+        // === ТАЙМЛАЙН И ТАЙМЕРЫ ===
         function updateDashboard() {
             const now = new Date();
             const day = now.getDay();
