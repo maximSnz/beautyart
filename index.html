@@ -61,7 +61,7 @@
             border-bottom: 3px solid #78A6C7; padding-bottom: 15px;
         }
         
-        /* ТАЙМЛАЙН НЕДЕЛИ (ДЕСКТОП) */
+        /* ТАЙМЛАЙН НЕДЕЛИ */
         .timeline-container {
             background: #f8f9fb; border-radius: 12px; padding: 25px 20px;
             margin-bottom: 30px; border: 2px solid rgba(84, 66, 115, 0.2);
@@ -123,8 +123,10 @@
         /* МОБИЛЬНЫЙ ТАЙМЛАЙН */
         .mobile-timeline-card {
             display: none; background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
-            color: white; padding: 25px 20px; border-radius: 16px; text-align: center; margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 25px 20px; border-radius: 16px;
+            text-align: center; margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             animation: mobile-pulse 3s infinite ease-in-out;
         }
         .mobile-timeline-day {
@@ -133,11 +135,13 @@
         }
         .mobile-timeline-task { font-size: 1.1em; line-height: 1.4; font-family: 'Forum', serif; }
         .mobile-timeline-alert {
-            display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.3);
+            display: none; margin-top: 15px; padding-top: 15px;
+            border-top: 2px solid rgba(255,255,255,0.3);
             font-weight: 700; font-size: 1.2em; animation: blink 1.5s infinite alternate;
         }
         .mobile-work-date {
-            margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.3);
+            margin-top: 15px; padding-top: 15px;
+            border-top: 2px solid rgba(255,255,255,0.3);
             font-size: 1em; opacity: 0.95;
         }
         .mobile-work-date-label { display: block; font-size: 0.85em; opacity: 0.8; margin-bottom: 5px; }
@@ -148,47 +152,30 @@
             50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); }
         }
 
-        /* === ЕДИНАЯ СЕТКА 3 КОЛОНКИ === */
-        .three-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 20px; 
+        /* === ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ ДЛЯ ВСЕХ БЛОКОВ (ДЕСКТОП + МОБИЛЬНЫЙ) === */
+        .scroll-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding-bottom: 15px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            /* Убираем полосы прокрутки для чистого UX */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
-        
-        @media (max-width: 900px) {
-            .three-grid { gap: 15px; }
+        .scroll-container::-webkit-scrollbar {
+            display: none;
         }
-        
-        @media (max-width: 600px) {
-            /* На мобильных — горизонтальный скролл */
-            .three-grid { 
-                display: flex; 
-                overflow-x: auto; 
-                gap: 15px; 
-                padding-bottom: 15px; 
-                scroll-snap-type: x mandatory;
-                -webkit-overflow-scrolling: touch;
-                margin-left: -15px;
-                margin-right: -15px;
-                padding-left: 15px;
-                padding-right: 15px;
-            }
-            .three-grid > .column {
-                min-width: calc(100vw - 70px);
-                max-width: calc(100vw - 70px);
-                scroll-snap-align: center;
-                flex-shrink: 0;
-            }
-            .timeline-container { display: none; }
-            .mobile-timeline-card { display: block; }
-            .block { padding: 20px 15px; }
-            .block-title { font-size: 1.5em; margin-bottom: 15px; }
-        }
-        
+
+        /* Фиксированная ширина колонки для единообразия */
         .column {
+            flex: 0 0 280px; /* Жесткая ширина 280px */
             background: #f8f9fb; border-radius: 12px; padding: 20px;
             border: 2px solid rgba(84, 66, 115, 0.2); display: flex; flex-direction: column;
+            scroll-snap-align: start;
         }
+
         .column-title {
             font-size: 1.3em; font-weight: 400; color: #544273; margin-bottom: 15px;
             padding-bottom: 10px; border-bottom: 2px solid #78A6C7; font-family: 'Forum', serif;
@@ -239,6 +226,17 @@
         .timer-value { font-size: 2em; font-weight: 400; font-variant-numeric: tabular-nums; position: relative; z-index: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Forum', serif; }
         .timer-label { font-size: 0.8em; opacity: 0.85; margin-top: 5px; position: relative; z-index: 1; font-family: 'Forum', serif; }
         .icon { font-size: 1.5em; }
+
+        /* Адаптация под маленькие экраны */
+        @media (max-width: 600px) {
+            .column {
+                flex: 0 0 calc(100vw - 70px);
+            }
+            .block { padding: 20px 15px; }
+            .block-title { font-size: 1.5em; margin-bottom: 15px; }
+            .timeline-container { display: none; }
+            .mobile-timeline-card { display: block; }
+        }
     </style>
 </head>
 <body>
@@ -270,7 +268,7 @@
         <!-- Блок 1: Управление компанией -->
         <div class="block">
             <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
-            <div class="three-grid">
+            <div class="scroll-container">
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
                     <div class="column-items">
@@ -312,7 +310,7 @@
 
         <!-- Блок 2: Логистика -->
         <div class="block">
-            <div class="block-title"><span class="icon"></span> Логистика и доставка</div>
+            <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
             <div class="timeline-container">
                 <div class="timeline-header">
@@ -376,7 +374,7 @@
                 </div>
             </div>
 
-            <div class="three-grid">
+            <div class="scroll-container">
                 <div class="column">
                     <div class="column-title">Управление закупками</div>
                     <div class="column-items">
@@ -435,7 +433,7 @@
                     <div class="timer-label">Дедлайн: 15-е число месяца, 12:00</div>
                 </div>
             </div>
-            <div class="three-grid">
+            <div class="scroll-container">
                 <div class="column">
                     <div class="column-title">Продвижение и реклама</div>
                     <div class="column-items">
