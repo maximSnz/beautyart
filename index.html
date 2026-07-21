@@ -152,7 +152,7 @@
             50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); }
         }
 
-        /* === ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ ДЛЯ ВСЕХ БЛОКОВ (ДЕСКТОП + МОБИЛЬНЫЙ) === */
+        /* === ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ С УВЕЛИЧЕННОЙ ШИРИНОЙ КОЛОНКИ (420px) === */
         .scroll-container {
             display: flex;
             overflow-x: auto;
@@ -160,7 +160,6 @@
             padding-bottom: 15px;
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
-            /* Убираем полосы прокрутки для чистого UX */
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
@@ -168,9 +167,9 @@
             display: none;
         }
 
-        /* Фиксированная ширина колонки для единообразия */
+        /* Ширина колонки увеличена на 50%: с 280px → 420px */
         .column {
-            flex: 0 0 280px; /* Жесткая ширина 280px */
+            flex: 0 0 420px; /* ✅ Увеличено на 50% */
             background: #f8f9fb; border-radius: 12px; padding: 20px;
             border: 2px solid rgba(84, 66, 115, 0.2); display: flex; flex-direction: column;
             scroll-snap-align: start;
@@ -227,7 +226,7 @@
         .timer-label { font-size: 0.8em; opacity: 0.85; margin-top: 5px; position: relative; z-index: 1; font-family: 'Forum', serif; }
         .icon { font-size: 1.5em; }
 
-        /* Адаптация под маленькие экраны */
+        /* Адаптация под мобильные */
         @media (max-width: 600px) {
             .column {
                 flex: 0 0 calc(100vw - 70px);
