@@ -111,19 +111,80 @@
             to { opacity: 1; transform: scale(1.02); }
         }
 
-        /* Блок рабочей даты заявки (Десктоп) */
-        .work-date-display {
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 10px;
-            border: 2px dashed #78A6C7;
-            text-align: center;
-            font-family: 'Forum', serif;
-            color: #544273;
+        /* === ДИНАМИЧЕСКАЯ ВИЗУАЛИЗАЦИЯ РАБОЧЕЙ ДАТЫ ЗАЯВКИ === */
+        .work-date-visual {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
-        .work-date-label { font-size: 0.9em; opacity: 0.8; margin-bottom: 5px; }
-        .work-date-value { font-size: 1.4em; font-weight: 700; color: #1C0D2E; }
+        .work-date-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .work-date-card.active {
+            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 6px 20px rgba(227, 61, 120, 0.4);
+            transform: scale(1.02);
+        }
+        .work-date-card.active::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            animation: pulse-card 3s infinite ease-in-out;
+        }
+        @keyframes pulse-card {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        .work-date-label {
+            font-size: 0.85em;
+            opacity: 0.7;
+            margin-bottom: 8px;
+            font-family: 'Forum', serif;
+            position: relative;
+            z-index: 1;
+        }
+        .work-date-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #1C0D2E;
+            font-family: 'Forum', serif;
+            position: relative;
+            z-index: 1;
+        }
+        .work-date-card.active .work-date-value {
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .work-date-card.active .work-date-label {
+            opacity: 0.95;
+        }
+        .work-date-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            color: white;
+            font-size: 0.7em;
+            padding: 3px 10px;
+            border-radius: 10px;
+            margin-top: 8px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        .work-date-card:not(.active) .work-date-badge {
+            display: none;
+        }
 
         /* МОБИЛЬНЫЙ ТАЙМЛАЙН */
         .mobile-timeline-card {
@@ -151,7 +212,7 @@
             font-size: 1em; opacity: 0.9;
         }
         .mobile-work-date strong { display: block; font-size: 1.3em; margin-top: 5px; }
-        
+
         @keyframes mobile-pulse {
             0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); }
             50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); }
@@ -170,17 +231,26 @@
         @media (max-width: 600px) {
             .four-columns, .three-columns, .two-columns { 
                 display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; 
-                scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
-                margin-left: -15px; margin-right: -15px; padding-left: 15px; padding-right: 15px;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                margin-left: -15px;
+                margin-right: -15px;
+                padding-left: 15px;
+                padding-right: 15px;
             }
             .four-columns > .column, .three-columns > .column, .two-columns > .column {
-                min-width: calc(100vw - 70px); max-width: calc(100vw - 70px);
-                scroll-snap-align: center; flex-shrink: 0;
+                min-width: calc(100vw - 70px);
+                max-width: calc(100vw - 70px);
+                scroll-snap-align: center;
+                flex-shrink: 0;
             }
             .timeline-container { display: none; }
             .mobile-timeline-card { display: block; }
             .block { padding: 20px 15px; }
             .block-title { font-size: 1.5em; margin-bottom: 15px; }
+            .work-date-visual {
+                grid-template-columns: 1fr;
+            }
         }
         
         .column {
@@ -249,7 +319,7 @@
                 <div class="marquee-content">
                     <span>📈 Рост показателя ежемесячной ЧП до 10 млн. руб.</span>
                     <span class="marquee-separator">•</span>
-                    <span> Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
+                    <span>🎯 Реализация 30% ЧП компании через альтернативные площадки сбыта товаров beauty индустрии</span>
                     <span class="marquee-separator">•</span>
                 </div>
                 <div class="marquee-content">
@@ -265,7 +335,7 @@
         
         <!-- Блок 1: Управление компанией -->
         <div class="block">
-            <div class="block-title"><span class="icon"></span> Управление компанией</div>
+            <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
             <div class="four-columns">
                 <div class="column">
                     <div class="column-title">Стратегическое планирование</div>
@@ -338,10 +408,18 @@
                     </div>
                 </div>
                 
-                <!-- Блок рабочей даты заявки (Десктоп) -->
-                <div class="work-date-display">
-                    <div class="work-date-label"> Рабочая дата заявки (с которой работаем):</div>
-                    <div class="work-date-value" id="desktop-work-date">--.--.----</div>
+                <!-- Динамическая визуализация рабочей даты заявки -->
+                <div class="work-date-visual">
+                    <div class="work-date-card" id="work-date-current">
+                        <div class="work-date-label">Заявка на понедельник</div>
+                        <div class="work-date-value" id="work-date-current-value">--.--.----</div>
+                        <div class="work-date-badge">АКТИВНА</div>
+                    </div>
+                    <div class="work-date-card" id="work-date-next">
+                        <div class="work-date-label">Заявка на следующий понедельник</div>
+                        <div class="work-date-value" id="work-date-next-value">--.--.----</div>
+                        <div class="work-date-badge">АКТИВНА</div>
+                    </div>
                 </div>
             </div>
 
@@ -350,7 +428,6 @@
                 <div class="mobile-timeline-day" id="mobile-day">--</div>
                 <div class="mobile-timeline-task" id="mobile-task">--</div>
                 <div class="mobile-timeline-alert" id="mobile-alert">🔔 ФОРМИРОВАНИЕ ПОТРЕБНОСТИ</div>
-                <!-- Блок рабочей даты заявки (Мобильный) -->
                 <div class="mobile-work-date">
                     📅 Рабочая дата заявки:
                     <strong id="mobile-work-date">--.--.----</strong>
@@ -441,34 +518,54 @@
     <script>
         function updateDashboard() {
             const now = new Date();
-            const day = now.getDay(); // 0=Вс, 1=Пн...
+            const day = now.getDay();
             const hour = now.getHours();
             const minute = now.getMinutes();
             const date = now.getDate();
             const month = now.getMonth();
             const year = now.getFullYear();
             
-            // === РАСЧЕТ РАБОЧЕЙ ДАТЫ ЗАЯВКИ ===
-            // Логика: В Пн делаем заявку на СЛЕДУЮЩИЙ Пн. Во Вт-Вс работаем с ТЕКУЩИМ Пн.
-            let workDate = new Date(now);
-            if (day === 1) {
-                // Если сегодня понедельник -> берем следующий понедельник (+7 дней)
-                workDate.setDate(date + 7);
+            // === РАСЧЕТ ДАТ ЗАЯВОК ===
+            // Дата текущего понедельника
+            const currentMonday = new Date(now);
+            currentMonday.setDate(date - (day === 0 ? 6 : day - 1));
+            
+            // Дата следующего понедельника
+            const nextMonday = new Date(currentMonday);
+            nextMonday.setDate(currentMonday.getDate() + 7);
+            
+            // Форматирование дат
+            const formatDate = (d) => {
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                return `${dd}.${mm}.${yyyy}`;
+            };
+            
+            const currentMondayStr = formatDate(currentMonday);
+            const nextMondayStr = formatDate(nextMonday);
+            
+            // Определяем активную дату
+            // В понедельник работаем с заявкой на СЛЕДУЮЩИЙ понедельник
+            // Во вторник-воскресенье работаем с заявкой на ТЕКУЩИЙ понедельник
+            const isWorkingOnNext = (day === 1);
+            
+            // Обновляем значения
+            document.getElementById('work-date-current-value').textContent = currentMondayStr;
+            document.getElementById('work-date-next-value').textContent = nextMondayStr;
+            document.getElementById('mobile-work-date').textContent = isWorkingOnNext ? nextMondayStr : currentMondayStr;
+            
+            // Управляем активным состоянием карточек
+            const currentCard = document.getElementById('work-date-current');
+            const nextCard = document.getElementById('work-date-next');
+            
+            if (isWorkingOnNext) {
+                currentCard.classList.remove('active');
+                nextCard.classList.add('active');
             } else {
-                // Если любой другой день -> берем понедельник текущей недели
-                // (day - 1) это количество дней прошедших с понедельника
-                workDate.setDate(date - (day - 1));
+                currentCard.classList.add('active');
+                nextCard.classList.remove('active');
             }
-            
-            // Форматируем дату в DD.MM.YYYY
-            const dd = String(workDate.getDate()).padStart(2, '0');
-            const mm = String(workDate.getMonth() + 1).padStart(2, '0');
-            const yyyy = workDate.getFullYear();
-            const formattedWorkDate = `${dd}.${mm}.${yyyy}`;
-            
-            // Обновляем отображение рабочей даты
-            document.getElementById('desktop-work-date').textContent = formattedWorkDate;
-            document.getElementById('mobile-work-date').textContent = formattedWorkDate;
 
             // === ТАЙМЛАЙН НЕДЕЛИ ===
             const stages = [
@@ -478,12 +575,10 @@
             ];
             const statusText = document.getElementById('current-week-status');
             
-            // Мобильные элементы
             const mobileDay = document.getElementById('mobile-day');
             const mobileTask = document.getElementById('mobile-task');
             const mobileAlert = document.getElementById('mobile-alert');
             
-            // Скрываем все алерты перед проверкой
             for(let i=1; i<=4; i++) {
                 const alertEl = document.getElementById(`alert-stage-${i}`);
                 if(alertEl) alertEl.style.display = 'none';
@@ -534,11 +629,9 @@
             
             if (statusText) statusText.textContent = statusMessage;
 
-            // Обновление мобильной карточки
             if (mobileDay) mobileDay.textContent = dayName;
             if (mobileTask) mobileTask.textContent = taskName;
 
-            // Логика отображения алерта 17-го числа
             const isDeadline17 = (date === 17 && activeStageIndex >= 0 && activeStageIndex <= 3);
             
             if (isDeadline17) {
