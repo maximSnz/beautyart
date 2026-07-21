@@ -72,10 +72,24 @@
             font-size: 1.2em; font-weight: 600;
         }
         .timeline-status-text { color: #E33D78; font-size: 1em; font-weight: 400; }
+        .timeline-subheader {
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            font-family: 'Forum', serif;
+            font-weight: 600;
+        }
         
         .timeline-track {
             position: relative; height: 70px; background: #e5e7eb;
             border-radius: 35px; overflow: hidden; display: flex;
+        }
+        
+        /* Трек дат заявок — чуть ниже основного */
+        .timeline-track-dates {
+            height: 60px;
+            margin-top: 10px;
         }
         
         .timeline-stage {
@@ -96,6 +110,32 @@
         .timeline-stage.passed { background: rgba(120, 166, 199, 0.2); color: #544273; }
         .timeline-stage.passed strong { color: #544273; opacity: 0.7; }
 
+        /* Дата в треке дат */
+        .timeline-date {
+            display: block;
+            font-size: 1em;
+            font-weight: 700;
+            margin-top: 2px;
+            color: #544273;
+            font-family: 'Forum', serif;
+        }
+        .timeline-stage.active .timeline-date {
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .timeline-stage.passed .timeline-date {
+            color: #544273;
+            opacity: 0.7;
+        }
+        .timeline-date-label {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        .timeline-stage.active .timeline-date-label {
+            opacity: 0.95;
+        }
+
         /* Динамическая подпись 17-го числа */
         .deadline-alert {
             display: none; margin-top: 6px; font-weight: 700;
@@ -109,81 +149,6 @@
         @keyframes blink {
             from { opacity: 0.7; transform: scale(0.98); }
             to { opacity: 1; transform: scale(1.02); }
-        }
-
-        /* === ДИНАМИЧЕСКАЯ ВИЗУАЛИЗАЦИЯ РАБОЧЕЙ ДАТЫ ЗАЯВКИ === */
-        .work-date-visual {
-            margin-top: 25px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .work-date-card {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .work-date-card.active {
-            background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%);
-            border-color: transparent;
-            color: white;
-            box-shadow: 0 6px 20px rgba(227, 61, 120, 0.4);
-            transform: scale(1.02);
-        }
-        .work-date-card.active::before {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
-            animation: pulse-card 3s infinite ease-in-out;
-        }
-        @keyframes pulse-card {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        .work-date-label {
-            font-size: 0.85em;
-            opacity: 0.7;
-            margin-bottom: 8px;
-            font-family: 'Forum', serif;
-            position: relative;
-            z-index: 1;
-        }
-        .work-date-value {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #1C0D2E;
-            font-family: 'Forum', serif;
-            position: relative;
-            z-index: 1;
-        }
-        .work-date-card.active .work-date-value {
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .work-date-card.active .work-date-label {
-            opacity: 0.95;
-        }
-        .work-date-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.3);
-            color: white;
-            font-size: 0.7em;
-            padding: 3px 10px;
-            border-radius: 10px;
-            margin-top: 8px;
-            font-weight: 600;
-            position: relative;
-            z-index: 1;
-        }
-        .work-date-card:not(.active) .work-date-badge {
-            display: none;
         }
 
         /* МОБИЛЬНЫЙ ТАЙМЛАЙН */
@@ -209,9 +174,20 @@
         .mobile-work-date {
             margin-top: 15px; padding-top: 15px;
             border-top: 2px solid rgba(255,255,255,0.3);
-            font-size: 1em; opacity: 0.9;
+            font-size: 1em; opacity: 0.95;
         }
-        .mobile-work-date strong { display: block; font-size: 1.3em; margin-top: 5px; }
+        .mobile-work-date-label {
+            display: block;
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        .mobile-work-date strong { 
+            display: block; 
+            font-size: 1.5em; 
+            margin-top: 5px; 
+            font-family: 'Forum', serif;
+        }
 
         @keyframes mobile-pulse {
             0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); }
@@ -248,9 +224,6 @@
             .mobile-timeline-card { display: block; }
             .block { padding: 20px 15px; }
             .block-title { font-size: 1.5em; margin-bottom: 15px; }
-            .work-date-visual {
-                grid-template-columns: 1fr;
-            }
         }
         
         .column {
@@ -386,6 +359,9 @@
                     <span>Текущий статус недели:</span>
                     <span id="current-week-status" class="timeline-status-text">Загрузка...</span>
                 </div>
+                
+                <!-- Основной таймлайн (этапы работы) -->
+                <div class="timeline-subheader">📋 Этапы работы с заявкой:</div>
                 <div class="timeline-track">
                     <div class="timeline-stage" id="stage-1">
                         <strong>Пн</strong>Формирование<br>заявки
@@ -408,17 +384,28 @@
                     </div>
                 </div>
                 
-                <!-- Динамическая визуализация рабочей даты заявки -->
-                <div class="work-date-visual">
-                    <div class="work-date-card" id="work-date-current">
-                        <div class="work-date-label">Заявка на понедельник</div>
-                        <div class="work-date-value" id="work-date-current-value">--.--.----</div>
-                        <div class="work-date-badge">АКТИВНА</div>
+                <!-- Второй трек: ДАТЫ заявок -->
+                <div class="timeline-subheader">📅 Рабочие даты заявок:</div>
+                <div class="timeline-track timeline-track-dates">
+                    <div class="timeline-stage" id="date-stage-1">
+                        <span class="timeline-date-label">Заявка на:</span>
+                        <span class="timeline-date" id="date-value-1">--.--</span>
                     </div>
-                    <div class="work-date-card" id="work-date-next">
-                        <div class="work-date-label">Заявка на следующий понедельник</div>
-                        <div class="work-date-value" id="work-date-next-value">--.--.----</div>
-                        <div class="work-date-badge">АКТИВНА</div>
+                    <div class="timeline-stage" id="date-stage-2">
+                        <span class="timeline-date-label">Заявка на:</span>
+                        <span class="timeline-date" id="date-value-2">--.--</span>
+                    </div>
+                    <div class="timeline-stage" id="date-stage-3">
+                        <span class="timeline-date-label">Заявка на:</span>
+                        <span class="timeline-date" id="date-value-3">--.--</span>
+                    </div>
+                    <div class="timeline-stage" id="date-stage-4">
+                        <span class="timeline-date-label">Заявка на:</span>
+                        <span class="timeline-date" id="date-value-4">--.--</span>
+                    </div>
+                    <div class="timeline-stage" id="date-stage-5">
+                        <span class="timeline-date-label">Заявка на:</span>
+                        <span class="timeline-date" id="date-value-5">--.--</span>
                     </div>
                 </div>
             </div>
@@ -429,7 +416,7 @@
                 <div class="mobile-timeline-task" id="mobile-task">--</div>
                 <div class="mobile-timeline-alert" id="mobile-alert">🔔 ФОРМИРОВАНИЕ ПОТРЕБНОСТИ</div>
                 <div class="mobile-work-date">
-                    📅 Рабочая дата заявки:
+                    <span class="mobile-work-date-label">📅 Рабочая дата заявки:</span>
                     <strong id="mobile-work-date">--.--.----</strong>
                 </div>
             </div>
@@ -526,52 +513,61 @@
             const year = now.getFullYear();
             
             // === РАСЧЕТ ДАТ ЗАЯВОК ===
-            // Дата текущего понедельника
+            // Текущий понедельник (дата Пн текущей недели)
             const currentMonday = new Date(now);
-            currentMonday.setDate(date - (day === 0 ? 6 : day - 1));
+            if (day === 0) {
+                // Воскресенье — отнимаем 6 дней
+                currentMonday.setDate(date - 6);
+            } else {
+                // Пн-Сб: отнимаем (day - 1)
+                currentMonday.setDate(date - (day - 1));
+            }
             
-            // Дата следующего понедельника
+            // Следующий понедельник (+7 дней к текущему)
             const nextMonday = new Date(currentMonday);
             nextMonday.setDate(currentMonday.getDate() + 7);
             
-            // Форматирование дат
-            const formatDate = (d) => {
+            // Функция форматирования в DD.MM
+            const formatShort = (d) => {
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                return `${dd}.${mm}`;
+            };
+            // Функция форматирования в DD.MM.YYYY
+            const formatFull = (d) => {
                 const dd = String(d.getDate()).padStart(2, '0');
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
                 const yyyy = d.getFullYear();
                 return `${dd}.${mm}.${yyyy}`;
             };
             
-            const currentMondayStr = formatDate(currentMonday);
-            const nextMondayStr = formatDate(nextMonday);
+            // Рабочая дата:
+            // - В Пн работаем со СЛЕДУЮЩИМ Пн (формируем новую заявку)
+            // - Во Вт-Вс работаем с ТЕКУЩИМ Пн (заявка этой недели)
+            const workingDate = (day === 1) ? nextMonday : currentMonday;
             
-            // Определяем активную дату
-            // В понедельник работаем с заявкой на СЛЕДУЮЩИЙ понедельник
-            // Во вторник-воскресенье работаем с заявкой на ТЕКУЩИЙ понедельник
-            const isWorkingOnNext = (day === 1);
+            // Заполняем даты в треке дат:
+            // - Пн (этап 1): следующая заявка = nextMonday
+            // - Вт-Вс (этапы 2-5): текущая заявка = currentMonday
+            document.getElementById('date-value-1').textContent = formatShort(nextMonday);
+            document.getElementById('date-value-2').textContent = formatShort(currentMonday);
+            document.getElementById('date-value-3').textContent = formatShort(currentMonday);
+            document.getElementById('date-value-4').textContent = formatShort(currentMonday);
+            document.getElementById('date-value-5').textContent = formatShort(currentMonday);
             
-            // Обновляем значения
-            document.getElementById('work-date-current-value').textContent = currentMondayStr;
-            document.getElementById('work-date-next-value').textContent = nextMondayStr;
-            document.getElementById('mobile-work-date').textContent = isWorkingOnNext ? nextMondayStr : currentMondayStr;
-            
-            // Управляем активным состоянием карточек
-            const currentCard = document.getElementById('work-date-current');
-            const nextCard = document.getElementById('work-date-next');
-            
-            if (isWorkingOnNext) {
-                currentCard.classList.remove('active');
-                nextCard.classList.add('active');
-            } else {
-                currentCard.classList.add('active');
-                nextCard.classList.remove('active');
-            }
+            // Мобильная версия
+            document.getElementById('mobile-work-date').textContent = formatFull(workingDate);
 
             // === ТАЙМЛАЙН НЕДЕЛИ ===
             const stages = [
                 document.getElementById('stage-1'), document.getElementById('stage-2'),
                 document.getElementById('stage-3'), document.getElementById('stage-4'),
                 document.getElementById('stage-5')
+            ];
+            const dateStages = [
+                document.getElementById('date-stage-1'), document.getElementById('date-stage-2'),
+                document.getElementById('date-stage-3'), document.getElementById('date-stage-4'),
+                document.getElementById('date-stage-5')
             ];
             const statusText = document.getElementById('current-week-status');
             
@@ -585,6 +581,7 @@
             }
 
             stages.forEach(el => el && el.classList.remove('active', 'passed'));
+            dateStages.forEach(el => el && el.classList.remove('active', 'passed'));
 
             let statusMessage = "";
             let activeStageIndex = -1;
@@ -592,13 +589,15 @@
             let taskName = "";
 
             if (day === 1) { 
-                stages[0].classList.add('active'); 
+                stages[0].classList.add('active');
+                dateStages[0].classList.add('active');
                 statusMessage = "🟢 Формирование еженедельной заявки"; 
                 activeStageIndex = 0; 
                 dayName = "ПОНЕДЕЛЬНИК";
                 taskName = "Формирование заявки";
             } else if (day === 2 || day === 3) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('active');
                 statusMessage = "🔵 Согласование заявки с поставщиком"; 
                 activeStageIndex = 1;
                 dayName = day === 2 ? "ВТОРНИК" : "СРЕДА";
@@ -606,6 +605,8 @@
             } else if (day === 4) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
                 stages[2].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
+                dateStages[2].classList.add('active');
                 statusMessage = "🟣 Корректировка заявки в т.ч. с учетом наполняемости паллет"; 
                 activeStageIndex = 2;
                 dayName = "ЧЕТВЕРГ";
@@ -613,6 +614,8 @@
             } else if (day === 5) { 
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
                 stages[2].classList.add('passed'); stages[3].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
+                dateStages[2].classList.add('passed'); dateStages[3].classList.add('active');
                 statusMessage = "⚪ Резервный день"; 
                 activeStageIndex = 3;
                 dayName = "ПЯТНИЦА";
@@ -621,6 +624,9 @@
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); 
                 stages[2].classList.add('passed'); stages[3].classList.add('passed'); 
                 stages[4].classList.add('active'); 
+                dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed');
+                dateStages[2].classList.add('passed'); dateStages[3].classList.add('passed');
+                dateStages[4].classList.add('active');
                 statusMessage = "🌙 Выходные дни"; 
                 activeStageIndex = 4;
                 dayName = day === 0 ? "ВОСКРЕСЕНЬЕ" : "СУББОТА";
