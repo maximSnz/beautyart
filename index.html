@@ -93,7 +93,7 @@
         .scroll-wrapper:hover .scroll-arrow.visible { opacity: 1; }
         .scroll-arrow:not(.visible) { opacity: 0 !important; pointer-events: none; }
 
-        /* === КОЛОНКИ (УМНАЯ ШИРИНА) === */
+        /* === КОЛОНКИ === */
         .column {
             flex: 0 0 calc((100% - 40px) / 3); max-width: 380px;
             background: #f8f9fb; border-radius: 12px; padding: 20px;
@@ -104,7 +104,29 @@
             font-size: 1.3em; font-weight: 400; color: #544273; margin-bottom: 15px;
             padding-bottom: 10px; border-bottom: 2px solid #78A6C7; font-family: 'Forum', serif;
         }
-        .column-items { display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+
+        /* === ВЕРТИКАЛЬНЫЙ СКРОЛЛ КАРТОЧЕК === */
+        .column-items {
+            display: flex; flex-direction: column; gap: 10px;
+            overflow-y: auto;
+            max-height: 240px; /* ~3 карточки без скролла */
+            flex-shrink: 1;
+            scrollbar-width: thin;
+            scrollbar-color: #E33D78 rgba(84, 66, 115, 0.1);
+        }
+        .column-items::-webkit-scrollbar { width: 4px; }
+        .column-items::-webkit-scrollbar-track { background: rgba(84, 66, 115, 0.1); border-radius: 2px; }
+        .column-items::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #78A6C7, #E33D78); border-radius: 2px; }
+        .column-items::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #E33D78, #7D3673); }
+
+        /* === ГРУППЫ КАРТОЧЕК С РАЗДЕЛИТЕЛЕМ === */
+        .card-group {
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .card-group + .card-group {
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 10px;
+        }
 
         .table-card {
             background: white; padding: 15px; border-radius: 10px; text-decoration: none;
@@ -120,10 +142,12 @@
             padding: 2px 8px; border-radius: 10px; margin-left: 5px; vertical-align: middle; font-family: 'Forum', serif;
         }
 
+        /* === ИНСТРУКЦИИ / РЕГЛАМЕНТЫ (зафиксированы, не скроллятся) === */
         .regulation-link {
             margin-top: auto; padding-top: 15px; border-top: 1px dashed #cbd5e1;
             display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: #544273;
             text-decoration: none; transition: all 0.2s; font-weight: 400; font-family: 'Forum', serif;
+            flex-shrink: 0;
         }
         .regulation-link + .regulation-link { border-top: none; padding-top: 5px; margin-top: 0; }
         .regulation-link:hover { color: #7D3673; gap: 12px; }
@@ -224,9 +248,6 @@
                         <div class="column-items">
                             <a href="https://docs.google.com/spreadsheets/d/1cJGvUwr0DC3f2bRh_5Q2VeivtDyhpmpqOWYbvPEWjgs/edit?usp=share_link" target="_blank" class="table-card">
                                 <h3>Функциональная стратегия</h3><p>Стратегическое планирование</p>
-                            </a>
-                            <a href="https://docs.google.com/spreadsheets/d/1QggOaNjI7y-i3xZIiZrdVH_q1xsmHYpMwVRH9n1wliY/edit?gid=203679960#gid=203679960" target="_blank" class="table-card">
-                                <h3>Маркетинговая стратегия</h3><p>План маркетинговых активностей</p>
                             </a>
                         </div>
                     </div>
@@ -351,8 +372,8 @@
                             <a href="https://drive.google.com/drive/folders/1_Fz3CNW4iBB_0RP7CXGB1-78Pw0i7Z4f?usp=share_link" target="_blank" class="table-card">
                                 <h3>Прайс-листы поставщиков</h3><p>Актуальные прайсы от поставщиков</p>
                             </a>
-                            <div class="regulation-link disabled">📄 Регламент контроля эффективности закупок (в разработке)</div>
                         </div>
+                        <div class="regulation-link disabled">📄 Регламент контроля эффективности закупок (в разработке)</div>
                     </div>
                     <div class="column">
                         <div class="column-title">Калькулятор потребности</div>
@@ -364,9 +385,9 @@
                                 <h3>Калькулятор потребности WB <span class="badge-soon">скоро</span></h3>
                                 <p>Расчёт потребности для Wildberries</p>
                             </div>
-                            <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности Ozon" (в разработке)</div>
-                            <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности WB" (в разработке)</div>
                         </div>
+                        <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности Ozon" (в разработке)</div>
+                        <div class="regulation-link disabled">📄 Инструкция "Калькулятор потребности WB" (в разработке)</div>
                     </div>
                     <div class="column">
                         <div class="column-title">Калькулятор закупок</div>
@@ -380,9 +401,9 @@
                             <a href="https://docs.google.com/spreadsheets/d/1hv1R7XAFRoI6EBJlQzYqpI8vie_lSEZ117M7NQ9CoiE/edit?usp=share_link" target="_blank" class="table-card">
                                 <h3>Калькулятор закупок Ozon ООО</h3><p>Расчёт для Ozon (ООО)</p>
                             </a>
-                            <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">📄 Инструкция "Калькулятор закупок Ozon"</a>
-                            <div class="regulation-link disabled">📄 Инструкция "Калькулятор закупок WB" (в разработке)</div>
                         </div>
+                        <a href="https://docs.google.com/document/d/1nQzERK9gCpyjyHKcuQTAsp1n1a3EJw9fJWJhyyfBo6s/edit?usp=share_link" target="_blank" class="regulation-link">📄 Инструкция "Калькулятор закупок Ozon"</a>
+                        <div class="regulation-link disabled">📄 Инструкция "Калькулятор закупок WB" (в разработке)</div>
                     </div>
                     <div class="column">
                         <div class="column-title">Фулфилмент</div>
@@ -411,12 +432,33 @@
                     <div class="column">
                         <div class="column-title">Продвижение и реклама</div>
                         <div class="column-items">
-                            <a href="https://docs.google.com/spreadsheets/d/1GwyVCyQQKBKnU67JPtECjiwYPUyzPQwCh3zIF1AtsaI/edit?usp=sharing" target="_blank" class="table-card">
-                                <h3>Отчет SMM</h3><p>Метрики и результаты SMM</p>
-                            </a>
-                            <a href="https://docs.google.com/spreadsheets/d/110zZ6aGFr3LzqiZKfnfMQubTwGmztEmPN0n2AmRoXBw/edit?usp=sharing" target="_blank" class="table-card">
-                                <h3>Отчет реклама</h3><p>Эффективность рекламных кампаний</p>
-                            </a>
+                            <div class="card-group">
+                                <a href="https://docs.google.com/spreadsheets/d/1QggOaNjI7y-i3xZIiZrdVH_q1xsmHYpMwVRH9n1wliY/edit?gid=203679960#gid=203679960" target="_blank" class="table-card">
+                                    <h3>Маркетинговая стратегия</h3><p>План маркетинговых активностей</p>
+                                </a>
+                                <a href="https://docs.google.com/spreadsheets/d/1dKzV0kQJ2PADrCe96x8_pyL5-KhAITRqFV7jhxaonP0/edit?usp=sharing" target="_blank" class="table-card">
+                                    <h3>Бюджет</h3><p>Финансовый расчёт и окупаемость продвижения</p>
+                                </a>
+                            </div>
+                            <div class="card-group">
+                                <a href="https://docs.google.com/spreadsheets/d/1GwyVCyQQKBKnU67JPtECjiwYPUyzPQwCh3zIF1AtsaI/edit?usp=sharing" target="_blank" class="table-card">
+                                    <h3>Отчет инфографика</h3><p>Отчёт по работе с инфографикой</p>
+                                </a>
+                                <div class="table-card disabled">
+                                    <h3>Отчет SMM <span class="badge-soon">скоро</span></h3><p>Метрики и результаты SMM</p>
+                                </div>
+                                <a href="https://docs.google.com/spreadsheets/d/110zZ6aGFr3LzqiZKfnfMQubTwGmztEmPN0n2AmRoXBw/edit?usp=sharing" target="_blank" class="table-card">
+                                    <h3>Отчет реклама</h3><p>Эффективность рекламных кампаний</p>
+                                </a>
+                            </div>
+                            <div class="card-group">
+                                <div class="table-card disabled">
+                                    <h3>Контент план <span class="badge-soon">скоро</span></h3><p>Планирование контента</p>
+                                </div>
+                                <div class="table-card disabled">
+                                    <h3>Медиаплан <span class="badge-soon">скоро</span></h3><p>Планирование рекламных размещений</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="column">
