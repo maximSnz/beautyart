@@ -63,7 +63,7 @@
         }
         .icon { font-size: 1.5em; }
 
-        /* === СКРОЛЛ-КОНТЕЙНЕР СО СТРЕЛКАМИ === */
+        /* === ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ СО СТРЕЛКАМИ === */
         .scroll-wrapper { position: relative; }
         
         .scroll-container {
@@ -108,11 +108,8 @@
         /* === ВЕРТИКАЛЬНЫЙ СКРОЛЛ КАРТОЧЕК === */
         .column-items {
             display: flex; flex-direction: column; gap: 10px;
-            overflow-y: auto;
-            max-height: 240px;
-            flex-shrink: 1;
-            scrollbar-width: thin;
-            scrollbar-color: #E33D78 rgba(84, 66, 115, 0.1);
+            overflow-y: auto; max-height: 240px; flex-shrink: 1;
+            scrollbar-width: thin; scrollbar-color: #E33D78 rgba(84, 66, 115, 0.1);
         }
         .column-items::-webkit-scrollbar { width: 4px; }
         .column-items::-webkit-scrollbar-track { background: rgba(84, 66, 115, 0.1); border-radius: 2px; }
@@ -120,13 +117,8 @@
         .column-items::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #E33D78, #7D3673); }
 
         /* === ГРУППЫ КАРТОЧЕК С РАЗДЕЛИТЕЛЕМ === */
-        .card-group {
-            display: flex; flex-direction: column; gap: 10px;
-        }
-        .card-group + .card-group {
-            border-top: 1px dashed #cbd5e1;
-            padding-top: 10px;
-        }
+        .card-group { display: flex; flex-direction: column; gap: 10px; }
+        .card-group + .card-group { border-top: 1px dashed #cbd5e1; padding-top: 10px; }
 
         .table-card {
             background: white; padding: 15px; border-radius: 10px; text-decoration: none;
@@ -152,6 +144,43 @@
         .regulation-link + .regulation-link { border-top: none; padding-top: 5px; margin-top: 0; }
         .regulation-link:hover { color: #7D3673; gap: 12px; }
         .regulation-link.disabled { color: #94a3b8; cursor: not-allowed; pointer-events: none; }
+
+        /* === БЛОК МЕТРИК === */
+        .metrics-container {
+            background: #f8f9fb; border-radius: 12px; padding: 20px;
+            margin-bottom: 30px; border: 2px solid rgba(84, 66, 115, 0.2);
+        }
+        .metrics-header {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 15px; font-family: 'Forum', serif; color: #544273;
+            font-size: 1.2em; font-weight: 600;
+        }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .metric-card {
+            background: white; border-radius: 12px; padding: 18px;
+            border: 2px solid rgba(84, 66, 115, 0.1); transition: all 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .metric-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, #78A6C7, #E33D78);
+        }
+        .metric-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(84, 66, 115, 0.15); }
+        .metric-label { font-size: 0.85em; color: #666; font-family: 'Forum', serif; margin-bottom: 8px; }
+        .metric-value { font-size: 1.8em; font-weight: 700; color: #1C0D2E; font-family: 'Forum', serif; margin-bottom: 6px; }
+        .metric-trend { font-size: 0.8em; font-family: 'Forum', serif; display: flex; align-items: center; gap: 4px; }
+        .metric-trend.up { color: #22c55e; }
+        .metric-trend.down { color: #E33D78; }
+        .metric-trend.neutral { color: #94a3b8; }
+        
+        .private-section-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            margin-top: 15px; padding: 12px 20px;
+            background: linear-gradient(135deg, #78A6C7, #E33D78);
+            color: white; text-decoration: none; border-radius: 10px;
+            font-family: 'Forum', serif; font-size: 1em; transition: all 0.3s;
+        }
+        .private-section-link:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(227, 61, 120, 0.4); }
 
         /* === ТАЙМЛАЙН НЕДЕЛИ === */
         .timeline-container {
@@ -187,10 +216,12 @@
         .timeline-stage.active .deadline-alert { display: block; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         @keyframes blink { from { opacity: 0.7; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); } }
 
+        /* === МОБИЛЬНЫЙ ТАЙМЛАЙН === */
         .mobile-timeline-card {
             display: none; background: linear-gradient(135deg, #78A6C7 0%, #E33D78 100%); color: white;
             padding: 25px 20px; border-radius: 16px; text-align: center; margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); border: 2px solid rgba(255, 255, 255, 0.3); animation: mobile-pulse 3s infinite ease-in-out;
+            box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); border: 2px solid rgba(255, 255, 255, 0.3);
+            animation: mobile-pulse 3s infinite ease-in-out;
         }
         .mobile-timeline-day { font-size: 1.4em; font-weight: 700; margin-bottom: 10px; font-family: 'Forum', serif; text-transform: uppercase; letter-spacing: 2px; }
         .mobile-timeline-task { font-size: 1.1em; line-height: 1.4; font-family: 'Forum', serif; }
@@ -200,6 +231,7 @@
         .mobile-work-date strong { display: block; font-size: 1.5em; margin-top: 5px; font-family: 'Forum', serif; }
         @keyframes mobile-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(227, 61, 120, 0.4); } 50% { transform: scale(1.02); box-shadow: 0 12px 35px rgba(227, 61, 120, 0.6); } }
 
+        /* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
         @media (max-width: 900px) {
             .column { flex: 0 0 calc(100vw - 70px); max-width: none; }
             .scroll-arrow { display: none; }
@@ -207,16 +239,19 @@
             .mobile-timeline-card { display: block; }
             .block { padding: 20px 15px; }
             .block-title { font-size: 1.5em; margin-bottom: 15px; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- ШАПКА -->
         <div class="header">
             <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
             <div class="company-name">Beauty Art</div>
         </div>
         
+        <!-- БЕГУЩАЯ СТРОКА -->
         <div class="marquee-wrapper">
             <div class="marquee-track">
                 <div class="marquee-content">
@@ -247,7 +282,8 @@
                         <div class="column-title">Стратегическое планирование</div>
                         <div class="column-items">
                             <a href="https://docs.google.com/spreadsheets/d/1cJGvUwr0DC3f2bRh_5Q2VeivtDyhpmpqOWYbvPEWjgs/edit?usp=share_link" target="_blank" class="table-card">
-                                <h3>Функциональная стратегия</h3><p>Стратегическое планирование</p>
+                                <h3>Функциональная стратегия</h3>
+                                <p>Стратегическое планирование</p>
                             </a>
                         </div>
                     </div>
@@ -255,13 +291,16 @@
                         <div class="column-title">Управление финансами</div>
                         <div class="column-items">
                             <a href="https://docs.google.com/spreadsheets/d/1iYyzAie6x3H5nWO0biFXoZp694YhS5Qp/edit?usp=sharing&ouid=111894160779270511410&rtpof=true&sd=true" target="_blank" class="table-card">
-                                <h3>Реестр платежей</h3><p>Управление и отслеживание платежей</p>
+                                <h3>Реестр платежей</h3>
+                                <p>Управление и отслеживание платежей</p>
                             </a>
                             <a href="https://docs.google.com/spreadsheets/d/1idpmes30UDhTsB_y4STfLmdXz-BXnhiS/edit?gid=207979019#gid=207979019" target="_blank" class="table-card">
-                                <h3>Реестр цен</h3><p>Актуальные цены на товары</p>
+                                <h3>Реестр цен</h3>
+                                <p>Актуальные цены на товары</p>
                             </a>
                             <a href="https://docs.google.com/spreadsheets/d/15qn4t1PnVdAOIj9bxznHNNv3R57BV_kIpUSOWNf5eYM/edit?usp=share_link" target="_blank" class="table-card">
-                                <h3>План продаж Ozon</h3><p>Планирование и анализ продаж</p>
+                                <h3>План продаж Ozon</h3>
+                                <p>Планирование и анализ продаж</p>
                             </a>
                         </div>
                     </div>
@@ -269,10 +308,12 @@
                         <div class="column-title">Контроль качества процессов</div>
                         <div class="column-items">
                             <a href="https://docs.google.com/spreadsheets/d/1dzhhdjCeNe4-cwU4_y-2caX6PvO9TG3yAxBH2OB_VEY/edit" target="_blank" class="table-card">
-                                <h3>Схема RACI</h3><p>Матрица ответственности</p>
+                                <h3>Схема RACI</h3>
+                                <p>Матрица ответственности</p>
                             </a>
                             <a href="https://stormbpmn.com/app/diagram/6a9c167a-c2fb-4bf3-b690-3253f7de3a7f?o=7ffd" target="_blank" class="table-card">
-                                <h3>BPMN</h3><p>Моделирование бизнес-процессов</p>
+                                <h3>BPMN</h3>
+                                <p>Моделирование бизнес-процессов</p>
                             </a>
                         </div>
                     </div>
@@ -293,6 +334,7 @@
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
             
+            <!-- Десктопный таймлайн -->
             <div class="timeline-container">
                 <div class="timeline-header">
                     <span>Текущий статус недели:</span>
@@ -343,6 +385,7 @@
                 </div>
             </div>
 
+            <!-- Мобильная карточка таймлайна -->
             <div class="mobile-timeline-card" id="mobile-timeline">
                 <div class="mobile-timeline-day" id="mobile-day">--</div>
                 <div class="mobile-timeline-task" id="mobile-task">--</div>
@@ -353,6 +396,7 @@
                 </div>
             </div>
 
+            <!-- Подблоки логистики -->
             <div class="scroll-wrapper">
                 <div class="scroll-arrow left" onclick="scrollBlock(this, -1)">‹</div>
                 <div class="scroll-arrow right" onclick="scrollBlock(this, 1)">›</div>
@@ -425,6 +469,19 @@
         <!-- БЛОК 3: Коммерческая деятельность -->
         <div class="block">
             <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
+            
+            <!-- БЛОК МЕТРИК -->
+            <div class="metrics-container">
+                <div class="metrics-header">
+                    <span>Ключевые показатели месяца:</span>
+                </div>
+                <div class="metrics-grid" id="metricsGrid">
+                    <!-- Заполняется через JS -->
+                </div>
+                <a href="private.html" class="private-section-link">🔒 Закрытый раздел — детальная аналитика</a>
+            </div>
+
+            <!-- Подблоки коммерции -->
             <div class="scroll-wrapper">
                 <div class="scroll-arrow left" onclick="scrollBlock(this, -1)">‹</div>
                 <div class="scroll-arrow right" onclick="scrollBlock(this, 1)">›</div>
@@ -501,6 +558,48 @@
     </div>
 
     <script>
+        // ============================================================
+        // ДАННЫЕ МЕТРИК
+        // Обновляйте значения вручную при каждом коммите.
+        // invert: true — для показателей, где рост = негатив (расходы)
+        // ============================================================
+        const METRICS = {
+            margin_percent: { label: 'Маржинальность', value: 25.3, unit: '%', change: +2.1, changeLabel: 'к пред. месяцу' },
+            margin_value:   { label: 'Маржа', value: 152400, unit: '₽', change: +12300, changeLabel: 'к пред. месяцу' },
+            revenue:        { label: 'Выручка', value: 602000, unit: '₽', change: +45000, changeLabel: 'к пред. месяцу' },
+            expenses:       { label: 'Расходы', value: 449600, unit: '₽', change: +32700, changeLabel: 'к пред. месяцу', invert: true },
+        };
+
+        function renderMetrics() {
+            const grid = document.getElementById('metricsGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            Object.values(METRICS).forEach(metric => {
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                
+                // Направление стрелки
+                const directionIcon = metric.change > 0 ? '↑' : metric.change < 0 ? '↓' : '→';
+                // Цвет: зелёный = хорошо, розовый = плохо
+                const isGood = metric.invert ? metric.change < 0 : metric.change > 0;
+                const colorClass = metric.change === 0 ? 'neutral' : (isGood ? 'up' : 'down');
+                // Формат значения и изменения
+                const sign = metric.change > 0 ? '+' : metric.change < 0 ? '−' : '';
+                const absChange = Math.abs(metric.change);
+                const formattedValue = metric.unit === '%' ? metric.value.toFixed(1) : metric.value.toLocaleString('ru-RU');
+                const formattedChange = metric.unit === '%' ? absChange.toFixed(1) + '%' : absChange.toLocaleString('ru-RU') + ' ' + metric.unit;
+                
+                card.innerHTML = `
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-value">${formattedValue} ${metric.unit}</div>
+                    <div class="metric-trend ${colorClass}">${directionIcon} ${sign}${formattedChange} ${metric.changeLabel}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // === СТРЕЛКИ ГОРИЗОНТАЛЬНОГО СКРОЛЛА ===
         function updateArrows(container) {
             const wrapper = container.closest('.scroll-wrapper');
             if (!wrapper) return;
@@ -520,15 +619,16 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.scroll-container').forEach(c => updateArrows(c));
+            renderMetrics();
         });
 
+        // === ТАЙМЛАЙН НЕДЕЛИ ===
         function updateDashboard() {
             const now = new Date();
             const day = now.getDay();
             const date = now.getDate();
             const month = now.getMonth();
             const year = now.getFullYear();
-            const hour = now.getHours();
             
             const currentMonday = new Date(now);
             if (day === 0) currentMonday.setDate(date - 6);
