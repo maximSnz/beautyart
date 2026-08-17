@@ -66,22 +66,26 @@
         }
         .icon { font-size: 1.5em; }
 
-        /* === ПАНЕЛЬ ГРАФИКА === */
-        .chart-toolbar {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 15px; flex-wrap: wrap; margin-bottom: 20px;
-        }
-        .chart-title { font-family: 'Forum', serif; font-size: 1.4em; color: #1C0D2E; }
-        .chart-legend { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-        .legend-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Forum', serif; color: #544273; font-size: 0.95em; }
-        .legend-line { display: inline-block; width: 28px; height: 0; border-top: 3px solid #E33D78; border-radius: 2px; }
-        .legend-line.plan { border-top-style: dashed; border-top-color: #78A6C7; }
+        /* === ПАНЕЛИ ГРАФИКОВ === */
+        .selector-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
         .month-select {
             padding: 10px 16px; border: 2px solid rgba(84,66,115,0.2); border-radius: 10px;
             font-family: 'Forum', serif; font-size: 1em; color: #544273; background: #f8f9fb;
             cursor: pointer; transition: border-color 0.3s;
         }
         .month-select:focus { outline: none; border-color: #E33D78; }
+        
+        .chart-section { margin-bottom: 35px; }
+        .chart-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 15px; flex-wrap: wrap; margin-bottom: 15px;
+        }
+        .chart-title { font-family: 'Forum', serif; font-size: 1.4em; color: #1C0D2E; }
+        .chart-legend { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+        .legend-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Forum', serif; color: #544273; font-size: 0.95em; }
+        .legend-line { display: inline-block; width: 28px; height: 0; border-top: 3px solid #E33D78; border-radius: 2px; }
+        .legend-line.plan { border-top-style: dashed; border-top-color: #78A6C7; }
+        .legend-line.fact { border-top-style: dashed; border-top-color: #7D3673; }
         
         .chart-box { position: relative; width: 100%; }
         .chart-box svg { width: 100%; height: auto; display: block; }
@@ -94,36 +98,26 @@
             box-shadow: 0 4px 12px rgba(28,13,46,0.4); z-index: 5;
         }
         .chart-tooltip strong { color: #E33D78; display: block; }
-        .chart-point { cursor: pointer; transition: r 0.2s; }
+        .chart-point { cursor: pointer; }
         
         /* === ТАБЛИЦА ГРУПП ТОВАРОВ === */
-        .groups-section-title {
-            font-family: 'Forum', serif; font-size: 1.2em; color: #1C0D2E;
-            margin-top: 30px; margin-bottom: 15px;
-        }
+        .groups-section-title { font-family: 'Forum', serif; font-size: 1.2em; color: #1C0D2E; margin: 30px 0 15px; }
         .groups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .groups-panel {
-            background: #f8f9fb; border-radius: 12px; padding: 15px;
-            border: 2px solid rgba(84,66,115,0.1); overflow-x: auto;
-        }
+        .groups-panel { background: #f8f9fb; border-radius: 12px; padding: 15px; border: 2px solid rgba(84,66,115,0.1); overflow-x: auto; }
         .groups-panel.positive { border-top: 4px solid #22c55e; }
         .groups-panel.negative { border-top: 4px solid #E33D78; }
         .groups-panel-title { font-family: 'Forum', serif; font-size: 1.05em; margin-bottom: 10px; color: #1C0D2E; }
         .groups-table { width: 100%; border-collapse: collapse; font-family: 'Forum', serif; font-size: 0.9em; }
-        .groups-table th {
-            text-align: left; color: #666; font-weight: 400; padding: 6px 8px;
-            border-bottom: 2px solid rgba(84,66,115,0.15); white-space: nowrap;
-        }
+        .groups-table th { text-align: left; color: #666; font-weight: 400; padding: 6px 8px; border-bottom: 2px solid rgba(84,66,115,0.15); white-space: nowrap; }
         .groups-table td { padding: 8px; border-bottom: 1px dashed #cbd5e1; color: #333; }
         .groups-table tr:last-child td { border-bottom: none; }
         .dev-pos { color: #22c55e; font-weight: 700; white-space: nowrap; }
         .dev-neg { color: #E33D78; font-weight: 700; white-space: nowrap; }
-        .groups-empty { color: #94a3b8; font-family: 'Forum', serif; font-size: 0.9em; padding: 10px 0; }
         
         .chart-note { margin-top: 15px; font-size: 0.85em; color: #94a3b8; font-family: 'Forum', serif; }
 
         @media (max-width: 700px) {
-            .chart-toolbar { flex-direction: column; align-items: stretch; }
+            .chart-toolbar { flex-direction: column; align-items: flex-start; }
             .groups-grid { grid-template-columns: 1fr; }
         }
     </style>
@@ -154,17 +148,37 @@
         <div class="block">
             <div class="block-title"><span class="icon">📊</span> Финансовая аналитика</div>
             
-            <div class="chart-toolbar">
-                <div class="chart-title">Маржа ПЛАН/ПРОГНОЗ</div>
-                <div class="chart-legend">
-                    <span class="legend-item"><span class="legend-line plan"></span>План</span>
-                    <span class="legend-item"><span class="legend-line"></span>Прогноз</span>
-                </div>
+            <div class="selector-row">
                 <select class="month-select" id="monthSelect"></select>
             </div>
             
-            <div class="chart-box" id="chartBox">
-                <div class="chart-tooltip" id="chartTooltip"></div>
+            <!-- ГРАФИК 1: МАРЖА, РУБ -->
+            <div class="chart-section">
+                <div class="chart-toolbar">
+                    <div class="chart-title">Маржа ПЛАН/ПРОГНОЗ</div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-line plan"></span>План месяца</span>
+                        <span class="legend-item"><span class="legend-line"></span>Прогноз закрытия</span>
+                        <span class="legend-item"><span class="legend-line fact"></span>Факт недели</span>
+                    </div>
+                </div>
+                <div class="chart-box" id="chartBoxRub">
+                    <div class="chart-tooltip" id="tooltipRub"></div>
+                </div>
+            </div>
+            
+            <!-- ГРАФИК 2: МАРЖИНАЛЬНОСТЬ, % -->
+            <div class="chart-section">
+                <div class="chart-toolbar">
+                    <div class="chart-title">Маржинальность ПЛАН/ФАКТ</div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-line plan"></span>План</span>
+                        <span class="legend-item"><span class="legend-line"></span>Факт</span>
+                    </div>
+                </div>
+                <div class="chart-box" id="chartBoxPct">
+                    <div class="chart-tooltip" id="tooltipPct"></div>
+                </div>
             </div>
             
             <!-- ТАБЛИЦА ГРУПП ТОВАРОВ -->
@@ -182,8 +196,8 @@
         // ============================================================
         // ДАННЫЕ (пока фиктивные, позже — Google Sheets)
         // Формат: 'YYYY-MM': {
-        //   plan: 400000,              // недельный план, руб
-        //   forecast: [..по неделям..],// прогноз маржи по неделям, руб
+        //   planRub, forecastRub: [...], factRub: [...],
+        //   planPct, factPct: [...],
         //   groups: [{ name, plan, forecast }, ...]
         // }
         // ============================================================
@@ -199,7 +213,6 @@
             try {
                 const res = await fetch(SHEET_CSV_URL);
                 const text = await res.text();
-                // Формат строк расширим при подключении (план, прогноз, группы)
                 console.log('CSV загружен, строк:', text.trim().split('\n').length);
             } catch (e) {
                 console.warn('Не удалось загрузить данные из Google Sheets:', e);
@@ -207,7 +220,7 @@
         }
 
         // ============================================================
-        // НЕДЕЛИ МЕСЯЦА ПО ЧЕТВЕРГУ (неделя принадлежит месяцу своего четверга)
+        // НЕДЕЛИ МЕСЯЦА ПО ЧЕТВЕРГУ
         // ============================================================
         function getWeeksInMonth(year, monthIdx) {
             const weeks = [];
@@ -232,18 +245,37 @@
         function generateDemoMonth(monthKey, weeksCount) {
             const [year, m] = monthKey.split('-').map(Number);
             const rnd = seededRandom(year * 100 + m);
-            const plan = Math.round((380000 + rnd() * 80000) / 10000) * 10000;
-            const forecast = [];
+            
+            // Маржа, руб: план месяца, прогноз закрытия (динамический), факт недель
+            const planRub = Math.round((1500000 + rnd() * 600000) / 10000) * 10000;
+            const forecastRub = [];
+            let drift = 0.85 + rnd() * 0.3;
             for (let i = 0; i < weeksCount; i++) {
-                forecast.push(Math.round((plan * (0.75 + rnd() * 0.55)) / 10000) * 10000);
+                drift += (rnd() - 0.45) * 0.06;
+                forecastRub.push(Math.round(planRub * drift / 10000) * 10000);
             }
+            const weekPlan = planRub / weeksCount;
+            const factRub = [];
+            for (let i = 0; i < weeksCount; i++) {
+                factRub.push(Math.round(weekPlan * (0.75 + rnd() * 0.5) / 10000) * 10000);
+            }
+            
+            // Маржинальность, %
+            const planPct = Math.round((22 + rnd() * 8) * 10) / 10;
+            const factPct = [];
+            for (let i = 0; i < weeksCount; i++) {
+                factPct.push(Math.round((planPct + (rnd() * 2 - 1) * 6) * 10) / 10);
+            }
+            
+            // Группы товаров
             const groupNames = ['Уход для волос','Уход для лица','Маникюр и педикюр','Парфюмерия','Инструменты','Краска для волос','Аксессуары','SPA-уход'];
             const groups = groupNames.map(name => {
                 const gPlan = Math.round((150000 + rnd() * 350000) / 10000) * 10000;
                 const dev = Math.round(((rnd() * 2 - 1) * 0.25 * gPlan) / 1000) * 1000;
                 return { name, plan: gPlan, forecast: gPlan + dev };
             });
-            return { plan, forecast, groups };
+            
+            return { planRub, forecastRub, factRub, planPct, factPct, groups };
         }
 
         // === ФОРМАТЫ ===
@@ -251,11 +283,11 @@
         const fmtMillions = v => (v / 1e6).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
         const fmtRub = v => v.toLocaleString('ru-RU') + ' ₽';
         const fmtRubShort = v => v >= 1e6 ? fmtMillions(v) + ' млн' : Math.round(v / 1000).toLocaleString('ru-RU') + ' тыс';
-        const fmtDev = v => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('ru-RU') + ' ₽';
+        const fmtPct = v => v.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
 
         // === КРАСИВАЯ ШКАЛА ОСИ Y ===
         function niceScale(maxValue, tickCount = 4) {
-            if (maxValue <= 0) maxValue = 1e6;
+            if (maxValue <= 0) maxValue = 1;
             const rawStep = maxValue / tickCount;
             const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
             const norm = rawStep / mag;
@@ -268,61 +300,89 @@
             return { step, max: Math.ceil(maxValue / step) * step };
         }
 
-        // === ОТРИСОВКА ГРАФИКА ===
-        function renderChart(monthKey) {
-            const box = document.getElementById('chartBox');
-            const tooltip = document.getElementById('chartTooltip');
-            const [year, monthNum] = monthKey.split('-').map(Number);
-            const weeks = getWeeksInMonth(year, monthNum - 1);
+        // ============================================================
+        // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ГРАФИКА
+        // cfg: { weeks, unit ('rub'|'pct'), plan, lineValues, lineName,
+        //        stemValues, lineColor, stemColor }
+        // ============================================================
+        function drawChart(boxId, tooltipId, cfg) {
+            const box = document.getElementById(boxId);
+            const tooltip = document.getElementById(tooltipId);
+            const weeks = cfg.weeks;
+            const lineVals = cfg.lineValues;
+            const stemVals = cfg.stemValues;
+            const plan = cfg.plan;
 
-            const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
-            let values = (data.forecast || []).slice();
-            while (values.length < weeks.length) values.push(values[values.length - 1] || data.plan);
-            values = values.slice(0, weeks.length);
-            const plan = data.plan;
-
-            // Геометрия
             const W = 800, H = 400;
             const padL = 70, padR = 30, padT = 30, padB = 55;
             const innerW = W - padL - padR, innerH = H - padT - padB;
-            const { step, max: yMax } = niceScale(Math.max(plan, ...values));
-            const x = i => padL + (weeks.length === 1 ? innerW / 2 : innerW * i / (weeks.length - 1));
+            const baseY = padT + innerH;
+
+            const pool = [plan, ...lineVals, ...stemVals].filter(v => typeof v === 'number');
+            const { step, max: yMax } = niceScale(Math.max(...pool));
+            const n = weeks.length;
+            const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
             const y = v => padT + innerH - (v / yMax) * innerH;
+
+            const fmtAxis = cfg.unit === 'rub' ? fmtMillions : (v => v.toLocaleString('ru-RU', { maximumFractionDigits: 1 }));
+            const fmtStem = cfg.unit === 'rub' ? fmtRubShort : fmtPct;
+            const fmtFull = cfg.unit === 'rub' ? fmtRub : fmtPct;
 
             let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
-            // Сетка и подписи оси Y (млн руб)
-            for (let t = 0; t <= yMax + 1; t += step) {
+            // Сетка и подписи оси Y
+            for (let t = 0; t <= yMax + step * 0.001; t += step) {
                 const yy = y(t);
                 svg += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#e5e7eb" stroke-width="1"/>`;
-                svg += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="12" fill="#6b7280" font-family="Forum">${fmtMillions(t)}</text>`;
+                svg += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="12" fill="#6b7280" font-family="Forum">${fmtAxis(t)}</text>`;
             }
-            svg += `<text x="${padL - 10}" y="${padT - 12}" text-anchor="end" font-size="11" fill="#94a3b8" font-family="Forum">млн руб</text>`;
+            svg += `<text x="${padL - 10}" y="${padT - 12}" text-anchor="end" font-size="11" fill="#94a3b8" font-family="Forum">${cfg.unit === 'rub' ? 'млн руб' : '%'}</text>`;
 
-            // Вертикальные линии от точек до оси X + подпись значения недели
-            values.forEach((v, i) => {
-                const px = x(i), py = y(v), baseY = padT + innerH;
-                svg += `<line x1="${px}" y1="${py}" x2="${px}" y2="${baseY}" stroke="rgba(227,61,120,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
-                const midY = (py + baseY) / 2;
-                svg += `<text transform="translate(${px - 6}, ${midY}) rotate(-90)" text-anchor="middle" font-size="11" font-weight="700" fill="#544273" font-family="Forum">${fmtRubShort(v)}</text>`;
+            // Вертикальные пунктиры ФАКТА + подписи СПРАВА от линии
+            stemVals.forEach((v, i) => {
+                if (typeof v !== 'number') return;
+                const px = x(i), py = y(v);
+                const stemH = baseY - py;
+                svg += `<line x1="${px}" y1="${py}" x2="${px}" y2="${baseY}" stroke="${cfg.stemColor}" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+                
+                const label = fmtStem(v);
+                if (stemH >= 70) {
+                    // Подпись вертикально, с ПРАВОЙ стороны пунктира
+                    svg += `<text transform="translate(${px + 8}, ${(py + baseY) / 2}) rotate(90)" text-anchor="middle" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                } else if (px > W - 130) {
+                    // Короткая линия у правого края — подпись горизонтально слева
+                    svg += `<text x="${px - 10}" y="${py - 8}" text-anchor="end" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                } else {
+                    // Короткая линия — подпись горизонтально справа
+                    svg += `<text x="${px + 10}" y="${py - 8}" text-anchor="start" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                }
+                // Точка факта на вершине пунктира
+                svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4" fill="${cfg.stemColor}" data-label="Факт недели ${i + 1}" data-value="${fmtFull(v)}"/>`;
             });
 
-            // Линия ПЛАНА (прямая, пунктир, синяя)
+            // Линия ПЛАНА
             svg += `<line x1="${padL}" y1="${y(plan)}" x2="${W - padR}" y2="${y(plan)}" stroke="#78A6C7" stroke-width="2.5" stroke-dasharray="8 6"/>`;
-            svg += `<text x="${W - padR}" y="${y(plan) - 8}" text-anchor="end" font-size="12" font-weight="700" fill="#78A6C7" font-family="Forum">План: ${fmtRubShort(plan)}</text>`;
+            svg += `<text x="${W - padR}" y="${y(plan) - 8}" text-anchor="end" font-size="12" font-weight="700" fill="#78A6C7" font-family="Forum">План: ${fmtStem(plan)}</text>`;
 
-            // Линия ПРОГНОЗА (розовая, с точками)
-            let linePath = `M ${x(0)} ${y(values[0])}`;
-            values.forEach((v, i) => { if (i > 0) linePath += ` L ${x(i)} ${y(v)}`; });
-            svg += `<path class="chart-line" d="${linePath}" fill="none" stroke="#E33D78" stroke-width="3" stroke-linecap="round"/>`;
+            // Основная линия (прогноз / факт)
+            if (lineVals.length) {
+                let linePath = `M ${x(0)} ${y(lineVals[0])}`;
+                lineVals.forEach((v, i) => { if (i > 0) linePath += ` L ${x(i)} ${y(v)}`; });
+                svg += `<path class="chart-line" d="${linePath}" fill="none" stroke="${cfg.lineColor}" stroke-width="3" stroke-linecap="round"/>`;
+                lineVals.forEach((v, i) => {
+                    const range = `${fmtShort(weeks[i].start)}–${fmtShort(weeks[i].end)}`;
+                    svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(v)}" r="6" fill="white" stroke="${cfg.lineColor}" stroke-width="3"
+                        data-label="${cfg.lineName}, неделя ${i + 1} (${range})" data-value="${fmtFull(v)}"/>`;
+                });
+            } else {
+                svg += `<text x="${padL + innerW / 2}" y="${padT + innerH / 2}" text-anchor="middle" font-size="14" fill="#94a3b8" font-family="Forum">Факт появится после закрытия первой недели</text>`;
+            }
 
-            // Точки прогноза + подписи оси X
-            values.forEach((v, i) => {
-                const range = `${fmtShort(weeks[i].start)}–${fmtShort(weeks[i].end)}`;
-                svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(v)}" r="6" fill="white" stroke="#E33D78" stroke-width="3"
-                    data-label="Неделя ${i + 1} (${range})" data-value="${fmtRub(v)} (${fmtMillions(v)} млн)"/>`;
-                svg += `<text x="${x(i)}" y="${padT + innerH + 22}" text-anchor="middle" font-size="13" font-weight="700" fill="#544273" font-family="Forum">Н${i + 1}</text>`;
-                svg += `<text x="${x(i)}" y="${padT + innerH + 40}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${range}</text>`;
+            // Подписи оси X
+            weeks.forEach((w, i) => {
+                const range = `${fmtShort(w.start)}–${fmtShort(w.end)}`;
+                svg += `<text x="${x(i)}" y="${baseY + 22}" text-anchor="middle" font-size="13" font-weight="700" fill="#544273" font-family="Forum">Н${i + 1}</text>`;
+                svg += `<text x="${x(i)}" y="${baseY + 40}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${range}</text>`;
             });
 
             svg += `</svg>`;
@@ -332,15 +392,18 @@
 
             // Анимация линии
             const path = box.querySelector('.chart-line');
-            const len = path.getTotalLength();
-            path.style.strokeDasharray = len;
-            path.style.strokeDashoffset = len;
-            path.getBoundingClientRect();
-            path.style.transition = 'stroke-dashoffset 1s ease';
-            path.style.strokeDashoffset = '0';
+            if (path) {
+                const len = path.getTotalLength();
+                path.style.strokeDasharray = len;
+                path.style.strokeDashoffset = len;
+                path.getBoundingClientRect();
+                path.style.transition = 'stroke-dashoffset 1s ease';
+                path.style.strokeDashoffset = '0';
+            }
 
             // Тултипы
             box.querySelectorAll('.chart-point').forEach(pt => {
+                pt.dataset.r0 = pt.getAttribute('r');
                 const show = () => {
                     const b = box.getBoundingClientRect();
                     const r = pt.getBoundingClientRect();
@@ -348,32 +411,69 @@
                     tooltip.style.display = 'block';
                     tooltip.style.left = (r.left - b.left + r.width / 2) + 'px';
                     tooltip.style.top = (r.top - b.top - 8) + 'px';
-                    pt.setAttribute('r', '8');
+                    pt.setAttribute('r', String(parseFloat(pt.dataset.r0) + 2));
                 };
-                const hide = () => { tooltip.style.display = 'none'; pt.setAttribute('r', '6'); };
+                const hide = () => { tooltip.style.display = 'none'; pt.setAttribute('r', pt.dataset.r0); };
                 pt.addEventListener('mouseenter', show);
                 pt.addEventListener('mouseleave', hide);
                 pt.addEventListener('touchstart', e => { e.preventDefault(); show(); });
             });
+        }
 
-            // === ТАБЛИЦА ГРУПП ===
+        // === ОТРИСОВКА ВСЕГО ЗА ВЫБРАННЫЙ МЕСЯЦ ===
+        function renderAll(monthKey) {
+            const [year, monthNum] = monthKey.split('-').map(Number);
+            const weeks = getWeeksInMonth(year, monthNum - 1);
+            const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
+
+            // Факт доступен только по завершённым неделям (для текущего месяца)
+            const now = new Date();
+            const isCurrent = now.getFullYear() === year && now.getMonth() === monthNum - 1;
+            const fCount = isCurrent ? weeks.filter(w => w.end <= now).length : weeks.length;
+
+            // График 1: Маржа, руб (план / прогноз / факт недель)
+            drawChart('chartBoxRub', 'tooltipRub', {
+                weeks, unit: 'rub',
+                plan: data.planRub,
+                lineValues: (data.forecastRub || []).slice(0, weeks.length),
+                lineName: 'Прогноз',
+                stemValues: (data.factRub || []).slice(0, fCount),
+                lineColor: '#E33D78',
+                stemColor: '#7D3673',
+            });
+
+            // График 2: Маржинальность, % (план / факт)
+            const factPct = (data.factPct || []).slice(0, fCount);
+            drawChart('chartBoxPct', 'tooltipPct', {
+                weeks, unit: 'pct',
+                plan: data.planPct,
+                lineValues: factPct,
+                lineName: 'Факт',
+                stemValues: factPct,
+                lineColor: '#E33D78',
+                stemColor: '#E33D78',
+            });
+
             renderGroups(data.groups || []);
         }
 
-        // === ТАБЛИЦА: ПОЛОЖИТЕЛЬНЫЙ / ОТРИЦАТЕЛЬНЫЙ ПРОГНОЗ ===
+        // === ТАБЛИЦА ГРУПП ===
         function renderGroups(groups) {
             const withDev = groups.map(g => ({ ...g, dev: g.forecast - g.plan }));
             const pos = withDev.filter(g => g.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
             const neg = withDev.filter(g => g.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
 
+            const fmtRubLocal = v => v.toLocaleString('ru-RU') + ' ₽';
+            const fmtDevLocal = v => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('ru-RU') + ' ₽';
+
             const buildRows = list => list.length
                 ? list.map(g => `
                     <tr>
                         <td>${g.name}</td>
-                        <td>${fmtRub(g.plan)} / ${fmtRub(g.forecast)}</td>
-                        <td class="${g.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDev(g.dev)}</td>
+                        <td>${fmtRubLocal(g.plan)} / ${fmtRubLocal(g.forecast)}</td>
+                        <td class="${g.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevLocal(g.dev)}</td>
                     </tr>`).join('')
-                : `<tr><td colspan="3" class="groups-empty">Нет групп</td></tr>`;
+                : `<tr><td colspan="3" style="color:#94a3b8;">Нет групп</td></tr>`;
 
             const head = `<tr><th>Группа</th><th>План / Прогноз</th><th>Отклонение</th></tr>`;
 
@@ -401,8 +501,8 @@
                 opt.textContent = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
                 select.appendChild(opt);
             }
-            select.addEventListener('change', e => renderChart(e.target.value));
-            renderChart(select.value);
+            select.addEventListener('change', e => renderAll(e.target.value));
+            renderAll(select.value);
         }
 
         // === ПАРОЛЬ ===
