@@ -67,15 +67,6 @@
         .icon { font-size: 1.5em; }
 
         /* === ПАНЕЛИ ГРАФИКОВ === */
-        .selector-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
-        .month-select {
-            padding: 10px 16px; border: 2px solid rgba(84,66,115,0.2); border-radius: 10px;
-            font-family: 'Forum', serif; font-size: 1em; color: #544273; background: #f8f9fb;
-            cursor: pointer; transition: border-color 0.3s;
-        }
-        .month-select:focus { outline: none; border-color: #E33D78; }
-        
-        .chart-section { margin-bottom: 35px; }
         .chart-toolbar {
             display: flex; align-items: center; justify-content: space-between;
             gap: 15px; flex-wrap: wrap; margin-bottom: 15px;
@@ -86,6 +77,12 @@
         .legend-line { display: inline-block; width: 28px; height: 0; border-top: 3px solid #E33D78; border-radius: 2px; }
         .legend-line.plan { border-top-style: dashed; border-top-color: #78A6C7; }
         .legend-line.fact { border-top-style: dashed; border-top-color: #7D3673; }
+        .month-select {
+            padding: 10px 16px; border: 2px solid rgba(84,66,115,0.2); border-radius: 10px;
+            font-family: 'Forum', serif; font-size: 1em; color: #544273; background: #f8f9fb;
+            cursor: pointer; transition: border-color 0.3s;
+        }
+        .month-select:focus { outline: none; border-color: #E33D78; }
         
         .chart-box { position: relative; width: 100%; }
         .chart-box svg { width: 100%; height: auto; display: block; }
@@ -144,48 +141,47 @@
         
         <h1>Закрытый раздел</h1>
         
-        <!-- БЛОК: ФИНАНСОВАЯ АНАЛИТИКА -->
+        <!-- БЛОК А: МАРЖА + ТАБЛИЦА ГРУПП -->
         <div class="block">
             <div class="block-title"><span class="icon">📊</span> Финансовая аналитика</div>
             
-            <div class="selector-row">
-                <select class="month-select" id="monthSelect"></select>
+            <div class="chart-toolbar">
+                <div class="chart-title">Маржа ПЛАН/ПРОГНОЗ</div>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-line plan"></span>План месяца</span>
+                    <span class="legend-item"><span class="legend-line"></span>Прогноз закрытия</span>
+                    <span class="legend-item"><span class="legend-line fact"></span>Факт недели</span>
+                </div>
+                <select class="month-select" id="monthSelectRub"></select>
+            </div>
+            <div class="chart-box" id="chartBoxRub">
+                <div class="chart-tooltip" id="tooltipRub"></div>
             </div>
             
-            <!-- ГРАФИК 1: МАРЖА, РУБ -->
-            <div class="chart-section">
-                <div class="chart-toolbar">
-                    <div class="chart-title">Маржа ПЛАН/ПРОГНОЗ</div>
-                    <div class="chart-legend">
-                        <span class="legend-item"><span class="legend-line plan"></span>План месяца</span>
-                        <span class="legend-item"><span class="legend-line"></span>Прогноз закрытия</span>
-                        <span class="legend-item"><span class="legend-line fact"></span>Факт недели</span>
-                    </div>
-                </div>
-                <div class="chart-box" id="chartBoxRub">
-                    <div class="chart-tooltip" id="tooltipRub"></div>
-                </div>
-            </div>
-            
-            <!-- ГРАФИК 2: МАРЖИНАЛЬНОСТЬ, % -->
-            <div class="chart-section">
-                <div class="chart-toolbar">
-                    <div class="chart-title">Маржинальность ПЛАН/ФАКТ</div>
-                    <div class="chart-legend">
-                        <span class="legend-item"><span class="legend-line plan"></span>План</span>
-                        <span class="legend-item"><span class="legend-line"></span>Факт</span>
-                    </div>
-                </div>
-                <div class="chart-box" id="chartBoxPct">
-                    <div class="chart-tooltip" id="tooltipPct"></div>
-                </div>
-            </div>
-            
-            <!-- ТАБЛИЦА ГРУПП ТОВАРОВ -->
+            <!-- ТАБЛИЦА ГРУПП (под графиком маржи) -->
             <div class="groups-section-title">Прогноз закрытия по группам товаров</div>
             <div class="groups-grid" id="groupsGrid"></div>
             
             <div class="chart-note">* Неделя относится к месяцу, в котором находится её четверг. Данные демонстрационные; подключение Google Sheets — через SHEET_CSV_URL.</div>
+        </div>
+        
+        <!-- БЛОК Б: МАРЖИНАЛЬНОСТЬ (отдельный белый фон) -->
+        <div class="block">
+            <div class="block-title"><span class="icon">📈</span> Маржинальность</div>
+            
+            <div class="chart-toolbar">
+                <div class="chart-title">Маржинальность ПЛАН/ФАКТ</div>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-line plan"></span>План</span>
+                    <span class="legend-item"><span class="legend-line"></span>Факт</span>
+                </div>
+                <select class="month-select" id="monthSelectPct"></select>
+            </div>
+            <div class="chart-box" id="chartBoxPct">
+                <div class="chart-tooltip" id="tooltipPct"></div>
+            </div>
+            
+            <div class="chart-note">* Неделя относится к месяцу, в котором находится её четверг. Факт по обоим графикам появляется синхронно после закрытия недели.</div>
         </div>
     </div>
 
@@ -195,11 +191,7 @@
 
         // ============================================================
         // ДАННЫЕ (пока фиктивные, позже — Google Sheets)
-        // Формат: 'YYYY-MM': {
-        //   planRub, forecastRub: [...], factRub: [...],
-        //   planPct, factPct: [...],
-        //   groups: [{ name, plan, forecast }, ...]
-        // }
+        // 'YYYY-MM': { planRub, forecastRub[], factRub[], planPct, factPct[], groups[] }
         // ============================================================
         const CHART_DATA = {};
 
@@ -236,6 +228,15 @@
             return weeks;
         }
 
+        // === СКОЛЬКО НЕДЕЛЬ ЗАКРЫТО ФАКТОМ (единая логика для обоих графиков) ===
+        function factCountFor(monthKey, weeks) {
+            const [year, m] = monthKey.split('-').map(Number);
+            const now = new Date();
+            if (year > now.getFullYear() || (year === now.getFullYear() && m - 1 > now.getMonth())) return 0;
+            if (year < now.getFullYear() || (year === now.getFullYear() && m - 1 < now.getMonth())) return weeks.length;
+            return weeks.filter(w => w.end <= now).length;
+        }
+
         // === ГЕНЕРАТОР ФИКТИВНЫХ ДАННЫХ ===
         function seededRandom(seed) {
             let s = seed;
@@ -246,25 +247,30 @@
             const [year, m] = monthKey.split('-').map(Number);
             const rnd = seededRandom(year * 100 + m);
             
-            // Маржа, руб: план месяца, прогноз закрытия (динамический), факт недель
+            // Маржа, руб: план месяца
             const planRub = Math.round((1500000 + rnd() * 600000) / 10000) * 10000;
+            
+            // Прогноз закрытия: явно гуляет ВОКРУГ плана (выше и ниже)
             const forecastRub = [];
-            let drift = 0.85 + rnd() * 0.3;
+            let drift = 0.78 + rnd() * 0.5; // старт 0.78–1.28
             for (let i = 0; i < weeksCount; i++) {
-                drift += (rnd() - 0.45) * 0.06;
                 forecastRub.push(Math.round(planRub * drift / 10000) * 10000);
+                drift += (rnd() - 0.5) * 0.2;
+                drift = Math.min(1.35, Math.max(0.7, drift));
             }
+            
+            // Факт недель (не зависит от прогноза)
             const weekPlan = planRub / weeksCount;
             const factRub = [];
             for (let i = 0; i < weeksCount; i++) {
-                factRub.push(Math.round(weekPlan * (0.75 + rnd() * 0.5) / 10000) * 10000);
+                factRub.push(Math.round(weekPlan * (0.7 + rnd() * 0.6) / 10000) * 10000);
             }
             
             // Маржинальность, %
             const planPct = Math.round((22 + rnd() * 8) * 10) / 10;
             const factPct = [];
             for (let i = 0; i < weeksCount; i++) {
-                factPct.push(Math.round((planPct + (rnd() * 2 - 1) * 6) * 10) / 10);
+                factPct.push(Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 7) * 10) / 10);
             }
             
             // Группы товаров
@@ -302,29 +308,29 @@
 
         // ============================================================
         // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ГРАФИКА
-        // cfg: { weeks, unit ('rub'|'pct'), plan, lineValues, lineName,
-        //        stemValues, lineColor, stemColor }
+        // Пунктир факта идёт ОТ ОСИ X ДО ТОЧКИ ЛИНИИ (прогноза/факта),
+        // маркер и подпись факта — на высоте факта.
         // ============================================================
         function drawChart(boxId, tooltipId, cfg) {
             const box = document.getElementById(boxId);
             const tooltip = document.getElementById(tooltipId);
             const weeks = cfg.weeks;
             const lineVals = cfg.lineValues;
-            const stemVals = cfg.stemValues;
+            const factVals = cfg.factValues || [];
             const plan = cfg.plan;
+            const n = weeks.length;
 
             const W = 800, H = 400;
             const padL = 70, padR = 30, padT = 30, padB = 55;
             const innerW = W - padL - padR, innerH = H - padT - padB;
             const baseY = padT + innerH;
 
-            const pool = [plan, ...lineVals, ...stemVals].filter(v => typeof v === 'number');
+            const pool = [plan, ...lineVals, ...factVals].filter(v => typeof v === 'number');
             const { step, max: yMax } = niceScale(Math.max(...pool));
-            const n = weeks.length;
             const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
             const y = v => padT + innerH - (v / yMax) * innerH;
 
-            const fmtAxis = cfg.unit === 'rub' ? fmtMillions : (v => v.toLocaleString('ru-RU', { maximumFractionDigits: 1 }));
+            const fmtAxis = cfg.unit === 'rub' ? fmtMillions : v => v.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
             const fmtStem = cfg.unit === 'rub' ? fmtRubShort : fmtPct;
             const fmtFull = cfg.unit === 'rub' ? fmtRub : fmtPct;
 
@@ -338,33 +344,35 @@
             }
             svg += `<text x="${padL - 10}" y="${padT - 12}" text-anchor="end" font-size="11" fill="#94a3b8" font-family="Forum">${cfg.unit === 'rub' ? 'млн руб' : '%'}</text>`;
 
-            // Вертикальные пунктиры ФАКТА + подписи СПРАВА от линии
-            stemVals.forEach((v, i) => {
-                if (typeof v !== 'number') return;
-                const px = x(i), py = y(v);
-                const stemH = baseY - py;
-                svg += `<line x1="${px}" y1="${py}" x2="${px}" y2="${baseY}" stroke="${cfg.stemColor}" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+            // Вертикальные пунктиры ФАКТА: от оси X до точки линии
+            for (let i = 0; i < n; i++) {
+                const f = factVals[i];
+                if (typeof f !== 'number' || typeof lineVals[i] !== 'number') continue;
+                const px = x(i), topY = y(lineVals[i]), factY = y(f);
+                svg += `<line x1="${px}" y1="${topY}" x2="${px}" y2="${baseY}" stroke="${cfg.stemColor}" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="4 4"/>`;
                 
-                const label = fmtStem(v);
-                if (stemH >= 70) {
-                    // Подпись вертикально, с ПРАВОЙ стороны пунктира
-                    svg += `<text transform="translate(${px + 8}, ${(py + baseY) / 2}) rotate(90)" text-anchor="middle" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
-                } else if (px > W - 130) {
-                    // Короткая линия у правого края — подпись горизонтально слева
-                    svg += `<text x="${px - 10}" y="${py - 8}" text-anchor="end" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
-                } else {
-                    // Короткая линия — подпись горизонтально справа
-                    svg += `<text x="${px + 10}" y="${py - 8}" text-anchor="start" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                // Маркер факта на высоте факта
+                if (cfg.factMarker) {
+                    svg += `<circle class="chart-point" cx="${px}" cy="${factY}" r="4" fill="${cfg.stemColor}" data-label="Факт недели ${i + 1}" data-value="${fmtFull(f)}"/>`;
                 }
-                // Точка факта на вершине пунктира
-                svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4" fill="${cfg.stemColor}" data-label="Факт недели ${i + 1}" data-value="${fmtFull(v)}"/>`;
-            });
+                
+                // Подпись факта СПРАВА от пунктира
+                const label = fmtStem(f);
+                const stemH = baseY - factY;
+                if (stemH >= 70) {
+                    svg += `<text transform="translate(${px + 8}, ${(factY + baseY) / 2}) rotate(90)" text-anchor="middle" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                } else if (px > W - 130) {
+                    svg += `<text x="${px - 10}" y="${factY - 8}" text-anchor="end" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                } else {
+                    svg += `<text x="${px + 10}" y="${factY - 8}" text-anchor="start" font-size="11" font-weight="700" fill="${cfg.stemColor}" font-family="Forum">${label}</text>`;
+                }
+            }
 
             // Линия ПЛАНА
             svg += `<line x1="${padL}" y1="${y(plan)}" x2="${W - padR}" y2="${y(plan)}" stroke="#78A6C7" stroke-width="2.5" stroke-dasharray="8 6"/>`;
             svg += `<text x="${W - padR}" y="${y(plan) - 8}" text-anchor="end" font-size="12" font-weight="700" fill="#78A6C7" font-family="Forum">План: ${fmtStem(plan)}</text>`;
 
-            // Основная линия (прогноз / факт)
+            // Основная линия
             if (lineVals.length) {
                 let linePath = `M ${x(0)} ${y(lineVals[0])}`;
                 lineVals.forEach((v, i) => { if (i > 0) linePath += ` L ${x(i)} ${y(v)}`; });
@@ -420,41 +428,45 @@
             });
         }
 
-        // === ОТРИСОВКА ВСЕГО ЗА ВЫБРАННЫЙ МЕСЯЦ ===
-        function renderAll(monthKey) {
+        // === ГРАФИК 1: МАРЖА + ТАБЛИЦА ===
+        function renderRub(monthKey) {
             const [year, monthNum] = monthKey.split('-').map(Number);
             const weeks = getWeeksInMonth(year, monthNum - 1);
             const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
+            const fCount = factCountFor(monthKey, weeks);
 
-            // Факт доступен только по завершённым неделям (для текущего месяца)
-            const now = new Date();
-            const isCurrent = now.getFullYear() === year && now.getMonth() === monthNum - 1;
-            const fCount = isCurrent ? weeks.filter(w => w.end <= now).length : weeks.length;
-
-            // График 1: Маржа, руб (план / прогноз / факт недель)
             drawChart('chartBoxRub', 'tooltipRub', {
                 weeks, unit: 'rub',
                 plan: data.planRub,
                 lineValues: (data.forecastRub || []).slice(0, weeks.length),
                 lineName: 'Прогноз',
-                stemValues: (data.factRub || []).slice(0, fCount),
+                factValues: (data.factRub || []).slice(0, fCount),
                 lineColor: '#E33D78',
                 stemColor: '#7D3673',
+                factMarker: true,
             });
 
-            // График 2: Маржинальность, % (план / факт)
+            renderGroups(data.groups || []);
+        }
+
+        // === ГРАФИК 2: МАРЖИНАЛЬНОСТЬ ===
+        function renderPct(monthKey) {
+            const [year, monthNum] = monthKey.split('-').map(Number);
+            const weeks = getWeeksInMonth(year, monthNum - 1);
+            const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
+            const fCount = factCountFor(monthKey, weeks);
             const factPct = (data.factPct || []).slice(0, fCount);
+
             drawChart('chartBoxPct', 'tooltipPct', {
                 weeks, unit: 'pct',
                 plan: data.planPct,
                 lineValues: factPct,
                 lineName: 'Факт',
-                stemValues: factPct,
+                factValues: factPct,
                 lineColor: '#E33D78',
                 stemColor: '#E33D78',
+                factMarker: false,
             });
-
-            renderGroups(data.groups || []);
         }
 
         // === ТАБЛИЦА ГРУПП ===
@@ -489,9 +501,9 @@
             `;
         }
 
-        // === СЕЛЕКТОР МЕСЯЦЕВ (последние 12) ===
-        function buildMonthOptions() {
-            const select = document.getElementById('monthSelect');
+        // === СЕЛЕКТОРЫ МЕСЯЦЕВ (независимые) ===
+        function buildMonthOptions(selectId, onChange) {
+            const select = document.getElementById(selectId);
             const now = new Date();
             for (let i = 0; i < 12; i++) {
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -501,8 +513,8 @@
                 opt.textContent = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
                 select.appendChild(opt);
             }
-            select.addEventListener('change', e => renderAll(e.target.value));
-            renderAll(select.value);
+            select.addEventListener('change', e => onChange(e.target.value));
+            onChange(select.value);
         }
 
         // === ПАРОЛЬ ===
@@ -534,7 +546,8 @@
         // === ИНИЦИАЛИЗАЦИЯ ===
         document.addEventListener('DOMContentLoaded', async () => {
             await loadSheetData();
-            buildMonthOptions();
+            buildMonthOptions('monthSelectRub', renderRub);
+            buildMonthOptions('monthSelectPct', renderPct);
             if (sessionStorage.getItem('accessGranted') === 'true') {
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('protectedContent').classList.add('visible');
