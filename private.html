@@ -98,7 +98,7 @@
         .chart-tooltip strong { color: #E33D78; display: block; }
         .chart-point { cursor: pointer; }
         
-        /* === ТАБЛИЦЫ ГРУПП И ДИНАМИКИ === */
+        /* === ТАБЛИЦЫ === */
         .groups-section-title { font-family: 'Forum', serif; font-size: 1.2em; color: #1C0D2E; margin: 30px 0 15px; }
         .groups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .groups-panel {
@@ -107,7 +107,7 @@
             max-height: 230px; overflow-y: auto;
             scrollbar-width: thin; scrollbar-color: #E33D78 rgba(84,66,115,0.1);
         }
-        .groups-panel.tall { max-height: 850px; } /* до ~20 видимых позиций */
+        .groups-panel.tall { max-height: 850px; }
         .groups-panel::-webkit-scrollbar { width: 4px; }
         .groups-panel::-webkit-scrollbar-track { background: rgba(84,66,115,0.1); border-radius: 2px; }
         .groups-panel::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #78A6C7, #E33D78); border-radius: 2px; }
@@ -131,11 +131,48 @@
         .dyn-current { font-family: 'Forum', serif; color: #544273; font-size: 1em; }
         .dyn-current strong { color: #E33D78; }
         
+        /* === ПРОТОКОЛ ПЛАНЁРКИ === */
+        .proto-week-label { font-family: 'Forum', serif; font-size: 1.1em; color: #544273; margin-bottom: 20px; }
+        .proto-week-label strong { color: #E33D78; }
+        .proto-item {
+            background: #f8f9fb; border: 2px solid rgba(84,66,115,0.15);
+            border-left: 4px solid #E33D78; border-radius: 10px;
+            padding: 12px 15px; margin-bottom: 10px;
+        }
+        .proto-item.done { background: #f0f0f0; border-left-color: #94a3b8; opacity: 0.75; }
+        .proto-item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+        .proto-item-name { font-family: 'Forum', serif; font-weight: 700; color: #1C0D2E; }
+        .proto-badge { font-size: 0.7em; padding: 2px 8px; border-radius: 10px; color: white; font-family: 'Forum', serif; }
+        .b-forecast { background: #E33D78; }
+        .b-dynamics { background: #7D3673; }
+        .b-question { background: #78A6C7; }
+        .proto-done-badge { margin-left: auto; color: #22c55e; font-weight: 700; font-family: 'Forum', serif; font-size: 0.85em; }
+        .proto-item-action { font-family: 'Forum', serif; color: #333; font-size: 0.95em; margin-bottom: 6px; }
+        .proto-item-meta { font-size: 0.8em; color: #94a3b8; font-family: 'Forum', serif; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .proto-done-btn { margin-left: auto; background: #22c55e; color: white; border: none; border-radius: 8px; padding: 4px 10px; font-family: 'Forum', serif; cursor: pointer; }
+        .proto-block { background: #f8f9fb; border: 2px solid rgba(84,66,115,0.1); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .proto-block-title { font-family: 'Forum', serif; font-size: 1.05em; color: #1C0D2E; margin-bottom: 12px; }
+        .proto-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .proto-row-label { flex: 0 0 260px; font-family: 'Forum', serif; color: #333; font-size: 0.9em; }
+        .proto-input {
+            flex: 1; min-width: 200px; padding: 10px 12px;
+            border: 2px solid rgba(84,66,115,0.15); border-radius: 10px;
+            font-family: 'Forum', serif; font-size: 0.9em;
+        }
+        .proto-input:focus { outline: none; border-color: #E33D78; }
+        .proto-add-btn {
+            background: none; border: 2px dashed #78A6C7; color: #544273;
+            border-radius: 10px; padding: 8px 14px; font-family: 'Forum', serif; cursor: pointer; margin-bottom: 10px;
+        }
+        .proto-save-btn { width: auto; padding: 12px 30px; margin-top: 5px; }
+        .proto-empty { color: #94a3b8; font-family: 'Forum', serif; font-size: 0.9em; padding: 6px 0; }
+        
         .chart-note { margin-top: 15px; font-size: 0.85em; color: #94a3b8; font-family: 'Forum', serif; }
 
         @media (max-width: 700px) {
             .chart-toolbar, .dyn-toolbar { flex-direction: column; align-items: flex-start; }
             .groups-grid { grid-template-columns: 1fr; }
+            .proto-row-label { flex: 1 1 100%; }
         }
     </style>
 </head>
@@ -200,6 +237,36 @@
             
             <div class="chart-note">* Отклонение ₽ = прогноз закрытия текущего периода − факт закрытия периода сравнения. Отклонение по маржинальности указано в процентных пунктах (п.п.). Сортировка — по величине отклонения.</div>
         </div>
+        
+        <!-- БЛОК 3: ПРОТОКОЛ ПЛАНЁРКИ -->
+        <div class="block">
+            <div class="block-title"><span class="icon">📝</span> Протокол планёрки</div>
+            
+            <div class="proto-week-label" id="protoWeekLabel"></div>
+            
+            <div class="groups-section-title">Контроль мероприятий</div>
+            <div id="protoActiveList"></div>
+            
+            <div class="groups-section-title">Новый протокол (заполняется на планёрке)</div>
+            <div id="protoFormArea">
+                <div class="proto-block">
+                    <div class="proto-block-title">1. Позиции с отрицательным прогнозом закрытия</div>
+                    <div id="protoNegForecast"></div>
+                </div>
+                <div class="proto-block">
+                    <div class="proto-block-title">2. Позиции с отрицательной динамикой закрытия</div>
+                    <div id="protoNegDynamics"></div>
+                </div>
+                <div class="proto-block">
+                    <div class="proto-block-title">3. Доп. вопросы</div>
+                    <div id="protoQuestions"></div>
+                    <button class="proto-add-btn" onclick="addQuestionRow()">+ Добавить вопрос</button>
+                </div>
+                <button class="login-btn proto-save-btn" onclick="saveProtocol()">Сохранить протокол</button>
+            </div>
+            
+            <div class="chart-note">* Протокол хранится в браузере (localStorage). Когда позиция уходит в положительную зону, пункт автоматически отмечается «Выполнен» (серый) на текущей планёрке и исчезает на следующей. Синхронизация через Google Sheets — следующий этап.</div>
+        </div>
     </div>
 
     <script>
@@ -224,7 +291,7 @@
         }
 
         // ============================================================
-        // НЕДЕЛИ МЕСЯЦА ПО ЧЕТВЕРГУ
+        // НЕДЕЛИ МЕСЯЦА ПО ЧЕТВЕРГУ + СКВОЗНЫЕ НОМЕРА
         // ============================================================
         function getWeeksInMonth(year, monthIdx) {
             const weeks = [];
@@ -247,6 +314,8 @@
             const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
+
+        function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
         // === ГЕНЕРАТОР ФИКТИВНЫХ ДАННЫХ ===
         function seededRandom(seed) {
@@ -280,19 +349,16 @@
                 factPct.push(Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 7) * 10) / 10);
             }
             
-            // Группы товаров
             const groupNames = ['Уход для волос','Уход для лица','Маникюр и педикюр','Парфюмерия','Инструменты','Краска для волос','Аксессуары','SPA-уход','Наборы','Уход для тела'];
             const gPlan = groupNames.map(() => Math.round((150000 + rnd() * 350000) / 10000) * 10000);
             const gBase = groupNames.map(() => (rnd() * 2 - 1) * 0.25);
             
-            // Итог месяца по группам (факт закрытия + факт маржинальности)
             const monthGroups = groupNames.map((name, gi) => {
                 const fact = Math.round(gPlan[gi] * (0.75 + rnd() * 0.55) / 1000) * 1000;
                 const fPct = Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 6) * 10) / 10;
                 return { name, plan: gPlan[gi], fact, factPct: fPct };
             });
             
-            // Снимки прогноза по неделям (для таблицы групп и динамики)
             const snapshots = [];
             for (let i = 0; i < weeksCount; i++) {
                 const rs = seededRandom(year * 10000 + m * 100 + i);
@@ -332,7 +398,7 @@
         }
 
         // ============================================================
-        // ОТРИСОВКА ГРАФИКА
+        // ГРАФИК
         // ============================================================
         function drawChart(boxId, tooltipId, cfg) {
             const box = document.getElementById(boxId);
@@ -361,7 +427,6 @@
             const yL = v => padT + innerH - (v / scaleL.max) * innerH;
             const yR = v => padT + innerH - (v / scaleR.max) * innerH;
 
-            // Предвычисление позиций подписей маржинальности (для защиты от наложений)
             const pctLabelY = pctVals.map(v => {
                 const py = yR(v);
                 return (py - 10 < padT + 12) ? py + 22 : py - 10;
@@ -369,40 +434,33 @@
 
             let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
-            // Сетка + подписи левой оси
             for (let t = 0; t <= scaleL.max + scaleL.step * 0.001; t += scaleL.step) {
                 const yy = yL(t);
                 svg += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#e5e7eb" stroke-width="1"/>`;
                 svg += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="12" fill="#6b7280" font-family="Forum">${fmtMillions(t)}</text>`;
             }
-            // Подписи правой оси
             for (let t = 0; t <= scaleR.max + scaleR.step * 0.001; t += scaleR.step) {
                 const yy = yR(t);
                 svg += `<text x="${W - padR + 10}" y="${yy + 4}" text-anchor="start" font-size="12" fill="#d97706" font-family="Forum">${t.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}</text>`;
             }
             
-            // Видимые линии осей
             svg += `<line x1="${padL}" y1="${padT - 5}" x2="${padL}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
             svg += `<line x1="${W - padR}" y1="${padT - 5}" x2="${W - padR}" y2="${baseY}" stroke="#d97706" stroke-width="1.5"/>`;
             svg += `<line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
             
-            // Заголовки осей
             svg += `<text x="${padL - 55}" y="${padT - 16}" text-anchor="start" font-size="12" font-weight="700" fill="#6b7280" font-family="Forum">Маржа, млн. руб.</text>`;
             svg += `<text x="${W - padR + 55}" y="${padT - 16}" text-anchor="end" font-size="12" font-weight="700" fill="#d97706" font-family="Forum">Маржинальность, %</text>`;
 
-            // План маржи — значение на ЛЕВОЙ оси
             const planY = yL(plan);
             svg += `<rect x="4" y="${planY - 9}" width="${padL - 12}" height="18" fill="white" opacity="0.92"/>`;
             svg += `<line x1="${padL - 6}" y1="${planY}" x2="${padL}" y2="${planY}" stroke="#78A6C7" stroke-width="2.5"/>`;
             svg += `<text x="${padL - 10}" y="${planY + 4}" text-anchor="end" font-size="12" font-weight="700" fill="#78A6C7" font-family="Forum">${fmtMillions(plan)}</text>`;
 
-            // План маржинальности — значение на ПРАВОЙ оси
             const ppY = yR(pctPlan);
             svg += `<rect x="${W - padR + 6}" y="${ppY - 9}" width="${padR - 10}" height="18" fill="white" opacity="0.92"/>`;
             svg += `<line x1="${W - padR}" y1="${ppY}" x2="${W - padR + 6}" y2="${ppY}" stroke="#F59E0B" stroke-width="2.5"/>`;
             svg += `<text x="${W - padR + 10}" y="${ppY + 4}" text-anchor="start" font-size="12" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(pctPlan)}</text>`;
 
-            // Вертикальные пунктиры ФАКТА + подписи вдоль пунктира
             for (let i = 0; i < n; i++) {
                 const f = factVals[i];
                 if (typeof f !== 'number') continue;
@@ -420,11 +478,9 @@
                 }
             }
 
-            // Линии планов
             svg += `<line x1="${padL}" y1="${planY}" x2="${W - padR}" y2="${planY}" stroke="#78A6C7" stroke-width="2.5" stroke-dasharray="8 6"/>`;
             svg += `<line x1="${padL}" y1="${ppY}" x2="${W - padR}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
 
-            // Линия ПРОГНОЗА маржи + подписи значений
             if (lineVals.length) {
                 let linePath = `M ${x(0)} ${yL(lineVals[0])}`;
                 lineVals.forEach((v, i) => { if (i > 0) linePath += ` L ${x(i)} ${yL(v)}`; });
@@ -435,7 +491,6 @@
                     const range = `${fmtShort(weeks[i].start)}–${fmtShort(weeks[i].end)}`;
                     svg += `<circle class="chart-point" cx="${x(i)}" cy="${yL(v)}" r="6" fill="white" stroke="#E33D78" stroke-width="3"
                         data-label="Прогноз, ${weekLabels[i]} (${range})" data-value="${fmtRub(v)}"/>`;
-                    // Подпись значения прогноза
                     const fy = yL(v);
                     let flY = fy - 12;
                     if (flY < padT + 10) flY = fy + 22;
@@ -446,7 +501,6 @@
                 });
             }
 
-            // Линия МАРЖИНАЛЬНОСТИ факт + подписи
             if (pctVals.length) {
                 let pctPath = `M ${x(0)} ${yR(pctVals[0])}`;
                 pctVals.forEach((v, i) => { if (i > 0) pctPath += ` L ${x(i)} ${yR(v)}`; });
@@ -465,7 +519,6 @@
                 svg += `<text x="${padL + innerW / 2}" y="${padT + innerH / 2}" text-anchor="middle" font-size="14" fill="#94a3b8" font-family="Forum">Факт и прогноз появятся после закрытия первой недели</text>`;
             }
 
-            // Подписи оси X
             weeks.forEach((w, i) => {
                 const range = `${fmtShort(w.start)}–${fmtShort(w.end)}`;
                 svg += `<text x="${x(i)}" y="${baseY + 22}" text-anchor="middle" font-size="13" font-weight="700" fill="#544273" font-family="Forum">${weekLabels[i]}</text>`;
@@ -505,7 +558,31 @@
             });
         }
 
-        // === ОТРИСОВКА ПО ВЫБРАННОЙ НЕДЕЛЕ ===
+        // === ТЕКУЩИЙ АНАЛИЗ (общий для графика, таблиц и протокола) ===
+        function getCurrentAnalysis() {
+            const now = new Date();
+            const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const weeks = getWeeksInMonth(now.getFullYear(), now.getMonth());
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const closedCount = weeks.filter(w => w.end <= today).length;
+            const data = CHART_DATA[curKey] || generateDemoMonth(curKey, weeks.length);
+            const snap = closedCount ? data.snapshots[closedCount - 1] : null;
+            const snapGroups = snap ? snap.groups.map(g => ({ ...g, dev: g.forecast - g.plan })) : [];
+            
+            const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const cmpKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+            const cmpData = CHART_DATA[cmpKey] || generateDemoMonth(cmpKey, getWeeksInMonth(prev.getFullYear(), prev.getMonth()).length);
+            const cmpGroups = cmpData.monthGroups || [];
+            const dynRows = snapGroups.map(g => {
+                const c = cmpGroups.find(x => x.name === g.name);
+                const factRub = c ? c.fact : g.plan;
+                const factPct = c ? c.factPct : data.planPct;
+                return { ...g, factRub, factPct, devRub: g.forecast - factRub, devPct: g.forecastPct - factPct };
+            });
+            
+            return { curKey, weeks, closedCount, snapGroups, dynRows, data };
+        }
+
         function renderWeek(weekKey) {
             const [y, m, d] = weekKey.split('-').map(Number);
             const monday = new Date(y, m - 1, d);
@@ -537,7 +614,7 @@
             renderGroups(snap.groups || []);
         }
 
-        // === ТАБЛИЦА ГРУПП (под графиком) ===
+        // === ТАБЛИЦА ГРУПП ===
         function renderGroups(groups) {
             const withDev = groups.map(g => ({ ...g, dev: g.forecast - g.plan }));
             const pos = withDev.filter(g => g.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
@@ -566,35 +643,25 @@
             `;
         }
 
-        // ============================================================
-        // ДИНАМИКА К ПЕРИОДУ СРАВНЕНИЯ
-        // ============================================================
+        // === ДИНАМИКА ===
         function renderDynamics(compareKey) {
             const grid = document.getElementById('dynGrid');
-            const now = new Date();
-            const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const a = getCurrentAnalysis();
             
-            const curWeeks = getWeeksInMonth(now.getFullYear(), now.getMonth());
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const closedCount = curWeeks.filter(w => w.end <= today).length;
-            
-            if (closedCount === 0) {
-                grid.innerHTML = `<div class="chart-note">По текущему периоду ещё нет закрытых недель — динамика появится после закрытия первой недели.</div>`;
+            if (a.closedCount === 0) {
+                grid.innerHTML = `<div class="proto-empty">По текущему периоду ещё нет закрытых недель — динамика появится после закрытия первой недели.</div>`;
                 return;
             }
-            
-            const curData = CHART_DATA[curKey] || generateDemoMonth(curKey, curWeeks.length);
-            const snap = curData.snapshots[closedCount - 1]; // прогноз по последней закрытой неделе
             
             const [cy, cm] = compareKey.split('-').map(Number);
             const cmpWeeks = getWeeksInMonth(cy, cm - 1);
             const cmpData = CHART_DATA[compareKey] || generateDemoMonth(compareKey, cmpWeeks.length);
             const cmpGroups = cmpData.monthGroups || [];
             
-            const rows = snap.groups.map(g => {
+            const rows = a.snapGroups.map(g => {
                 const c = cmpGroups.find(x => x.name === g.name);
                 const factRub = c ? c.fact : g.plan;
-                const factPctV = c ? c.factPct : curData.planPct;
+                const factPctV = c ? c.factPct : a.data.planPct;
                 return {
                     name: g.name,
                     factRub, forecastRub: g.forecast, devRub: g.forecast - factRub,
@@ -602,8 +669,8 @@
                 };
             });
             
-            const pos = rows.filter(r => r.devRub >= 0).sort((a, b) => Math.abs(b.devRub) - Math.abs(a.devRub)).slice(0, 20);
-            const neg = rows.filter(r => r.devRub < 0).sort((a, b) => Math.abs(b.devRub) - Math.abs(a.devRub)).slice(0, 20);
+            const pos = rows.filter(r => r.devRub >= 0).sort((a2, b) => Math.abs(b.devRub) - Math.abs(a2.devRub)).slice(0, 20);
+            const neg = rows.filter(r => r.devRub < 0).sort((a2, b) => Math.abs(b.devRub) - Math.abs(a2.devRub)).slice(0, 20);
             
             const buildRows = list => list.length
                 ? list.map(r => `
@@ -632,7 +699,178 @@
             `;
         }
 
-        // === СЕЛЕКТОР НЕДЕЛЬ (16 недель, сквозные номера) ===
+        // ============================================================
+        // ПРОТОКОЛ ПЛАНЁРКИ (localStorage)
+        // ============================================================
+        const PROTO_KEY = 'ba_protocols_v1';
+
+        function loadProtocols() {
+            try { return JSON.parse(localStorage.getItem(PROTO_KEY)) || []; } catch (e) { return []; }
+        }
+        function persistProtocols(list) { localStorage.setItem(PROTO_KEY, JSON.stringify(list)); }
+
+        function getCurrentMondayKey() {
+            const now = new Date();
+            const m = new Date(now);
+            m.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+            return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(m.getDate()).padStart(2, '0')}`;
+        }
+        function mondayFromKey(key) { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); }
+        function weeksDiff(fromKey, toKey) { return Math.round((mondayFromKey(toKey) - mondayFromKey(fromKey)) / (7 * 86400000)); }
+
+        function renderProtocol() {
+            const a = getCurrentAnalysis();
+            const curWeekKey = getCurrentMondayKey();
+            const curMonday = mondayFromKey(curWeekKey);
+            
+            document.getElementById('protoWeekLabel').innerHTML =
+                `Планёрка: <strong>Неделя ${getISOWeek(curMonday)}</strong> • ${fmtShort(curMonday)}–${fmtShort(addDays(curMonday, 6))}`;
+            
+            const protocols = loadProtocols();
+            let changed = false;
+            
+            // Автопроверка: позиция ушла в положительную зону → выполнен
+            protocols.forEach(p => p.items.forEach(it => {
+                if (it.status === 'active' && it.type !== 'question') {
+                    let positive = false;
+                    if (it.type === 'forecast') {
+                        const g = a.snapGroups.find(x => x.name === it.name);
+                        positive = g && g.dev >= 0;
+                    } else if (it.type === 'dynamics') {
+                        const g = a.dynRows.find(x => x.name === it.name);
+                        positive = g && g.devRub >= 0;
+                    }
+                    if (positive) { it.status = 'done'; it.doneWeek = curWeekKey; changed = true; }
+                }
+            }));
+            if (changed) persistProtocols(protocols);
+            
+            // Активные и выполненные (выполненные видны только на планёрке, где закрылись)
+            const activeItems = [];
+            const doneItems = [];
+            protocols.forEach(p => p.items.forEach(it => {
+                if (it.status === 'active') activeItems.push({ ...it, protoWeek: p.weekKey });
+                else if (it.status === 'done' && weeksDiff(it.doneWeek, curWeekKey) === 0) doneItems.push({ ...it, protoWeek: p.weekKey });
+            }));
+            
+            const listHTML = [...activeItems.map(protoItemHTML), ...doneItems.map(protoItemHTML)].join('');
+            document.getElementById('protoActiveList').innerHTML = listHTML ||
+                '<div class="proto-empty">Активных мероприятий пока нет — заполните форму ниже.</div>';
+            
+            renderProtoForm(a, protocols);
+        }
+
+        function protoItemHTML(it) {
+            const badge = it.type === 'forecast' ? '<span class="proto-badge b-forecast">Прогноз</span>'
+                : it.type === 'dynamics' ? '<span class="proto-badge b-dynamics">Динамика</span>'
+                : '<span class="proto-badge b-question">Вопрос</span>';
+            const done = it.status === 'done';
+            return `<div class="proto-item ${done ? 'done' : ''}">
+                <div class="proto-item-head">
+                    ${badge}
+                    <span class="proto-item-name">${it.name}</span>
+                    ${done ? '<span class="proto-done-badge">✓ Выполнен</span>' : ''}
+                </div>
+                <div class="proto-item-action">→ ${it.action}</div>
+                <div class="proto-item-meta">
+                    <span>Протокол: Нед ${getISOWeek(mondayFromKey(it.protoWeek))}</span>
+                    ${done ? `<span>• Закрыт: Нед ${getISOWeek(mondayFromKey(it.doneWeek))}</span>` : ''}
+                    ${(!done && it.type === 'question') ? `<button class="proto-done-btn" onclick="markDone('${it.id}')">✓ Отметить выполненным</button>` : ''}
+                </div>
+            </div>`;
+        }
+
+        function renderProtoForm(a, protocols) {
+            const activeNames = new Set();
+            protocols.forEach(p => p.items.forEach(it => {
+                if (it.status === 'active') activeNames.add(it.type + '|' + it.name);
+            }));
+            
+            const negF = a.snapGroups.filter(g => g.dev < 0 && !activeNames.has('forecast|' + g.name));
+            const negD = a.dynRows.filter(g => g.devRub < 0 && !activeNames.has('dynamics|' + g.name));
+            
+            document.getElementById('protoNegForecast').innerHTML = negF.length
+                ? negF.map(g => `
+                    <div class="proto-row">
+                        <div class="proto-row-label">${g.name} <span class="dev-neg">${fmtDevRub(g.dev)}</span></div>
+                        <input class="proto-input" data-type="forecast" data-name="${g.name}" placeholder="Мероприятие для исключения отклонения">
+                    </div>`).join('')
+                : '<div class="proto-empty">Нет позиций с отрицательным прогнозом 🎉</div>';
+            
+            document.getElementById('protoNegDynamics').innerHTML = negD.length
+                ? negD.map(g => `
+                    <div class="proto-row">
+                        <div class="proto-row-label">${g.name} <span class="dev-neg">${fmtDevRub(g.devRub)}</span></div>
+                        <input class="proto-input" data-type="dynamics" data-name="${g.name}" placeholder="Мероприятие для исключения отклонения">
+                    </div>`).join('')
+                : '<div class="proto-empty">Нет позиций с отрицательной динамикой 🎉</div>';
+            
+            const qBox = document.getElementById('protoQuestions');
+            if (!qBox.children.length) qBox.innerHTML = questionRowHTML();
+        }
+
+        function questionRowHTML() {
+            return `<div class="proto-row proto-q-row">
+                <input class="proto-input q-text" placeholder="Вопрос">
+                <input class="proto-input q-action" placeholder="Мероприятие / ответственный">
+            </div>`;
+        }
+
+        function addQuestionRow() {
+            document.getElementById('protoQuestions').insertAdjacentHTML('beforeend', questionRowHTML());
+        }
+
+        function saveProtocol() {
+            const curWeekKey = getCurrentMondayKey();
+            const protocols = loadProtocols();
+            let proto = protocols.find(p => p.weekKey === curWeekKey);
+            if (!proto) { proto = { weekKey: curWeekKey, items: [] }; protocols.push(proto); }
+            
+            let added = 0;
+            document.querySelectorAll('#protoFormArea .proto-input[data-type]').forEach(inp => {
+                const val = inp.value.trim();
+                if (!val) return;
+                proto.items.push({
+                    id: 'i' + Date.now() + Math.random().toString(36).slice(2, 7),
+                    type: inp.dataset.type,
+                    name: inp.dataset.name,
+                    action: val,
+                    status: 'active',
+                    doneWeek: null
+                });
+                added++;
+            });
+            document.querySelectorAll('#protoQuestions .proto-q-row').forEach(row => {
+                const q = row.querySelector('.q-text').value.trim();
+                const act = row.querySelector('.q-action').value.trim();
+                if (q && act) {
+                    proto.items.push({
+                        id: 'i' + Date.now() + Math.random().toString(36).slice(2, 7),
+                        type: 'question', name: q, action: act,
+                        status: 'active', doneWeek: null
+                    });
+                    added++;
+                }
+            });
+            
+            persistProtocols(protocols);
+            document.getElementById('protoQuestions').innerHTML = questionRowHTML();
+            renderProtocol();
+            
+            if (added) alert(`Протокол сохранён: добавлено мероприятий — ${added}.`);
+        }
+
+        function markDone(id) {
+            const curWeekKey = getCurrentMondayKey();
+            const protocols = loadProtocols();
+            let found = false;
+            protocols.forEach(p => p.items.forEach(it => {
+                if (it.id === id && it.status === 'active') { it.status = 'done'; it.doneWeek = curWeekKey; found = true; }
+            }));
+            if (found) { persistProtocols(protocols); renderProtocol(); }
+        }
+
+        // === СЕЛЕКТОРЫ ===
         function buildWeekOptions() {
             const select = document.getElementById('weekSelect');
             const now = new Date();
@@ -644,8 +882,7 @@
             for (let i = total - 1; i >= 0; i--) {
                 const monday = new Date(curMonday);
                 monday.setDate(monday.getDate() - 7 * i);
-                const sunday = new Date(monday);
-                sunday.setDate(sunday.getDate() + 6);
+                const sunday = addDays(monday, 6);
                 
                 const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
                 const opt = document.createElement('option');
@@ -657,7 +894,6 @@
             renderWeek(select.value);
         }
 
-        // === СЕЛЕКТОР ПЕРИОДА СРАВНЕНИЯ (12 прошедших месяцев) ===
         function buildCompareOptions() {
             const select = document.getElementById('compareSelect');
             const now = new Date();
@@ -707,6 +943,7 @@
             await loadSheetData();
             buildWeekOptions();
             buildCompareOptions();
+            renderProtocol();
             if (sessionStorage.getItem('accessGranted') === 'true') {
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('protectedContent').classList.add('visible');
