@@ -147,9 +147,21 @@
         .b-dynamics { background: #7D3673; }
         .b-question { background: #78A6C7; }
         .proto-done-badge { margin-left: auto; color: #22c55e; font-weight: 700; font-family: 'Forum', serif; font-size: 0.85em; }
-        .proto-item-action { font-family: 'Forum', serif; color: #333; font-size: 0.95em; margin-bottom: 6px; }
-        .proto-item-meta { font-size: 0.8em; color: #94a3b8; font-family: 'Forum', serif; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .proto-done-btn { margin-left: auto; background: #22c55e; color: white; border: none; border-radius: 8px; padding: 4px 10px; font-family: 'Forum', serif; cursor: pointer; }
+        .proto-item-dyn { font-family: 'Forum', serif; font-size: 0.85em; color: #544273; margin-bottom: 6px; }
+        .measure-row { display: flex; align-items: center; gap: 8px; font-family: 'Forum', serif; font-size: 0.9em; color: #333; margin: 4px 0; flex-wrap: wrap; }
+        .measure-row.edited { color: #94a3b8; font-style: italic; }
+        .measure-week { color: #94a3b8; font-size: 0.85em; }
+        .measure-row.editing { width: 100%; }
+        .measure-row.editing .proto-input { flex: 1; min-width: 150px; }
+        .proto-edit-btn { background: none; border: 1px solid #78A6C7; color: #544273; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: 'Forum', serif; }
+        .proto-edit-btn:hover { border-color: #E33D78; color: #E33D78; }
+        .proto-add-btn {
+            background: none; border: 2px dashed #78A6C7; color: #544273;
+            border-radius: 10px; padding: 8px 14px; font-family: 'Forum', serif; cursor: pointer; margin-bottom: 10px;
+        }
+        .proto-add-btn.small { margin: 6px 0 0; padding: 4px 10px; font-size: 0.85em; }
+        .proto-save-btn { width: auto; padding: 12px 30px; margin-top: 5px; }
+        .proto-empty { color: #94a3b8; font-family: 'Forum', serif; font-size: 0.9em; padding: 6px 0; }
         .proto-block { background: #f8f9fb; border: 2px solid rgba(84,66,115,0.1); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
         .proto-block-title { font-family: 'Forum', serif; font-size: 1.05em; color: #1C0D2E; margin-bottom: 12px; }
         .proto-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
@@ -160,12 +172,7 @@
             font-family: 'Forum', serif; font-size: 0.9em;
         }
         .proto-input:focus { outline: none; border-color: #E33D78; }
-        .proto-add-btn {
-            background: none; border: 2px dashed #78A6C7; color: #544273;
-            border-radius: 10px; padding: 8px 14px; font-family: 'Forum', serif; cursor: pointer; margin-bottom: 10px;
-        }
-        .proto-save-btn { width: auto; padding: 12px 30px; margin-top: 5px; }
-        .proto-empty { color: #94a3b8; font-family: 'Forum', serif; font-size: 0.9em; padding: 6px 0; }
+        .proto-done-btn { background: #22c55e; color: white; border: none; border-radius: 8px; padding: 4px 10px; font-family: 'Forum', serif; cursor: pointer; }
         
         .chart-note { margin-top: 15px; font-size: 0.85em; color: #94a3b8; font-family: 'Forum', serif; }
 
@@ -265,7 +272,7 @@
                 <button class="login-btn proto-save-btn" onclick="saveProtocol()">Сохранить протокол</button>
             </div>
             
-            <div class="chart-note">* Протокол хранится в браузере (localStorage). Когда позиция уходит в положительную зону, пункт автоматически отмечается «Выполнен» (серый) на текущей планёрке и исчезает на следующей. Синхронизация через Google Sheets — следующий этап.</div>
+            <div class="chart-note">* Протокол хранится в браузере (localStorage). Позиция уходит в положительную зону → пункт автоматически «Выполнен» (серый) на текущей планёрке и исчезает на следующей. Мероприятия можно корректировать (✎) и добавлять — история правок сохраняется. Синхронизация через Google Sheets — следующий этап.</div>
         </div>
     </div>
 
@@ -291,7 +298,7 @@
         }
 
         // ============================================================
-        // НЕДЕЛИ МЕСЯЦА ПО ЧЕТВЕРГУ + СКВОЗНЫЕ НОМЕРА
+        // КАЛЕНДАРЬ: НЕДЕЛИ ПО ЧЕТВЕРГУ, СКВОЗНЫЕ НОМЕРА
         // ============================================================
         function getWeeksInMonth(year, monthIdx) {
             const weeks = [];
@@ -316,6 +323,15 @@
         }
 
         function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+        function keyOfMonday(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function mondayFromKey(key) { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); }
+        function weeksDiff(fromKey, toKey) { return Math.round((mondayFromKey(toKey) - mondayFromKey(fromKey)) / (7 * 86400000)); }
+        function getCurrentMondayKey() {
+            const now = new Date();
+            const m = new Date(now);
+            m.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+            return keyOfMonday(m);
+        }
 
         // === ГЕНЕРАТОР ФИКТИВНЫХ ДАННЫХ ===
         function seededRandom(seed) {
@@ -558,7 +574,7 @@
             });
         }
 
-        // === ТЕКУЩИЙ АНАЛИЗ (общий для графика, таблиц и протокола) ===
+        // === ТЕКУЩИЙ АНАЛИЗ ===
         function getCurrentAnalysis() {
             const now = new Date();
             const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -580,13 +596,34 @@
                 return { ...g, factRub, factPct, devRub: g.forecast - factRub, devPct: g.forecastPct - factPct };
             });
             
-            return { curKey, weeks, closedCount, snapGroups, dynRows, data };
+            const lastClosedMonday = closedCount ? weeks[closedCount - 1].start : null;
+            
+            return { curKey, weeks, closedCount, snapGroups, dynRows, data, lastClosedMonday };
+        }
+
+        // === ОТКЛОНЕНИЕ ГРУППЫ НА КОНКРЕТНУЮ НЕДЕЛЮ (для динамики в протоколе) ===
+        function devForWeek(name, type, monday) {
+            if (!monday) return null;
+            const thursday = addDays(monday, 3);
+            const monthKey = `${thursday.getFullYear()}-${String(thursday.getMonth() + 1).padStart(2, '0')}`;
+            const weeks = getWeeksInMonth(thursday.getFullYear(), thursday.getMonth());
+            const idx = weeks.findIndex(w => w.start.getTime() === monday.getTime());
+            if (idx < 0) return null;
+            const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
+            const g = data.snapshots[idx].groups.find(x => x.name === name);
+            if (!g) return null;
+            if (type === 'forecast') return g.forecast - g.plan;
+            const cmpDate = new Date(thursday.getFullYear(), thursday.getMonth() - 1, 1);
+            const cmpKey = `${cmpDate.getFullYear()}-${String(cmpDate.getMonth() + 1).padStart(2, '0')}`;
+            const cmpData = CHART_DATA[cmpKey] || generateDemoMonth(cmpKey, getWeeksInMonth(cmpDate.getFullYear(), cmpDate.getMonth()).length);
+            const c = (cmpData.monthGroups || []).find(x => x.name === name);
+            return g.forecast - (c ? c.fact : g.plan);
         }
 
         function renderWeek(weekKey) {
             const [y, m, d] = weekKey.split('-').map(Number);
             const monday = new Date(y, m - 1, d);
-            const thursday = new Date(monday); thursday.setDate(thursday.getDate() + 3);
+            const thursday = addDays(monday, 3);
             
             const monthKey = `${thursday.getFullYear()}-${String(thursday.getMonth() + 1).padStart(2, '0')}`;
             const weeks = getWeeksInMonth(thursday.getFullYear(), thursday.getMonth());
@@ -654,8 +691,7 @@
             }
             
             const [cy, cm] = compareKey.split('-').map(Number);
-            const cmpWeeks = getWeeksInMonth(cy, cm - 1);
-            const cmpData = CHART_DATA[compareKey] || generateDemoMonth(compareKey, cmpWeeks.length);
+            const cmpData = CHART_DATA[compareKey] || generateDemoMonth(compareKey, getWeeksInMonth(cy, cm - 1).length);
             const cmpGroups = cmpData.monthGroups || [];
             
             const rows = a.snapGroups.map(g => {
@@ -700,24 +736,65 @@
         }
 
         // ============================================================
-        // ПРОТОКОЛ ПЛАНЁРКИ (localStorage)
+        // ПРОТОКОЛ ПЛАНЁРКИ
         // ============================================================
         const PROTO_KEY = 'ba_protocols_v1';
+        const SEED_KEY = 'ba_proto_seeded_v1';
+        let editState = null; // { itemId, measureId | null }
 
         function loadProtocols() {
             try { return JSON.parse(localStorage.getItem(PROTO_KEY)) || []; } catch (e) { return []; }
         }
         function persistProtocols(list) { localStorage.setItem(PROTO_KEY, JSON.stringify(list)); }
+        function newId() { return 'i' + Date.now() + Math.random().toString(36).slice(2, 7); }
 
-        function getCurrentMondayKey() {
-            const now = new Date();
-            const m = new Date(now);
-            m.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-            return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(m.getDate()).padStart(2, '0')}`;
+        // === ДЕМО-ПРОТОКОЛЫ (для презентации владельцу) ===
+        function seedDemoProtocols(a) {
+            if (localStorage.getItem(SEED_KEY)) return;
+            const curKey = getCurrentMondayKey();
+            const curMonday = mondayFromKey(curKey);
+            const prev1 = keyOfMonday(addDays(curMonday, -7));
+            const prev2 = keyOfMonday(addDays(curMonday, -14));
+            
+            const pos = a.snapGroups.filter(g => g.dev >= 0);
+            const neg = a.snapGroups.filter(g => g.dev < 0);
+            const negDyn = a.dynRows.filter(g => g.devRub < 0);
+            
+            const protocols = [];
+            const p2items = [];
+            if (pos[0]) p2items.push({
+                id: 'seedA', type: 'forecast', name: pos[0].name, status: 'active', doneWeek: null,
+                measures: [{ id: 'seedA1', text: 'Запустить акцию и обновить инфографику', weekKey: prev2, status: 'active' }]
+            });
+            p2items.push({
+                id: 'seedB', type: 'question', name: 'Согласовать медиаплан на следующий месяц', status: 'done', doneWeek: prev2,
+                measures: [{ id: 'seedB1', text: 'Ответственный: маркетинг, срок до 15 числа', weekKey: prev2, status: 'active' }]
+            });
+            protocols.push({ weekKey: prev2, items: p2items });
+            
+            const p1items = [];
+            if (neg[0]) p1items.push({
+                id: 'seedC', type: 'forecast', name: neg[0].name, status: 'active', doneWeek: null,
+                measures: [
+                    { id: 'seedC1', text: 'Скидка −15% на неходовые позиции', weekKey: prev1, status: 'edited', editedWeek: curKey },
+                    { id: 'seedC2', text: 'Скидка сработала на половину: добавить связку с бестселлером, обновить главную и инфографику', weekKey: curKey, status: 'active' }
+                ]
+            });
+            if (negDyn[0] && (!neg[0] || negDyn[0].name !== neg[0].name)) p1items.push({
+                id: 'seedD', type: 'dynamics', name: negDyn[0].name, status: 'active', doneWeek: null,
+                measures: [{ id: 'seedD1', text: 'Пересмотреть закупочные цены, запросить условия у 2 альтернативных поставщиков', weekKey: prev1, status: 'active' }]
+            });
+            p1items.push({
+                id: 'seedE', type: 'question', name: 'Контент-отдел перегружен — сроки срываются', status: 'active', doneWeek: null,
+                measures: [{ id: 'seedE1', text: 'Нанять фрилансера до 25 числа, ответственный: HR', weekKey: prev1, status: 'active' }]
+            });
+            protocols.push({ weekKey: prev1, items: p1items });
+            
+            persistProtocols(protocols);
+            localStorage.setItem(SEED_KEY, '1');
         }
-        function mondayFromKey(key) { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); }
-        function weeksDiff(fromKey, toKey) { return Math.round((mondayFromKey(toKey) - mondayFromKey(fromKey)) / (7 * 86400000)); }
 
+        // === РЕНДЕР ПРОТОКОЛА ===
         function renderProtocol() {
             const a = getCurrentAnalysis();
             const curWeekKey = getCurrentMondayKey();
@@ -726,10 +803,17 @@
             document.getElementById('protoWeekLabel').innerHTML =
                 `Планёрка: <strong>Неделя ${getISOWeek(curMonday)}</strong> • ${fmtShort(curMonday)}–${fmtShort(addDays(curMonday, 6))}`;
             
+            seedDemoProtocols(a);
+            
             const protocols = loadProtocols();
             let changed = false;
             
-            // Автопроверка: позиция ушла в положительную зону → выполнен
+            // Нормализация старых записей (action → measures)
+            protocols.forEach(p => p.items.forEach(it => {
+                if (!it.measures) it.measures = [{ id: newId(), text: it.action || '', weekKey: p.weekKey, status: 'active' }];
+            }));
+            
+            // Автопроверка: позиция ушла в плюс → выполнен
             protocols.forEach(p => p.items.forEach(it => {
                 if (it.status === 'active' && it.type !== 'question') {
                     let positive = false;
@@ -745,7 +829,6 @@
             }));
             if (changed) persistProtocols(protocols);
             
-            // Активные и выполненные (выполненные видны только на планёрке, где закрылись)
             const activeItems = [];
             const doneItems = [];
             protocols.forEach(p => p.items.forEach(it => {
@@ -753,25 +836,73 @@
                 else if (it.status === 'done' && weeksDiff(it.doneWeek, curWeekKey) === 0) doneItems.push({ ...it, protoWeek: p.weekKey });
             }));
             
-            const listHTML = [...activeItems.map(protoItemHTML), ...doneItems.map(protoItemHTML)].join('');
-            document.getElementById('protoActiveList').innerHTML = listHTML ||
+            document.getElementById('protoActiveList').innerHTML =
+                [...activeItems.map(it => protoItemHTML(it, a)), ...doneItems.map(it => protoItemHTML(it, a))].join('') ||
                 '<div class="proto-empty">Активных мероприятий пока нет — заполните форму ниже.</div>';
             
             renderProtoForm(a, protocols);
         }
 
-        function protoItemHTML(it) {
+        function protoItemHTML(it, a) {
             const badge = it.type === 'forecast' ? '<span class="proto-badge b-forecast">Прогноз</span>'
                 : it.type === 'dynamics' ? '<span class="proto-badge b-dynamics">Динамика</span>'
                 : '<span class="proto-badge b-question">Вопрос</span>';
             const done = it.status === 'done';
+            
+            // Динамика за неделю
+            let dynLine = '';
+            if (it.type !== 'question' && a.lastClosedMonday) {
+                const curDev = devForWeek(it.name, it.type, a.lastClosedMonday);
+                const prevDev = devForWeek(it.name, it.type, addDays(a.lastClosedMonday, -7));
+                if (curDev !== null) {
+                    let html = `Отклонение: <span class="${curDev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(curDev)}</span>`;
+                    if (prevDev !== null) {
+                        const dyn = curDev - prevDev;
+                        const cls = dyn > 0 ? 'dev-pos' : dyn < 0 ? 'dev-neg' : '';
+                        const arrow = dyn > 0 ? '↑' : dyn < 0 ? '↓' : '→';
+                        html += ` • нед. назад: ${fmtDevRub(prevDev)} • за неделю: <span class="${cls}">${arrow} ${fmtDevRub(dyn)}</span>`;
+                    }
+                    dynLine = `<div class="proto-item-dyn">${html}</div>`;
+                }
+            }
+            
+            // Мероприятия с историей и редактированием
+            const measuresHtml = (it.measures || []).map(ms => {
+                if (editState && editState.itemId === it.id && editState.measureId === ms.id) {
+                    return `<div class="measure-row editing">
+                        <input id="measure-input" class="proto-input" value="${ms.text.replace(/"/g, '&quot;')}">
+                        <button class="proto-done-btn" onclick="saveMeasureEdit('${it.id}','${ms.id}')">Сохранить</button>
+                        <button class="proto-edit-btn" onclick="cancelEdit()">Отмена</button>
+                    </div>`;
+                }
+                if (ms.status === 'edited') {
+                    return `<div class="measure-row edited">• ${ms.text} <span class="measure-week">(скорректировано в Нед ${getISOWeek(mondayFromKey(ms.editedWeek))})</span></div>`;
+                }
+                return `<div class="measure-row">• <span class="measure-week">(Нед ${getISOWeek(mondayFromKey(ms.weekKey))})</span> ${ms.text}
+                    ${!done ? `<button class="proto-edit-btn" onclick="editMeasure('${it.id}','${ms.id}')">✎</button>` : ''}
+                </div>`;
+            }).join('');
+            
+            const newMeasureRow = (editState && editState.itemId === it.id && editState.measureId === null)
+                ? `<div class="measure-row editing">
+                    <input id="measure-input" class="proto-input" placeholder="Текст нового мероприятия">
+                    <button class="proto-done-btn" onclick="saveMeasureEdit('${it.id}', null)">Сохранить</button>
+                    <button class="proto-edit-btn" onclick="cancelEdit()">Отмена</button>
+                   </div>` : '';
+            
+            const addBtn = (!done && !(editState && editState.itemId === it.id && editState.measureId === null))
+                ? `<button class="proto-add-btn small" onclick="addMeasure('${it.id}')">+ Мероприятие</button>` : '';
+            
             return `<div class="proto-item ${done ? 'done' : ''}">
                 <div class="proto-item-head">
                     ${badge}
                     <span class="proto-item-name">${it.name}</span>
                     ${done ? '<span class="proto-done-badge">✓ Выполнен</span>' : ''}
                 </div>
-                <div class="proto-item-action">→ ${it.action}</div>
+                ${dynLine}
+                ${measuresHtml}
+                ${newMeasureRow}
+                ${addBtn}
                 <div class="proto-item-meta">
                     <span>Протокол: Нед ${getISOWeek(mondayFromKey(it.protoWeek))}</span>
                     ${done ? `<span>• Закрыт: Нед ${getISOWeek(mondayFromKey(it.doneWeek))}</span>` : ''}
@@ -780,6 +911,46 @@
             </div>`;
         }
 
+        // === ОПЕРАЦИИ С МЕРОПРИЯТИЯМИ ===
+        function editMeasure(itemId, measureId) { editState = { itemId, measureId }; renderProtocol(); }
+        function cancelEdit() { editState = null; renderProtocol(); }
+        function addMeasure(itemId) { editState = { itemId, measureId: null }; renderProtocol(); }
+
+        function saveMeasureEdit(itemId, measureId) {
+            const input = document.getElementById('measure-input');
+            const val = input ? input.value.trim() : '';
+            if (!val) { alert('Введите текст мероприятия'); return; }
+            const curKey = getCurrentMondayKey();
+            const protocols = loadProtocols();
+            protocols.forEach(p => p.items.forEach(it => {
+                if (it.id !== itemId) return;
+                if (measureId) {
+                    const ms = it.measures.find(m => m.id === measureId);
+                    if (ms) {
+                        ms.status = 'edited';
+                        ms.editedWeek = curKey;
+                        it.measures.push({ id: newId(), text: val, weekKey: curKey, status: 'active' });
+                    }
+                } else {
+                    it.measures.push({ id: newId(), text: val, weekKey: curKey, status: 'active' });
+                }
+            }));
+            persistProtocols(protocols);
+            editState = null;
+            renderProtocol();
+        }
+
+        function markDone(id) {
+            const curWeekKey = getCurrentMondayKey();
+            const protocols = loadProtocols();
+            let found = false;
+            protocols.forEach(p => p.items.forEach(it => {
+                if (it.id === id && it.status === 'active') { it.status = 'done'; it.doneWeek = curWeekKey; found = true; }
+            }));
+            if (found) { persistProtocols(protocols); renderProtocol(); }
+        }
+
+        // === ФОРМА ПРОТОКОЛА ===
         function renderProtoForm(a, protocols) {
             const activeNames = new Set();
             protocols.forEach(p => p.items.forEach(it => {
@@ -831,12 +1002,9 @@
                 const val = inp.value.trim();
                 if (!val) return;
                 proto.items.push({
-                    id: 'i' + Date.now() + Math.random().toString(36).slice(2, 7),
-                    type: inp.dataset.type,
-                    name: inp.dataset.name,
-                    action: val,
-                    status: 'active',
-                    doneWeek: null
+                    id: newId(), type: inp.dataset.type, name: inp.dataset.name,
+                    measures: [{ id: newId(), text: val, weekKey: curWeekKey, status: 'active' }],
+                    status: 'active', doneWeek: null
                 });
                 added++;
             });
@@ -845,8 +1013,8 @@
                 const act = row.querySelector('.q-action').value.trim();
                 if (q && act) {
                     proto.items.push({
-                        id: 'i' + Date.now() + Math.random().toString(36).slice(2, 7),
-                        type: 'question', name: q, action: act,
+                        id: newId(), type: 'question', name: q,
+                        measures: [{ id: newId(), text: act, weekKey: curWeekKey, status: 'active' }],
                         status: 'active', doneWeek: null
                     });
                     added++;
@@ -858,16 +1026,6 @@
             renderProtocol();
             
             if (added) alert(`Протокол сохранён: добавлено мероприятий — ${added}.`);
-        }
-
-        function markDone(id) {
-            const curWeekKey = getCurrentMondayKey();
-            const protocols = loadProtocols();
-            let found = false;
-            protocols.forEach(p => p.items.forEach(it => {
-                if (it.id === id && it.status === 'active') { it.status = 'done'; it.doneWeek = curWeekKey; found = true; }
-            }));
-            if (found) { persistProtocols(protocols); renderProtocol(); }
         }
 
         // === СЕЛЕКТОРЫ ===
@@ -884,7 +1042,7 @@
                 monday.setDate(monday.getDate() - 7 * i);
                 const sunday = addDays(monday, 6);
                 
-                const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+                const key = keyOfMonday(monday);
                 const opt = document.createElement('option');
                 opt.value = key;
                 opt.textContent = `Нед ${getISOWeek(monday)} • ${fmtShort(monday)}–${fmtShort(sunday)}`;
