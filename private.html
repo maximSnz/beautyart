@@ -98,7 +98,7 @@
         .chart-tooltip strong { color: #E33D78; display: block; }
         .chart-point { cursor: pointer; }
         
-        /* === ТАБЛИЦА ГРУПП (4 строки видно, остальное — скролл) === */
+        /* === ТАБЛИЦА ГРУПП === */
         .groups-section-title { font-family: 'Forum', serif; font-size: 1.2em; color: #1C0D2E; margin: 30px 0 15px; }
         .groups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .groups-panel {
@@ -172,7 +172,7 @@
             <div class="groups-section-title">Прогноз закрытия по группам товаров (на выбранную неделю)</div>
             <div class="groups-grid" id="groupsGrid"></div>
             
-            <div class="chart-note">* Неделя относится к месяцу, в котором находится её четверг. Номера недель — сквозные по году. Левая ось — маржа (млн руб), правая ось — маржинальность (%). Данные демонстрационные; подключение Google Sheets — через SHEET_CSV_URL.</div>
+            <div class="chart-note">* Неделя относится к месяцу, в котором находится её четверг. Номера недель — сквозные по году. Точка прогноза и факт появляются синхронно после закрытия недели. Левая ось — маржа (млн руб), правая ось — маржинальность (%). Данные демонстрационные; подключение Google Sheets — через SHEET_CSV_URL.</div>
         </div>
     </div>
 
@@ -182,8 +182,8 @@
 
         // ============================================================
         // ДАННЫЕ (пока фиктивные, позже — Google Sheets)
-        // 'YYYY-MM': { planRub, factRub[], planPct, factPct[],
-        //              snapshots[weekIdx]: { forecast[], groups[] } }
+        // 'YYYY-MM': { planRub, forecastRub[], factRub[], planPct, factPct[],
+        //              snapshots[weekIdx]: { groups[] } }
         // ============================================================
         const CHART_DATA = {};
 
@@ -241,21 +241,30 @@
             
             const planRub = Math.round((1500000 + rnd() * 600000) / 10000) * 10000;
             
-            const base = [];
-            for (let w = 0; w < weeksCount; w++) base.push(0.8 + rnd() * 0.5);
+            // Эволюция прогноза закрытия месяца (по одной точке на закрытую неделю)
+            const forecastRub = [];
+            let drift = 0.8 + rnd() * 0.4;
+            for (let w = 0; w < weeksCount; w++) {
+                forecastRub.push(Math.round(planRub * drift / 10000) * 10000);
+                drift += (rnd() - 0.48) * 0.12;
+                drift = Math.min(1.35, Math.max(0.7, drift));
+            }
             
+            // Факт закрытия недель
             const weekPlan = planRub / weeksCount;
             const factRub = [];
             for (let w = 0; w < weeksCount; w++) {
                 factRub.push(Math.round(weekPlan * (0.7 + rnd() * 0.6) / 10000) * 10000);
             }
             
+            // Маржинальность, %
             const planPct = Math.round((22 + rnd() * 8) * 10) / 10;
             const factPct = [];
             for (let w = 0; w < weeksCount; w++) {
                 factPct.push(Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 7) * 10) / 10);
             }
             
+            // Группы товаров (снимки по неделям для таблицы)
             const groupNames = ['Уход для волос','Уход для лица','Маникюр и педикюр','Парфюмерия','Инструменты','Краска для волос','Аксессуары','SPA-уход','Наборы','Уход для тела'];
             const gPlan = groupNames.map(() => Math.round((150000 + rnd() * 350000) / 10000) * 10000);
             const gBase = groupNames.map(() => (rnd() * 2 - 1) * 0.25);
@@ -263,17 +272,14 @@
             const snapshots = [];
             for (let i = 0; i < weeksCount; i++) {
                 const rs = seededRandom(year * 10000 + m * 100 + i);
-                const forecast = base.map(b =>
-                    Math.round(planRub * Math.min(1.4, Math.max(0.6, b + (rs() - 0.5) * 0.15)) / 10000) * 10000
-                );
                 const groups = groupNames.map((name, gi) => {
                     const dev = gBase[gi] + (rs() - 0.5) * 0.15;
                     return { name, plan: gPlan[gi], forecast: Math.round(gPlan[gi] * (1 + dev) / 1000) * 1000 };
                 });
-                snapshots.push({ forecast, groups });
+                snapshots.push({ groups });
             }
             
-            return { planRub, factRub, planPct, factPct, snapshots };
+            return { planRub, forecastRub, factRub, planPct, factPct, snapshots };
         }
 
         // === ФОРМАТЫ ===
@@ -300,29 +306,33 @@
 
         // ============================================================
         // ОТРИСОВКА СОВМЕЩЁННОГО ГРАФИКА
+        // Данные точек: все три ряда (прогноз, факт, маржинальность)
+        // приходят ОДИНАКОВОЙ длины (factCount) — появляются параллельно.
         // ============================================================
         function drawChart(boxId, tooltipId, cfg) {
             const box = document.getElementById(boxId);
             const tooltip = document.getElementById(tooltipId);
             const weeks = cfg.weeks;
             const weekLabels = cfg.weekLabels;
-            const lineVals = cfg.lineValues;
-            const factVals = cfg.factValues;
-            const pctVals = cfg.pctValues;
+            const lineVals = cfg.lineValues;   // прогноз закрытия
+            const factVals = cfg.factValues;   // факт маржи
+            const pctVals = cfg.pctValues;     // факт маржинальности
             const plan = cfg.plan, pctPlan = cfg.pctPlan;
             const n = weeks.length;
 
             const W = 800, H = 430;
             const padL = 70, padR = 70, padT = 40, padB = 55;
+            const inset = 35; // данные отстоят от осей ординат
             const innerW = W - padL - padR, innerH = H - padT - padB;
             const baseY = padT + innerH;
+            const dataW = innerW - 2 * inset;
 
             const poolL = [plan, ...lineVals, ...factVals].filter(v => typeof v === 'number');
             const scaleL = niceScale(Math.max(...poolL));
             const poolR = [pctPlan, ...pctVals].filter(v => typeof v === 'number');
             const scaleR = niceScale(Math.max(...poolR));
             
-            const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
+            const x = i => padL + inset + (n === 1 ? dataW / 2 : dataW * i / (n - 1));
             const yL = v => padT + innerH - (v / scaleL.max) * innerH;
             const yR = v => padT + innerH - (v / scaleR.max) * innerH;
 
@@ -361,21 +371,20 @@
             svg += `<line x1="${W - padR}" y1="${ppY}" x2="${W - padR + 6}" y2="${ppY}" stroke="#F59E0B" stroke-width="2.5"/>`;
             svg += `<text x="${W - padR + 10}" y="${ppY + 4}" text-anchor="start" font-size="12" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(pctPlan)}</text>`;
 
-            // Вертикальные пунктиры ФАКТА + всегда повёрнутые подписи
+            // Вертикальные пунктиры ФАКТА + подписи вдоль пунктира
             for (let i = 0; i < n; i++) {
                 const f = factVals[i];
-                if (typeof f !== 'number' || typeof lineVals[i] !== 'number') continue;
-                const px = x(i), topY = yL(lineVals[i]), factY = yL(f);
+                if (typeof f !== 'number') continue;
+                const px = x(i), factY = yL(f);
+                const topY = (typeof lineVals[i] === 'number') ? yL(lineVals[i]) : factY;
                 const stemH = baseY - factY;
                 svg += `<line x1="${px}" y1="${topY}" x2="${px}" y2="${baseY}" stroke="#7D3673" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="4 4"/>`;
                 svg += `<circle class="chart-point" cx="${px}" cy="${factY}" r="4" fill="#7D3673" data-label="Факт недели ${weekLabels[i]}" data-value="${fmtRub(f)}"/>`;
                 
                 const label = fmtRubShort(f);
                 if (stemH >= 70) {
-                    // по центру столбика, разворот против часовой
                     svg += `<text transform="translate(${px + 14}, ${(factY + baseY) / 2}) rotate(-90)" text-anchor="middle" font-size="11" font-weight="700" fill="#7D3673" font-family="Forum">${label}</text>`;
                 } else {
-                    // низкий столбик: старт от оси, читается снизу вверх
                     svg += `<text transform="translate(${px + 14}, ${baseY - 6}) rotate(-90)" text-anchor="start" font-size="11" font-weight="700" fill="#7D3673" font-family="Forum">${label}</text>`;
                 }
             }
@@ -386,11 +395,13 @@
             // Линия ПЛАНА маржинальности
             svg += `<line x1="${padL}" y1="${ppY}" x2="${W - padR}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
 
-            // Линия ПРОГНОЗА маржи (до выбранной недели)
+            // Линия ПРОГНОЗА маржи
             if (lineVals.length) {
                 let linePath = `M ${x(0)} ${yL(lineVals[0])}`;
                 lineVals.forEach((v, i) => { if (i > 0) linePath += ` L ${x(i)} ${yL(v)}`; });
-                svg += `<path class="chart-line" d="${linePath}" fill="none" stroke="#E33D78" stroke-width="3" stroke-linecap="round"/>`;
+                if (lineVals.length > 1) {
+                    svg += `<path class="chart-line" d="${linePath}" fill="none" stroke="#E33D78" stroke-width="3" stroke-linecap="round"/>`;
+                }
                 lineVals.forEach((v, i) => {
                     const range = `${fmtShort(weeks[i].start)}–${fmtShort(weeks[i].end)}`;
                     svg += `<circle class="chart-point" cx="${x(i)}" cy="${yL(v)}" r="6" fill="white" stroke="#E33D78" stroke-width="3"
@@ -402,7 +413,9 @@
             if (pctVals.length) {
                 let pctPath = `M ${x(0)} ${yR(pctVals[0])}`;
                 pctVals.forEach((v, i) => { if (i > 0) pctPath += ` L ${x(i)} ${yR(v)}`; });
-                svg += `<path d="${pctPath}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`;
+                if (pctVals.length > 1) {
+                    svg += `<path d="${pctPath}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`;
+                }
                 pctVals.forEach((v, i) => {
                     const py = yR(v);
                     const labelY = (py - 10 < padT + 12) ? py + 22 : py - 10;
@@ -410,6 +423,11 @@
                         data-label="Маржинальность, ${weekLabels[i]}" data-value="${fmtPct(v)}"/>`;
                     svg += `<text x="${x(i)}" y="${labelY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(v)}</text>`;
                 });
+            }
+
+            // Если данных пока нет
+            if (!lineVals.length && !factVals.length) {
+                svg += `<text x="${padL + innerW / 2}" y="${padT + innerH / 2}" text-anchor="middle" font-size="14" fill="#94a3b8" font-family="Forum">Факт и прогноз появятся после закрытия первой недели</text>`;
             }
 
             // Подписи оси X (сквозные номера недель)
@@ -467,7 +485,7 @@
             
             const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
             
-            // Факт — недели, завершённые к выбранной неделе (параллельно для обеих метрик)
+            // Все три ряда режутся ОДНИМ счётчиком: недели, закрытые к выбранной
             const today = new Date(); today.setHours(0, 0, 0, 0);
             const selEnd = new Date(weeks[idx].end);
             const ref = selEnd < today ? selEnd : new Date();
@@ -479,7 +497,7 @@
                 weeks, weekLabels,
                 plan: data.planRub,
                 pctPlan: data.planPct,
-                lineValues: (snap.forecast || []).slice(0, idx + 1),
+                lineValues: (data.forecastRub || []).slice(0, factCount),
                 factValues: (data.factRub || []).slice(0, factCount),
                 pctValues: (data.factPct || []).slice(0, factCount),
             });
