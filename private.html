@@ -30,15 +30,18 @@
         .block-title { font-size: 1.8em; margin-bottom: 25px; color: #1C0D2E; display: flex; align-items: center; gap: 10px; font-family: 'Forum', serif; border-bottom: 3px solid #78A6C7; padding-bottom: 15px; }
         .icon { font-size: 1.5em; }
         .chart-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-        .chart-legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .legend-item { display: inline-flex; align-items: center; gap: 6px; font-family: 'Forum', serif; color: #544273; font-size: 0.82em; }
-        .legend-line { display: inline-block; width: 22px; height: 0; border-top: 3px solid #E33D78; border-radius: 2px; }
-        .legend-line.plan { border-top-style: dashed; border-top-color: #E33D78; }
-        .legend-line.fact { border-top-style: dashed; border-top-color: #7D3673; }
-        .legend-line.pct-plan { border-top-style: dashed; border-top-color: #F59E0B; }
-        .legend-line.pct { border-top-color: #F59E0B; }
-        .legend-line.orders { border-top-color: #22c55e; opacity: 0.5; }
-        .legend-line.pcs { border-top-color: #14b8a6; }
+        .legend-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Forum', serif; color: #544273; font-size: 0.85em; }
+        .sw { width: 34px; height: 3px; display: inline-block; border-radius: 2px; }
+        .sw.dash-pink { background: repeating-linear-gradient(90deg, #E33D78 0 6px, transparent 6px 10px); }
+        .sw.solid-pink { background: #E33D78; }
+        .sw.dash-amber { background: repeating-linear-gradient(90deg, #F59E0B 0 6px, transparent 6px 10px); }
+        .sw.solid-amber { background: #F59E0B; }
+        .sw.dash-teal { background: repeating-linear-gradient(90deg, #14b8a6 0 6px, transparent 6px 10px); }
+        .sw.solid-teal { background: #14b8a6; }
+        .sw.solid-plum { background: #7D3673; }
+        .sw.pale-green { background: #22c55e; opacity: 0.4; }
+        .legend-bottom { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; justify-content: space-between; }
+        .legend-col { display: flex; flex-direction: column; gap: 6px; }
         .bar-swatch { width: 14px; height: 14px; border-radius: 3px; }
         .bar-swatch.light { background: #BFD7F0; }
         .bar-swatch.dark { background: #78A6C7; }
@@ -101,7 +104,7 @@
         .proto-input:focus { outline: none; border-color: #E33D78; }
         .proto-done-btn { background: #22c55e; color: white; border: none; border-radius: 8px; padding: 4px 10px; font-family: 'Forum', serif; cursor: pointer; }
         .chart-note { margin-top: 15px; font-size: 0.85em; color: #94a3b8; font-family: 'Forum', serif; }
-        @media (max-width: 700px) { .chart-toolbar, .dyn-toolbar { flex-direction: column; align-items: flex-start; } .groups-grid { grid-template-columns: 1fr; } .proto-row-label { flex: 1 1 100%; } }
+        @media (max-width: 700px) { .chart-toolbar, .dyn-toolbar { flex-direction: column; align-items: flex-start; } .groups-grid { grid-template-columns: 1fr; } .proto-row-label { flex: 1 1 100%; } .legend-bottom { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -124,19 +127,32 @@
 
         <div class="block">
             <div class="block-title"><span class="icon">📊</span> Сводные фин. показатели</div>
-            <div class="chart-toolbar">
-                <div class="chart-legend">
-                    <span class="legend-item"><span class="legend-line plan"></span>План маржи</span>
-                    <span class="legend-item"><span class="legend-line"></span>Прогноз</span>
-                    <span class="legend-item"><span class="legend-line fact"></span>Факт накопит.</span>
-                    <span class="legend-item"><span class="legend-line pct-plan"></span>План марж-ти</span>
-                    <span class="legend-item"><span class="legend-line pct"></span>Маржинальность</span>
-                    <span class="legend-item"><span class="legend-line pcs"></span>Заказы, шт</span>
-                    <span class="legend-item"><span class="legend-line orders"></span>Заказы, млн (день)</span>
-                </div>
+            <div class="chart-toolbar" style="justify-content:flex-end">
                 <select class="week-select" id="weekSelect"></select>
             </div>
             <div class="chart-box" id="chartBoxRub"><div class="chart-tooltip" id="tooltipRub"></div></div>
+
+            <div class="legend-bottom">
+                <div class="legend-col">
+                    <div class="legend-item"><span class="sw dash-pink"></span>План маржи</div>
+                    <div class="legend-item"><span class="sw solid-pink"></span>Прогноз маржи</div>
+                </div>
+                <div class="legend-col">
+                    <div class="legend-item"><span class="sw dash-amber"></span>План маржинальности</div>
+                    <div class="legend-item"><span class="sw solid-amber"></span>Факт маржинальности</div>
+                </div>
+                <div class="legend-col">
+                    <div class="legend-item"><span class="sw dash-teal"></span>План заказы</div>
+                    <div class="legend-item"><span class="sw solid-teal"></span>Прогноз заказы</div>
+                    <div class="legend-item"><span class="sw solid-plum"></span>Факт заказы</div>
+                </div>
+                <div class="legend-col">
+                    <div class="legend-item"><span class="sw solid-plum"></span>Факт маржи накопит. итогом</div>
+                </div>
+                <div class="legend-col">
+                    <div class="legend-item"><span class="sw pale-green"></span>Заказы, млн (день)</div>
+                </div>
+            </div>
 
             <div class="groups-section-title">Прогноз закрытия по группам товаров (на выбранную неделю)</div>
             <div class="groups-grid" id="groupsGrid"></div>
@@ -146,15 +162,13 @@
 
             <div class="groups-section-title">Заказы за 28 дней и доля категории</div>
             <div class="chart-toolbar">
-                <div class="chart-legend">
-                    <span class="legend-item"><span class="bar-swatch light"></span>Заказы всех категорий, млн руб</span>
-                    <span class="legend-item"><span class="bar-swatch dark"></span>Доля выбранной категории, %</span>
-                </div>
+                <div class="legend-item"><span class="bar-swatch light"></span>Заказы всех категорий, млн руб</div>
+                <div class="legend-item"><span class="bar-swatch dark"></span>Доля выбранной категории, %</div>
                 <select class="week-select" id="catSelect"></select>
             </div>
             <div class="chart-box" id="chartBoxBars"><div class="chart-tooltip" id="tooltipBars"></div></div>
 
-            <div class="chart-note">* 3 полосы. Верхняя: Заказы шт (слева) + бледный дневной график Заказы млн руб (ось справа). Маржа млн руб (справа), Маржинальность % (слева). В скобках — отклонение от плана. Сливовые точки — динамика к прошлой неделе. Данные демонстрационные.</div>
+            <div class="chart-note">* 3 полосы. Верхняя: Заказы шт (слева) + бледный дневной график Заказы млн руб (ось справа). Маржа млн руб (справа), Маржинальность % (слева). В скобках — отклонение от плана / динамика к прошлой неделе. Данные демонстрационные.</div>
         </div>
 
         <div class="block">
@@ -277,13 +291,12 @@
                 svg += `<text x="${tX}" y="${qTop(q) - 8}" text-anchor="${tAnchor}" font-size="12" font-weight="700" fill="${color}" font-family="Forum">${title}</text>`;
             }
 
-            // Оси: верхняя полоса — шт слева (бирюза) + млн руб справа (зелёная); маржа справа; маржинальность слева
             bandAxis(0, 'left', C_PCS, scaleA.max, v => fmtRubShort(v), 'Заказы, шт', pcsPlan);
             bandAxis(0, 'right', C_ORD, scaleD, v => fmtMillions(v), 'Заказы, млн. руб.', null);
             bandAxis(1, 'right', C_MARGIN, scaleB.max, v => fmtMillions(v), 'Маржа, млн. руб.', plan);
             bandAxis(2, 'left', C_PCT, scaleC.max, v => fmt1(v), 'Маржинальность, %', pctPlan);
 
-            // ПОЛОСА 0: бледный дневной график (млн руб, справа ось) + шт серии
+            // ПОЛОСА 0
             if (ordersDaily.length > 1) {
                 const spanStartMs = weeks[0].start.getTime(), spanEndMs = weeks[n - 1].end.getTime() + 86400000;
                 const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
@@ -298,8 +311,11 @@
                 const weekly = weekOrdPcs[i] || 0;
                 let tip = `Заказы: ${weekly.toLocaleString('ru-RU')} шт.`;
                 if (i > 0 && weekOrdPcs[i - 1]) { const d = weekly - weekOrdPcs[i - 1]; const dp = d / weekOrdPcs[i - 1] * 100; tip += ` • Динамика: ${d >= 0 ? '+' : '−'}${Math.abs(d).toLocaleString('ru-RU')} шт. (${dp >= 0 ? '+' : '−'}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`; }
+                // подпись: накопит. + динамика к прошлой неделе (абс + %)
+                let pl = fmtRubShort(v);
+                if (i > 0 && weekOrdPcs[i - 1]) { const d = weekly - weekOrdPcs[i - 1]; const dp = d / weekOrdPcs[i - 1] * 100; const col = d >= 0 ? C_UP : C_DOWN; const sg = d >= 0 ? '+' : '−'; pl += ` <tspan fill="${col}">(${sg}${fmtRubShort(Math.abs(d))} / ${sg}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)</tspan>`; }
                 svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4" fill="${C_FACT}" data-label="Факт заказов, ${weekLabels[i]}" data-value="${tip}"/>`;
-                svg += `<text x="${px}" y="${py + 18}" text-anchor="middle" font-size="10" font-weight="700" fill="${C_FACT}" font-family="Forum">${fmtRubShort(v)}</text>`;
+                svg += `<text x="${px}" y="${py + 18}" text-anchor="middle" font-size="10" font-weight="700" fill="${C_FACT}" font-family="Forum">${pl}</text>`;
             });
             if (projPcs.length > 1) { let p = `M ${x(0)} ${yBand(0, projPcs[0], scaleA.max)}`; projPcs.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yBand(0, v, scaleA.max)}`; }); svg += `<path d="${p}" fill="none" stroke="${C_PCS}" stroke-width="2.5" stroke-linecap="round"/>`; }
             projPcs.forEach((v, i) => {
@@ -320,17 +336,20 @@
                 const weekly = factWeekly[i];
                 let tip = `Маржа: ${fmtRub(weekly)}`;
                 if (i > 0) { const d = weekly - factWeekly[i - 1]; const dp = factWeekly[i - 1] ? d / factWeekly[i - 1] * 100 : 0; tip += ` • Динамика: ${fmtDevRub(d)} (${dp >= 0 ? '+' : '−'}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`; }
+                // подпись: накопит. + динамика к прошлой неделе (млн + %)
+                let pl = fmtRubShort(v);
+                if (i > 0 && factWeekly[i - 1]) { const d = weekly - factWeekly[i - 1]; const dp = d / factWeekly[i - 1] * 100; const col = d >= 0 ? C_UP : C_DOWN; const sg = d >= 0 ? '+' : '−'; pl += ` <tspan fill="${col}">(${sg}${fmtMillions(Math.abs(d))} млн / ${sg}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)</tspan>`; }
                 svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4.5" fill="${C_FACT}" data-label="Факт недели ${weekLabels[i]}" data-value="${tip}"/>`;
                 let ly = py - 12; if (ly < qTop(1) + 10) ly = py + 22;
                 if (typeof lineVals[i] === 'number' && Math.abs(py - yBand(1, lineVals[i], scaleB.max)) < 24) ly = py + 22;
-                svg += `<text x="${px}" y="${ly}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C_FACT}" font-family="Forum">${fmtRubShort(v)}</text>`;
+                svg += `<text x="${px}" y="${ly}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C_FACT}" font-family="Forum">${pl}</text>`;
             });
             if (lineVals.length > 1) { let l = `M ${x(0)} ${yBand(1, lineVals[0], scaleB.max)}`; lineVals.forEach((v, i) => { if (i > 0) l += ` L ${x(i)} ${yBand(1, v, scaleB.max)}`; }); svg += `<path class="chart-line" d="${l}" fill="none" stroke="${C_MARGIN}" stroke-width="3" stroke-linecap="round"/>`; }
             lineVals.forEach((v, i) => {
                 const py = yBand(1, v, scaleB.max);
                 const dev = v - plan; const devP = plan ? dev / plan * 100 : 0;
                 const col = dev >= 0 ? C_UP : C_DOWN; const sg = dev >= 0 ? '+' : '−';
-                const paren = ` <tspan fill="${col}">(${sg}${fmtMillions(Math.abs(dev))} / ${sg}${Math.abs(devP).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)</tspan>`;
+                const paren = ` <tspan fill="${col}">(${sg}${fmtMillions(Math.abs(dev))} млн / ${sg}${Math.abs(devP).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)</tspan>`;
                 svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="6" fill="white" stroke="${C_MARGIN}" stroke-width="3" data-label="Прогноз, ${weekLabels[i]}" data-value="${fmtRub(v)}"/>`;
                 let flY = py - 12; if (flY < qTop(1) + 10) flY = py + 22;
                 svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C_MARGIN}" font-family="Forum">${fmtRubShort(v)}${paren}</text>`;
