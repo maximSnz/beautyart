@@ -37,7 +37,7 @@
         .legend-line.fact { border-top-style: dashed; border-top-color: #7D3673; }
         .legend-line.pct-plan { border-top-style: dashed; border-top-color: #F59E0B; }
         .legend-line.pct { border-top-color: #F59E0B; }
-        .legend-line.orders { border-top-color: #22c55e; }
+        .legend-line.orders { border-top-color: #22c55e; opacity: 0.5; }
         .legend-line.pcs { border-top-color: #14b8a6; }
         .bar-swatch { width: 14px; height: 14px; border-radius: 3px; }
         .bar-swatch.light { background: #BFD7F0; }
@@ -154,7 +154,7 @@
             </div>
             <div class="chart-box" id="chartBoxBars"><div class="chart-tooltip" id="tooltipBars"></div></div>
 
-            <div class="chart-note">* 4 полосы с осями-«скобками» в шахматном порядке. Розовые точки — с отклонением от плана в скобках; маржинальность и заказы — с динамикой в скобках; факт в штуках — сливовой линией в бирюзовой полосе. Вертикальный пунктир — недели. Данные демонстрационные.</div>
+            <div class="chart-note">* 3 полосы: Заказы шт (план/прогноз/факт + бледный дневной график млн руб), Маржа млн руб, Маржинальность %. В скобках — отклонение от плана (роз: млн/%, бирюз: тыс/%, янтарь: п.п.). Сливовые точки — динамика к прошлой неделе (₽ и % / шт и %). Данные демонстрационные.</div>
         </div>
 
         <div class="block">
@@ -231,6 +231,7 @@
         const fmtPct = v => v.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
         const fmtDevRub = v => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('ru-RU') + ' ₽';
         const fmtDevPp = v => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' п.п.';
+        const fmt1 = v => v.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
         function niceScale(maxValue, tickCount = 4) { if (maxValue <= 0) maxValue = 1; const rawStep = maxValue / tickCount; const mag = Math.pow(10, Math.floor(Math.log10(rawStep))); const norm = rawStep / mag; let step; if (norm <= 1) step = mag; else if (norm <= 2) step = 2 * mag; else if (norm <= 2.5) step = 2.5 * mag; else if (norm <= 5) step = 5 * mag; else step = 10 * mag; return { step, max: Math.ceil(maxValue / step) * step }; }
 
         function drawChart(boxId, tooltipId, cfg) {
@@ -238,32 +239,29 @@
             const weeks = cfg.weeks, weekLabels = cfg.weekLabels, n = weeks.length;
             const lineVals = cfg.lineValues, factVals = cfg.factValues, factWeekly = cfg.factWeekly;
             const pctVals = cfg.pctValues, ordersDaily = cfg.ordersDaily || [];
-            const projPcs = cfg.projPcs || [], factPcs = cfg.factPcs || [];
+            const projPcs = cfg.projPcs || [], factPcs = cfg.factPcs || [], weekOrdPcs = cfg.weekOrdPcs || [];
             const plan = cfg.plan, pctPlan = cfg.pctPlan, pcsPlan = cfg.pcsPlan || 0;
 
-            const W = 900, H = 640, padL = 110, padR = 110, padT = 34, padB = 50;
+            const W = 900, H = 600, padL = 110, padR = 110, padT = 34, padB = 50;
             const inset = 35;
             const innerW = W - padL - padR, innerH = H - padT - padB;
             const baseY = padT + innerH, plotRight = W - padR;
             const dataW = innerW - 2 * inset;
-            const bandH = innerH / 4;
+            const bandH = innerH / 3;
             const qTop = q => padT + bandH * q;
             const yBand = (q, v, max) => qTop(q + 1) - bandH * 0.08 - (v / max) * (bandH * 0.84);
 
             const scaleB = niceScale(Math.max(plan, ...lineVals, ...factVals));
             const scaleC = niceScale(Math.max(pctPlan, ...pctVals));
-            const scaleD = Math.max(...ordersDaily.map(o => o.rub), 1);
             const scaleA = niceScale(Math.max(pcsPlan, ...projPcs, ...factPcs));
+            const scaleD = Math.max(...ordersDaily.map(o => o.rub), 1);
 
             const x = i => padL + inset + (n === 1 ? dataW / 2 : dataW * i / (n - 1));
-            const C_PCS = '#14b8a6', C_MARGIN = '#E33D78', C_PCT = '#d97706', C_ORD = '#16a34a', C_FACT = '#7D3673';
+            const C_PCS = '#14b8a6', C_MARGIN = '#E33D78', C_PCT = '#d97706', C_ORD = '#22c55e', C_FACT = '#7D3673';
 
             let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-
-            // Разделители полос + нижняя ось
-            [1, 2, 3].forEach(q => { svg += `<line x1="${padL}" y1="${qTop(q)}" x2="${plotRight}" y2="${qTop(q)}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2 4"/>`; });
+            [1, 2].forEach(q => { svg += `<line x1="${padL}" y1="${qTop(q)}" x2="${plotRight}" y2="${qTop(q)}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2 4"/>`; });
             svg += `<line x1="${padL}" y1="${baseY}" x2="${plotRight}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
-            // Вертикальный пунктир по неделям (сквозной)
             weeks.forEach((w, i) => { svg += `<line x1="${x(i)}" y1="${padT}" x2="${x(i)}" y2="${baseY}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2 4"/>`; });
 
             function bandAxis(q, side, color, max, fmt, title, planVal) {
@@ -274,7 +272,6 @@
                 svg += `<line x1="${ax}" y1="${top}" x2="${ax}" y2="${bottom}" stroke="${color}" stroke-width="1.5"/>`;
                 [0, 1].forEach(f => { const v = max * f, yy = yBand(q, v, max); svg += `<line x1="${ax}" y1="${yy}" x2="${side === 'left' ? ax - 4 : ax + 4}" y2="${yy}" stroke="${color}" stroke-width="1.5"/>`; svg += `<text x="${lx}" y="${yy + 4}" text-anchor="${anchor}" font-size="10.5" fill="${color}" opacity="0.7" font-family="Forum">${fmt(v)}</text>`; });
                 if (planVal != null) { const py = yBand(q, planVal, max); const midY = yBand(q, max / 2, max); const ly = (Math.abs(py - midY) < 11) ? py - 12 : py; svg += `<line x1="${ax}" y1="${py}" x2="${side === 'left' ? ax - 5 : ax + 5}" y2="${py}" stroke="${color}" stroke-width="2.5"/>`; svg += `<text x="${lx}" y="${ly + 4}" text-anchor="${anchor}" font-size="11.5" font-weight="700" fill="${color}" font-family="Forum">${fmt(planVal)}</text>`; }
-                // Название оси: прижато к краю SVG, не обрезается
                 const tX = side === 'left' ? 6 : W - 6;
                 const tAnchor = side === 'left' ? 'start' : 'end';
                 svg += `<text x="${tX}" y="${qTop(q) - 8}" text-anchor="${tAnchor}" font-size="12" font-weight="700" fill="${color}" font-family="Forum">${title}</text>`;
@@ -282,22 +279,37 @@
 
             bandAxis(0, 'left', C_PCS, scaleA.max, v => fmtRubShort(v), 'Заказы, шт', pcsPlan);
             bandAxis(1, 'right', C_MARGIN, scaleB.max, v => fmtMillions(v), 'Маржа, млн. руб.', plan);
-            bandAxis(2, 'left', C_PCT, scaleC.max, v => v.toLocaleString('ru-RU', { maximumFractionDigits: 1 }), 'Маржинальность, %', pctPlan);
-            bandAxis(3, 'right', C_ORD, scaleD, v => fmtMillions(v), 'Заказы, млн. руб.', null);
+            bandAxis(2, 'left', C_PCT, scaleC.max, v => fmt1(v), 'Маржинальность, %', pctPlan);
 
-            // ПОЛОСА 0: Заказы шт — план, факт (сливовая), прогноз (бирюзовая)
+            // ПОЛОСА 0: Заказы шт + бледный дневной график млн руб
+            if (ordersDaily.length > 1) {
+                const spanStartMs = weeks[0].start.getTime(), spanEndMs = weeks[n - 1].end.getTime() + 86400000;
+                const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
+                let o = ''; ordersDaily.forEach((od, i) => { o += (i === 0 ? 'M ' : ' L ') + xDay(od.t) + ' ' + yBand(0, od.rub, scaleD); });
+                svg += `<path d="${o}" fill="none" stroke="${C_ORD}" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>`;
+                ordersDaily.forEach(od => { const d = new Date(od.t); svg += `<circle class="chart-point" cx="${xDay(od.t)}" cy="${yBand(0, od.rub, scaleD)}" r="2" fill="${C_ORD}" opacity="0.35" data-label="${fmtShort(d)}" data-value="Заказы: ${fmtMillions(od.rub)} млн руб • ${od.pcs.toLocaleString('ru-RU')} шт."/>`; });
+            }
             if (pcsPlan) { const py = yBand(0, pcsPlan, scaleA.max); svg += `<line x1="${padL}" y1="${py}" x2="${plotRight}" y2="${py}" stroke="${C_PCS}" stroke-width="2" stroke-dasharray="6 6"/>`; }
             if (factPcs.length > 1) { let f = `M ${x(0)} ${yBand(0, factPcs[0], scaleA.max)}`; factPcs.forEach((v, i) => { if (i > 0) f += ` L ${x(i)} ${yBand(0, v, scaleA.max)}`; }); svg += `<path d="${f}" fill="none" stroke="${C_FACT}" stroke-width="2.5" stroke-linecap="round"/>`; }
-            factPcs.forEach((v, i) => { const py = yBand(0, v, scaleA.max); svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="4" fill="${C_FACT}" data-label="Факт заказов, ${weekLabels[i]}" data-value="${v.toLocaleString('ru-RU')} шт."/>`; let ly = py + 18; svg += `<text x="${x(i)}" y="${ly}" text-anchor="middle" font-size="10" font-weight="700" fill="${C_FACT}" font-family="Forum">${fmtRubShort(v)}</text>`; });
+            factPcs.forEach((v, i) => {
+                const px = x(i), py = yBand(0, v, scaleA.max);
+                const weekly = weekOrdPcs[i] || 0;
+                let tip = `Заказы: ${weekly.toLocaleString('ru-RU')} шт.`;
+                if (i > 0 && weekOrdPcs[i - 1]) { const d = weekly - weekOrdPcs[i - 1]; const dp = d / weekOrdPcs[i - 1] * 100; tip += ` • Динамика: ${d >= 0 ? '+' : '−'}${Math.abs(d).toLocaleString('ru-RU')} шт. (${dp >= 0 ? '+' : '−'}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`; }
+                svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4" fill="${C_FACT}" data-label="Факт заказов, ${weekLabels[i]}" data-value="${tip}"/>`;
+                svg += `<text x="${px}" y="${py + 18}" text-anchor="middle" font-size="10" font-weight="700" fill="${C_FACT}" font-family="Forum">${fmtRubShort(v)}</text>`;
+            });
             if (projPcs.length > 1) { let p = `M ${x(0)} ${yBand(0, projPcs[0], scaleA.max)}`; projPcs.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yBand(0, v, scaleA.max)}`; }); svg += `<path d="${p}" fill="none" stroke="${C_PCS}" stroke-width="2.5" stroke-linecap="round"/>`; }
             projPcs.forEach((v, i) => {
                 const py = yBand(0, v, scaleA.max);
-                let extra = ''; if (i > 0) { const d = projPcs[i] - projPcs[i - 1]; const c = d >= 0 ? C_UP : C_DOWN; extra = ` <tspan fill="${c}">(${d >= 0 ? '+' : '−'}${fmtRubShort(Math.abs(d)).replace(' тыс', ' тыс')})</tspan>`; }
+                const dev = v - pcsPlan; const devP = pcsPlan ? dev / pcsPlan * 100 : 0;
+                const col = dev >= 0 ? C_UP : C_DOWN; const sg = dev >= 0 ? '+' : '−';
+                const paren = ` <tspan fill="${col}">(${sg}${fmtRubShort(Math.abs(dev))} / ${sg}${Math.abs(devP).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)</tspan>`;
                 svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="4" fill="white" stroke="${C_PCS}" stroke-width="2.5" data-label="Заказы (прогноз), ${weekLabels[i]}" data-value="${v.toLocaleString('ru-RU')} шт."/>`;
-                svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="${C_PCS}" font-family="Forum">${fmtRubShort(v)}${extra}</text>`;
+                svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="${C_PCS}" font-family="Forum">${fmtRubShort(v)}${paren}</text>`;
             });
 
-            // ПОЛОСА 1: Маржа — план, факт (слив), прогноз (розовый)
+            // ПОЛОСА 1: Маржа
             const planY = yBand(1, plan, scaleB.max);
             svg += `<line x1="${padL}" y1="${planY}" x2="${plotRight}" y2="${planY}" stroke="${C_MARGIN}" stroke-width="2.5" stroke-dasharray="8 6"/>`;
             if (factVals.length > 1) { let f = `M ${x(0)} ${yBand(1, factVals[0], scaleB.max)}`; factVals.forEach((v, i) => { if (i > 0) f += ` L ${x(i)} ${yBand(1, v, scaleB.max)}`; }); svg += `<path d="${f}" fill="none" stroke="${C_FACT}" stroke-width="2.5" stroke-linecap="round"/>`; }
@@ -305,7 +317,7 @@
                 const px = x(i), py = yBand(1, v, scaleB.max);
                 const weekly = factWeekly[i];
                 let tip = `Маржа: ${fmtRub(weekly)}`;
-                if (i > 0) { const d = weekly - factWeekly[i - 1]; const dp = factWeekly[i - 1] ? (d / factWeekly[i - 1] * 100) : 0; tip += ` • Динамика: ${fmtDevRub(d)} (${dp >= 0 ? '+' : '−'}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`; }
+                if (i > 0) { const d = weekly - factWeekly[i - 1]; const dp = factWeekly[i - 1] ? d / factWeekly[i - 1] * 100 : 0; tip += ` • Динамика: ${fmtDevRub(d)} (${dp >= 0 ? '+' : '−'}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`; }
                 svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4.5" fill="${C_FACT}" data-label="Факт недели ${weekLabels[i]}" data-value="${tip}"/>`;
                 let ly = py - 12; if (ly < qTop(1) + 10) ly = py + 22;
                 if (typeof lineVals[i] === 'number' && Math.abs(py - yBand(1, lineVals[i], scaleB.max)) < 24) ly = py + 22;
@@ -314,31 +326,25 @@
             if (lineVals.length > 1) { let l = `M ${x(0)} ${yBand(1, lineVals[0], scaleB.max)}`; lineVals.forEach((v, i) => { if (i > 0) l += ` L ${x(i)} ${yBand(1, v, scaleB.max)}`; }); svg += `<path class="chart-line" d="${l}" fill="none" stroke="${C_MARGIN}" stroke-width="3" stroke-linecap="round"/>`; }
             lineVals.forEach((v, i) => {
                 const py = yBand(1, v, scaleB.max);
-                const dev = v - plan; const dcol = dev >= 0 ? C_UP : C_DOWN; const dsgn = dev >= 0 ? '+' : '−';
+                const dev = v - plan; const devP = plan ? dev / plan * 100 : 0;
+                const col = dev >= 0 ? C_UP : C_DOWN; const sg = dev >= 0 ? '+' : '−';
+                const paren = ` <tspan fill="${col}">(${sg}${fmtMillions(Math.abs(dev))} / ${sg}${Math.abs(devP).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)</tspan>`;
                 svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="6" fill="white" stroke="${C_MARGIN}" stroke-width="3" data-label="Прогноз, ${weekLabels[i]}" data-value="${fmtRub(v)}"/>`;
                 let flY = py - 12; if (flY < qTop(1) + 10) flY = py + 22;
-                svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C_MARGIN}" font-family="Forum">${fmtRubShort(v)} <tspan fill="${dcol}">(${dsgn}${fmtMillions(Math.abs(dev))})</tspan></text>`;
+                svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C_MARGIN}" font-family="Forum">${fmtRubShort(v)}${paren}</text>`;
             });
 
-            // ПОЛОСА 2: Маржинальность + динамика в скобках
+            // ПОЛОСА 2: Маржинальность (скобки = отклонение от плана, п.п.)
             const ppY = yBand(2, pctPlan, scaleC.max);
             svg += `<line x1="${padL}" y1="${ppY}" x2="${plotRight}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
             if (pctVals.length > 1) { let p = `M ${x(0)} ${yBand(2, pctVals[0], scaleC.max)}`; pctVals.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yBand(2, v, scaleC.max)}`; }); svg += `<path d="${p}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`; }
             pctVals.forEach((v, i) => {
                 const py = yBand(2, v, scaleC.max);
-                let extra = ''; if (i > 0) { const d = v - pctVals[i - 1]; const c = d >= 0 ? C_UP : C_DOWN; extra = ` <tspan fill="${c}">(${d >= 0 ? '+' : '−'}${Math.abs(d).toLocaleString('ru-RU', { maximumFractionDigits: 1 })})</tspan>`; }
+                const dev = v - pctPlan; const col = dev >= 0 ? C_UP : C_DOWN; const sg = dev >= 0 ? '+' : '−';
+                const paren = ` <tspan fill="${col}">(${sg}${Math.abs(dev).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} п.п.)</tspan>`;
                 svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="4.5" fill="white" stroke="#F59E0B" stroke-width="2.5" data-label="Маржинальность, ${weekLabels[i]}" data-value="${fmtPct(v)}"/>`;
-                svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(v)}${extra}</text>`;
+                svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(v)}${paren}</text>`;
             });
-
-            // ПОЛОСА 3: Заказы млн ежедневно
-            if (ordersDaily.length > 1) {
-                const spanStartMs = weeks[0].start.getTime(), spanEndMs = weeks[n - 1].end.getTime() + 86400000;
-                const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
-                let o = ''; ordersDaily.forEach((od, i) => { o += (i === 0 ? 'M ' : ' L ') + xDay(od.t) + ' ' + yBand(3, od.rub, scaleD); });
-                svg += `<path d="${o}" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`;
-                ordersDaily.forEach(od => { const d = new Date(od.t); svg += `<circle class="chart-point" cx="${xDay(od.t)}" cy="${yBand(3, od.rub, scaleD)}" r="2.5" fill="#22c55e" data-label="${fmtShort(d)}" data-value="Заказы: ${fmtMillions(od.rub)} млн руб • ${od.pcs.toLocaleString('ru-RU')} шт."/>`; });
-            }
 
             weeks.forEach((w, i) => { svg += `<text x="${x(i)}" y="${baseY + 22}" text-anchor="middle" font-size="13" font-weight="700" fill="#544273" font-family="Forum">${weekLabels[i]}</text>`; svg += `<text x="${x(i)}" y="${baseY + 40}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${fmtShort(w.start)}–${fmtShort(w.end)}</text>`; });
 
@@ -386,7 +392,7 @@
             const cumPcs = []; let sp = 0; weekOrdPcs.slice(0, factCount).forEach(v => { sp += v; cumPcs.push(sp); });
             const projPcs = cumPcs.length ? buildForecast(cumPcs, n, factCount, idx, seedBase + 7) : [];
             const ordersDaily = (data.ordersDaily || []).filter(o => o.t <= ref.getTime());
-            drawChart('chartBoxRub', 'tooltipRub', { weeks, weekLabels, plan: data.planRub, pctPlan: data.planPct, pcsPlan: data.ordersPcsPlan, lineValues: fc, factValues: cum, factWeekly, pctValues: (data.factPct || []).slice(0, factCount), ordersDaily, projPcs, factPcs: cumPcs });
+            drawChart('chartBoxRub', 'tooltipRub', { weeks, weekLabels, plan: data.planRub, pctPlan: data.planPct, pcsPlan: data.ordersPcsPlan, lineValues: fc, factValues: cum, factWeekly, pctValues: (data.factPct || []).slice(0, factCount), ordersDaily, projPcs, factPcs: cumPcs, weekOrdPcs });
             renderGroups(snap.groups || []);
             let prevGroups, prevLabel;
             if (idx > 0) { prevGroups = data.snapshots[idx - 1].groups; prevLabel = weekLabels[idx - 1]; }
@@ -399,7 +405,7 @@
         function renderPctDynamics(nowG, prevG, nowL, prevL) { const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecastPct, prev = p ? p.forecastPct : now; return { name: g.name, now, prev, dev: now - prev }; }); const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${fmtPct(r.prev)}</td><td>${fmtPct(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.dev)}</td></tr>`).join('') : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`; const head = `<tr><th>Группа</th><th>Марж-ть ${prevL}</th><th>Марж-ть ${nowL}</th><th>Отклонение</th></tr>`; document.getElementById('pctDynGrid').innerHTML = `<div class="groups-panel positive"><div class="groups-panel-title">➕ Рост маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div><div class="groups-panel negative"><div class="groups-panel-title">➖ Снижение маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`; }
 
         function getDailyBars(days) { const out = []; const today = new Date(); today.setHours(0, 0, 0, 0); for (let i = days - 1; i >= 0; i--) { const d = addDays(today, -i); const rnd = seededRandom(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()); const weekend = (d.getDay() === 0 || d.getDay() === 6) ? 0.55 : 1; out.push({ date: d, total: Math.round((4.2 + rnd() * 3.2) * weekend * 10) / 10 }); } return out; }
-        function shareFor(date, ci) { const rnd = seededRandom(date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + 977 * ci + ci * ci * 13); const base = 8 + ((ci * 53) % 14); return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10)); }
+        function shareFor(date, ci) { const rnd = seededRandom(date.getFullYear() * 10000 + (d2 => d2)(0) + (date.getMonth() + 1) * 100 + date.getDate() + 977 * ci + ci * ci * 13); const base = 8 + ((ci * 53) % 14); return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10)); }
         function renderBars(catName) { const box = document.getElementById('chartBoxBars'), tooltip = document.getElementById('tooltipBars'); const days = getDailyBars(28); const ci = Math.max(0, GROUP_NAMES.indexOf(catName)); const W = 1140, H = 340, padL = 30, padR = 10, padT = 34, padB = 34; const innerW = W - padL - padR, innerH = H - padT - padB, baseY = padT + innerH; const maxTotal = Math.max(...days.map(d => d.total)) * 1.18, maxShare = 30, slot = innerW / 28, barW = slot * 0.62; let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`; days.forEach((d, i) => { const x = padL + slot * i + (slot - barW) / 2; const hT = d.total / maxTotal * innerH, share = shareFor(d.date, ci), hS = share / maxShare * (innerH * 0.3); const weekend = (d.date.getDay() === 0 || d.date.getDay() === 6); svg += `<rect x="${x}" y="${baseY - hT}" width="${barW}" height="${hT}" fill="#BFD7F0" rx="2"/>`; svg += `<rect x="${x}" y="${baseY - hS}" width="${barW}" height="${hS}" fill="#78A6C7" rx="2"/>`; svg += `<text x="${x + barW / 2}" y="${baseY - hT - 6}" text-anchor="middle" font-size="9.5" fill="#544273" font-family="Forum">${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн</text>`; svg += `<text x="${x + barW / 2}" y="${baseY - hS - 5}" text-anchor="middle" font-size="9.5" fill="#1C0D2E" font-family="Forum">${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%</text>`; svg += `<text x="${padL + slot * i + slot / 2}" y="${baseY + 18}" text-anchor="middle" font-size="11" fill="${weekend ? '#E33D78' : '#6b7280'}" font-family="Forum">${String(d.date.getDate()).padStart(2, '0')}</text>`; svg += `<rect class="chart-point bar-hit" x="${padL + slot * i}" y="${padT}" width="${slot}" height="${innerH}" fill="transparent" data-label="${fmtShort(d.date)} • ${catName}" data-value="Заказы: ${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн руб • Доля: ${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%"/>`; }); svg += `<line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/></svg>`; box.querySelectorAll('svg').forEach(el => el.remove()); box.insertAdjacentHTML('beforeend', svg); box.querySelectorAll('.bar-hit').forEach(pt => { const show = () => { const b = box.getBoundingClientRect(), r = pt.getBoundingClientRect(); tooltip.innerHTML = `<strong>${pt.dataset.label}</strong>${pt.dataset.value}`; tooltip.style.display = 'block'; tooltip.style.left = (r.left - b.left + r.width / 2) + 'px'; tooltip.style.top = (r.top - b.top - 8) + 'px'; }; const hide = () => { tooltip.style.display = 'none'; }; pt.addEventListener('mouseenter', show); pt.addEventListener('mouseleave', hide); }); }
         function buildCatOptions() { const s = document.getElementById('catSelect'); GROUP_NAMES.forEach(nm => { const o = document.createElement('option'); o.value = nm; o.textContent = nm; s.appendChild(o); }); s.addEventListener('change', e => renderBars(e.target.value)); renderBars(GROUP_NAMES[0]); }
 
