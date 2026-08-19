@@ -172,7 +172,7 @@
             </div>
             <div class="chart-box" id="chartBoxBars"><div class="chart-tooltip" id="tooltipBars"></div></div>
 
-            <div class="chart-note">* 3 полосы. Точки с отрицательным отклонением пульсируют красным. Таблицы динамики: отклонение в абсолютной и относительной величине. Данные демонстрационные.</div>
+            <div class="chart-note">* 3 полосы. Точки с отрицательным отклонением пульсируют красным. «Δ доли» = доля(тек)−доля(пред), п.п.: знак показывает, растём ли мы в доле относительно категории. Данные демонстрационные.</div>
         </div>
 
         <div class="block">
@@ -250,7 +250,23 @@
         const fmtDevRub = v => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('ru-RU') + ' ₽';
         const fmtDevPp = v => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' п.п.';
         const fmt1 = v => v.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+        const fmtSharePp = v => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} п.п.`;
         function niceScale(maxValue, tickCount = 4) { if (maxValue <= 0) maxValue = 1; const rawStep = maxValue / tickCount; const mag = Math.pow(10, Math.floor(Math.log10(rawStep))); const norm = rawStep / mag; let step; if (norm <= 1) step = mag; else if (norm <= 2) step = 2 * mag; else if (norm <= 2.5) step = 2.5 * mag; else if (norm <= 5) step = 5 * mag; else step = 10 * mag; return { step, max: Math.ceil(maxValue / step) * step }; }
+
+        // Доля группы = заказы группы / заказы всех групп. Динамика доли = доля(тек) - доля(пред), п.п.
+        function computeShareDyn(nowG, prevG) {
+            const totalNow = nowG.reduce((s, g) => s + (g.pcs || 0), 0);
+            const totalPrev = (prevG || []).reduce((s, g) => s + (g.pcs || 0), 0);
+            const map = {};
+            nowG.forEach(g => {
+                const p = (prevG || []).find(x => x.name === g.name);
+                const now = g.pcs || 0, prev = p ? (p.pcs || 0) : 0;
+                const shareNow = totalNow ? now / totalNow * 100 : 0;
+                const sharePrev = totalPrev ? prev / totalPrev * 100 : 0;
+                map[g.name] = shareNow - sharePrev;
+            });
+            return map;
+        }
 
         function drawChart(boxId, tooltipId, cfg) {
             const box = document.getElementById(boxId), tooltip = document.getElementById(tooltipId);
@@ -397,37 +413,29 @@
 
         function buildForecast(cum, weeksCount, factCount, uptoIdx, seedBase) { const out = []; for (let i = 0; i <= uptoIdx; i++) { const closed = i < factCount; const lastClosed = Math.max(0, factCount - 1); const cumI = closed ? cum[i] : cum[lastClosed]; const used = closed ? (i + 1) : factCount; const avg = used ? cumI / used : 0; const remaining = weeksCount - (closed ? (i + 1) : factCount); const k = 0.85 + seededRandom(seedBase + i * 31)() * 0.3; out.push(Math.round(cumI + remaining * avg * k)); } return out; }
 
-        // === Универсальные панели динамики (абсолют + относительная) ===
-        function dynPanels(rows, o) {
+        // Панели динамики: Группа | Δ доли | пред | тек | Отклонение
+        function dynPanels(rows, o, shareMap) {
             const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
             const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
-            const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${o.fmtVal(r.prev)}</td><td>${o.fmtVal(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${o.fmtDev(r)}</td></tr>`).join('') : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`;
-            const head = `<tr><th>Группа</th><th>${o.prevHead}</th><th>${o.nowHead}</th><th>Отклонение</th></tr>`;
+            const shareCell = r => { const s = shareMap ? (shareMap[r.name] || 0) : 0; return `<td class="${s >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtSharePp(s)}</td>`; };
+            const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td>${shareCell(r)}<td>${o.fmtVal(r.prev)}</td><td>${o.fmtVal(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${o.fmtDev(r)}</td></tr>`).join('') : `<tr><td colspan="5" style="color:#94a3b8;">Нет данных</td></tr>`;
+            const head = `<tr><th>Группа</th><th>Δ доли</th><th>${o.prevHead}</th><th>${o.nowHead}</th><th>Отклонение</th></tr>`;
             return `<div class="groups-panel positive"><div class="groups-panel-title">${o.posTitle}</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div>
                     <div class="groups-panel negative"><div class="groups-panel-title">${o.negTitle}</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`;
         }
         const signPct = (v, d = 1) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: d })}%`;
 
-        function renderPctDynamics(nowG, prevG, nowL, prevL) {
+        function renderPctDynamics(nowG, prevG, nowL, prevL, shareMap) {
             const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecastPct, prev = p ? p.forecastPct : now; return { name: g.name, now, prev, dev: now - prev }; });
-            document.getElementById('pctDynGrid').innerHTML = dynPanels(rows, {
-                prevHead: `Марж-ть ${prevL}`, nowHead: `Марж-ть ${nowL}`, posTitle: '➕ Рост маржинальности', negTitle: '➖ Снижение маржинальности',
-                fmtVal: v => fmtPct(v), fmtDev: r => fmtDevPp(r.dev)
-            });
+            document.getElementById('pctDynGrid').innerHTML = dynPanels(rows, { prevHead: `Марж-ть ${prevL}`, nowHead: `Марж-ть ${nowL}`, posTitle: '➕ Рост маржинальности', negTitle: '➖ Снижение маржинальности', fmtVal: v => fmtPct(v), fmtDev: r => fmtDevPp(r.dev) }, shareMap);
         }
-        function renderMarginDynamics(nowG, prevG, nowL, prevL) {
+        function renderMarginDynamics(nowG, prevG, nowL, prevL, shareMap) {
             const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecast, prev = p ? p.forecast : now; const dev = now - prev; const devPct = prev ? dev / prev * 100 : 0; return { name: g.name, now, prev, dev, devPct }; });
-            document.getElementById('marginDynGrid').innerHTML = dynPanels(rows, {
-                prevHead: `Маржа ${prevL}`, nowHead: `Маржа ${nowL}`, posTitle: '➕ Рост маржи', negTitle: '➖ Снижение маржи',
-                fmtVal: v => fmtRubShort(v), fmtDev: r => `${fmtDevRub(r.dev)} (${signPct(r.devPct)})`
-            });
+            document.getElementById('marginDynGrid').innerHTML = dynPanels(rows, { prevHead: `Маржа ${prevL}`, nowHead: `Маржа ${nowL}`, posTitle: '➕ Рост маржи', negTitle: '➖ Снижение маржи', fmtVal: v => fmtRubShort(v), fmtDev: r => `${fmtDevRub(r.dev)} (${signPct(r.devPct)})` }, shareMap);
         }
-        function renderOrdersDynamics(nowG, prevG, nowL, prevL) {
+        function renderOrdersDynamics(nowG, prevG, nowL, prevL, shareMap) {
             const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.pcs || 0, prev = p ? (p.pcs || 0) : now; const dev = now - prev; const devPct = prev ? dev / prev * 100 : 0; return { name: g.name, now, prev, dev, devPct }; });
-            document.getElementById('ordersDynGrid').innerHTML = dynPanels(rows, {
-                prevHead: `Заказы ${prevL}`, nowHead: `Заказы ${nowL}`, posTitle: '➕ Рост заказов', negTitle: '➖ Снижение заказов',
-                fmtVal: v => v.toLocaleString('ru-RU') + ' шт', fmtDev: r => `${r.dev >= 0 ? '+' : '−'}${Math.abs(r.dev).toLocaleString('ru-RU')} шт (${signPct(r.devPct)})`
-            });
+            document.getElementById('ordersDynGrid').innerHTML = dynPanels(rows, { prevHead: `Заказы ${prevL}`, nowHead: `Заказы ${nowL}`, posTitle: '➕ Рост заказов', negTitle: '➖ Снижение заказов', fmtVal: v => v.toLocaleString('ru-RU') + ' шт', fmtDev: r => `${r.dev >= 0 ? '+' : '−'}${Math.abs(r.dev).toLocaleString('ru-RU')} шт (${signPct(r.devPct)})` }, shareMap);
         }
 
         function renderWeek(weekKey) {
@@ -457,9 +465,10 @@
             let prevGroups, prevLabel;
             if (idx > 0) { prevGroups = data.snapshots[idx - 1].groups; prevLabel = weekLabels[idx - 1]; }
             else { const pm = new Date(th.getFullYear(), th.getMonth() - 1, 1); const pk = `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, '0')}`; const pd = CHART_DATA[pk] || generateDemoMonth(pk, getWeeksInMonth(pm.getFullYear(), pm.getMonth()).length); prevGroups = pd.snapshots[pd.snapshots.length - 1].groups; prevLabel = 'пред. мес.'; }
-            renderPctDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
-            renderMarginDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
-            renderOrdersDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
+            const shareMap = computeShareDyn(snap.groups || [], prevGroups);
+            renderPctDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel, shareMap);
+            renderMarginDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel, shareMap);
+            renderOrdersDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel, shareMap);
         }
 
         function renderGroups(groups) { const wd = groups.map(g => ({ ...g, dev: g.forecast - g.plan })); const pos = wd.filter(g => g.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const neg = wd.filter(g => g.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const rows = l => l.length ? l.map(g => `<tr><td>${g.name}</td><td>${fmtRub(g.plan)} / ${fmtRub(g.forecast)}</td><td class="${g.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(g.dev)}</td></tr>`).join('') : `<tr><td colspan="3" style="color:#94a3b8;">Нет групп</td></tr>`; const head = `<tr><th>Группа</th><th>План / Прогноз</th><th>Отклонение</th></tr>`; document.getElementById('groupsGrid').innerHTML = `<div class="groups-panel positive"><div class="groups-panel-title">➕ Положительный прогноз закрытия</div><table class="groups-table"><thead>${head}</thead><tbody>${rows(pos)}</tbody></table></div><div class="groups-panel negative"><div class="groups-panel-title">➖ Отрицательный прогноз закрытия</div><table class="groups-table"><thead>${head}</thead><tbody>${rows(neg)}</tbody></table></div>`; }
