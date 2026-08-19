@@ -277,8 +277,10 @@
     </div>
 
     <script>
-        // ⚠️ ЗАМЕНИТЕ на хеш вашего пароля
-        const PASSWORD_HASH = 'ВСТАВЬТЕ_ВАШ_ХЕШ_СЮДА';
+        // ============================================================
+        // ПАРОЛЬ: admin (хеш SHA-256 уже вставлен)
+        // ============================================================
+        const PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
 
         // ============================================================
         // ДАННЫЕ (пока фиктивные, позже — Google Sheets)
@@ -601,7 +603,7 @@
             return { curKey, weeks, closedCount, snapGroups, dynRows, data, lastClosedMonday };
         }
 
-        // === ОТКЛОНЕНИЕ ГРУППЫ НА КОНКРЕТНУЮ НЕДЕЛЮ (для динамики в протоколе) ===
+        // === ОТКЛОНЕНИЕ ГРУППЫ НА КОНКРЕТНУЮ НЕДЕЛЮ ===
         function devForWeek(name, type, monday) {
             if (!monday) return null;
             const thursday = addDays(monday, 3);
@@ -740,7 +742,7 @@
         // ============================================================
         const PROTO_KEY = 'ba_protocols_v1';
         const SEED_KEY = 'ba_proto_seeded_v1';
-        let editState = null; // { itemId, measureId | null }
+        let editState = null;
 
         function loadProtocols() {
             try { return JSON.parse(localStorage.getItem(PROTO_KEY)) || []; } catch (e) { return []; }
@@ -748,7 +750,7 @@
         function persistProtocols(list) { localStorage.setItem(PROTO_KEY, JSON.stringify(list)); }
         function newId() { return 'i' + Date.now() + Math.random().toString(36).slice(2, 7); }
 
-        // === ДЕМО-ПРОТОКОЛЫ (для презентации владельцу) ===
+        // === ДЕМО-ПРОТОКОЛЫ ===
         function seedDemoProtocols(a) {
             if (localStorage.getItem(SEED_KEY)) return;
             const curKey = getCurrentMondayKey();
@@ -808,12 +810,10 @@
             const protocols = loadProtocols();
             let changed = false;
             
-            // Нормализация старых записей (action → measures)
             protocols.forEach(p => p.items.forEach(it => {
                 if (!it.measures) it.measures = [{ id: newId(), text: it.action || '', weekKey: p.weekKey, status: 'active' }];
             }));
             
-            // Автопроверка: позиция ушла в плюс → выполнен
             protocols.forEach(p => p.items.forEach(it => {
                 if (it.status === 'active' && it.type !== 'question') {
                     let positive = false;
@@ -849,7 +849,6 @@
                 : '<span class="proto-badge b-question">Вопрос</span>';
             const done = it.status === 'done';
             
-            // Динамика за неделю
             let dynLine = '';
             if (it.type !== 'question' && a.lastClosedMonday) {
                 const curDev = devForWeek(it.name, it.type, a.lastClosedMonday);
@@ -866,7 +865,6 @@
                 }
             }
             
-            // Мероприятия с историей и редактированием
             const measuresHtml = (it.measures || []).map(ms => {
                 if (editState && editState.itemId === it.id && editState.measureId === ms.id) {
                     return `<div class="measure-row editing">
