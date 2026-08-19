@@ -66,23 +66,24 @@
 
         .chart-toolbar {
             display: flex; align-items: center; justify-content: space-between;
-            gap: 15px; flex-wrap: wrap; margin-bottom: 15px;
+            gap: 10px; flex-wrap: wrap; margin-bottom: 15px;
         }
-        .chart-legend { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .legend-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Forum', serif; color: #544273; font-size: 0.9em; }
-        .legend-line { display: inline-block; width: 26px; height: 0; border-top: 3px solid #E33D78; border-radius: 2px; }
-        .legend-line.plan { border-top-style: dashed; border-top-color: #78A6C7; }
+        .chart-legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .legend-item { display: inline-flex; align-items: center; gap: 6px; font-family: 'Forum', serif; color: #544273; font-size: 0.82em; }
+        .legend-line { display: inline-block; width: 22px; height: 0; border-top: 3px solid #E33D78; border-radius: 2px; }
+        .legend-line.plan { border-top-style: dashed; border-top-color: #E33D78; }
         .legend-line.fact { border-top-style: dashed; border-top-color: #7D3673; }
         .legend-line.pct-plan { border-top-style: dashed; border-top-color: #F59E0B; }
         .legend-line.pct { border-top-color: #F59E0B; }
         .legend-line.orders { border-top-color: #22c55e; }
+        .legend-line.pcs { border-top-color: #14b8a6; }
         .bar-swatch { width: 14px; height: 14px; border-radius: 3px; }
         .bar-swatch.light { background: #BFD7F0; }
         .bar-swatch.dark { background: #78A6C7; }
         .week-select {
-            padding: 10px 16px; border: 2px solid rgba(84,66,115,0.2); border-radius: 10px;
-            font-family: 'Forum', serif; font-size: 1em; color: #544273; background: #f8f9fb;
-            cursor: pointer; transition: border-color 0.3s;
+            padding: 6px 10px; border: 2px solid rgba(84,66,115,0.2); border-radius: 8px;
+            font-family: 'Forum', serif; font-size: 0.85em; color: #544273; background: #f8f9fb;
+            cursor: pointer; transition: border-color 0.3s; max-width: 220px;
         }
         .week-select:focus { outline: none; border-color: #E33D78; }
         
@@ -123,20 +124,13 @@
         .dev-pos { color: #22c55e; font-weight: 700; white-space: nowrap; }
         .dev-neg { color: #E33D78; font-weight: 700; white-space: nowrap; }
         
-        .dyn-toolbar {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 15px; flex-wrap: wrap; margin-bottom: 15px;
-        }
+        .dyn-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
         .dyn-current { font-family: 'Forum', serif; color: #544273; font-size: 1em; }
         .dyn-current strong { color: #E33D78; }
         
         .proto-week-label { font-family: 'Forum', serif; font-size: 1.1em; color: #544273; margin-bottom: 20px; }
         .proto-week-label strong { color: #E33D78; }
-        .proto-item {
-            background: #f8f9fb; border: 2px solid rgba(84,66,115,0.15);
-            border-left: 4px solid #E33D78; border-radius: 10px;
-            padding: 12px 15px; margin-bottom: 10px;
-        }
+        .proto-item { background: #f8f9fb; border: 2px solid rgba(84,66,115,0.15); border-left: 4px solid #E33D78; border-radius: 10px; padding: 12px 15px; margin-bottom: 10px; }
         .proto-item.done { background: #f0f0f0; border-left-color: #94a3b8; opacity: 0.75; }
         .proto-item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
         .proto-item-name { font-family: 'Forum', serif; font-weight: 700; color: #1C0D2E; }
@@ -153,10 +147,7 @@
         .measure-row.editing .proto-input { flex: 1; min-width: 150px; }
         .proto-edit-btn { background: none; border: 1px solid #78A6C7; color: #544273; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: 'Forum', serif; }
         .proto-edit-btn:hover { border-color: #E33D78; color: #E33D78; }
-        .proto-add-btn {
-            background: none; border: 2px dashed #78A6C7; color: #544273;
-            border-radius: 10px; padding: 8px 14px; font-family: 'Forum', serif; cursor: pointer; margin-bottom: 10px;
-        }
+        .proto-add-btn { background: none; border: 2px dashed #78A6C7; color: #544273; border-radius: 10px; padding: 8px 14px; font-family: 'Forum', serif; cursor: pointer; margin-bottom: 10px; }
         .proto-add-btn.small { margin: 6px 0 0; padding: 4px 10px; font-size: 0.85em; }
         .proto-save-btn { width: auto; padding: 12px 30px; margin-top: 5px; }
         .proto-empty { color: #94a3b8; font-family: 'Forum', serif; font-size: 0.9em; padding: 6px 0; }
@@ -164,11 +155,7 @@
         .proto-block-title { font-family: 'Forum', serif; font-size: 1.05em; color: #1C0D2E; margin-bottom: 12px; }
         .proto-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
         .proto-row-label { flex: 0 0 260px; font-family: 'Forum', serif; color: #333; font-size: 0.9em; }
-        .proto-input {
-            flex: 1; min-width: 200px; padding: 10px 12px;
-            border: 2px solid rgba(84,66,115,0.15); border-radius: 10px;
-            font-family: 'Forum', serif; font-size: 0.9em;
-        }
+        .proto-input { flex: 1; min-width: 200px; padding: 10px 12px; border: 2px solid rgba(84,66,115,0.15); border-radius: 10px; font-family: 'Forum', serif; font-size: 0.9em; }
         .proto-input:focus { outline: none; border-color: #E33D78; }
         .proto-done-btn { background: #22c55e; color: white; border: none; border-radius: 8px; padding: 4px 10px; font-family: 'Forum', serif; cursor: pointer; }
         
@@ -193,32 +180,28 @@
 
     <div class="protected-content" id="protectedContent">
         <a href="index.html" class="back-link">← Вернуться на главную</a>
-        
         <div class="header">
             <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo">
             <div class="company-name">Beauty Art</div>
         </div>
-        
         <h1>Закрытый раздел</h1>
         
         <!-- БЛОК 1 -->
         <div class="block">
             <div class="block-title"><span class="icon">📊</span> Сводные фин. показатели</div>
-            
             <div class="chart-toolbar">
                 <div class="chart-legend">
                     <span class="legend-item"><span class="legend-line plan"></span>План маржи</span>
-                    <span class="legend-item"><span class="legend-line"></span>Прогноз закрытия</span>
-                    <span class="legend-item"><span class="legend-line fact"></span>Факт накопительно</span>
-                    <span class="legend-item"><span class="legend-line pct-plan"></span>План маржинальности</span>
+                    <span class="legend-item"><span class="legend-line"></span>Прогноз</span>
+                    <span class="legend-item"><span class="legend-line fact"></span>Факт накопит.</span>
+                    <span class="legend-item"><span class="legend-line pct-plan"></span>План марж-ти</span>
                     <span class="legend-item"><span class="legend-line pct"></span>Маржинальность</span>
-                    <span class="legend-item"><span class="legend-line orders"></span>Заказы (ежедневно)</span>
+                    <span class="legend-item"><span class="legend-line pcs"></span>Заказы, шт</span>
+                    <span class="legend-item"><span class="legend-line orders"></span>Заказы, млн (день)</span>
                 </div>
                 <select class="week-select" id="weekSelect"></select>
             </div>
-            <div class="chart-box" id="chartBoxRub">
-                <div class="chart-tooltip" id="tooltipRub"></div>
-            </div>
+            <div class="chart-box" id="chartBoxRub"><div class="chart-tooltip" id="tooltipRub"></div></div>
             
             <div class="groups-section-title">Прогноз закрытия по группам товаров (на выбранную неделю)</div>
             <div class="groups-grid" id="groupsGrid"></div>
@@ -234,11 +217,9 @@
                 </div>
                 <select class="week-select" id="catSelect"></select>
             </div>
-            <div class="chart-box" id="chartBoxBars">
-                <div class="chart-tooltip" id="tooltipBars"></div>
-            </div>
+            <div class="chart-box" id="chartBoxBars"><div class="chart-tooltip" id="tooltipBars"></div></div>
             
-            <div class="chart-note">* Неделя относится к месяцу, в котором находится её четверг. Факт маржи — накопительным итогом; на последней неделе закрытого месяца прогноз сходится с фактом. В розовых точках заказы — прогнозные. Зелёная ось справа — заказы (млн руб, ежедневно, нижняя треть). Данные демонстрационные.</div>
+            <div class="chart-note">* График разделён на 4 полосы: сверху — Заказы шт (план+прогноз), затем Маржа млн руб (план/прогноз/факт накопительно), Маржинальность %, снизу — Заказы млн руб ежедневно. На последней неделе закрытого месяца прогноз сходится с фактом. Данные демонстрационные.</div>
         </div>
         
         <!-- БЛОК 2 -->
@@ -246,12 +227,10 @@
             <div class="block-title"><span class="icon">🔄</span> Динамика к периоду сравнения</div>
             <div class="dyn-toolbar">
                 <div class="dyn-current">Текущий период: <strong id="curPeriodLabel"></strong> • прогноз по последней закрытой неделе</div>
-                <label class="dyn-current">Период сравнения:
-                    <select class="week-select" id="compareSelect"></select>
-                </label>
+                <label class="dyn-current">Период сравнения: <select class="week-select" id="compareSelect"></select></label>
             </div>
             <div class="groups-grid" id="dynGrid"></div>
-            <div class="chart-note">* Отклонение ₽ = прогноз закрытия текущего периода − факт закрытия периода сравнения. Отклонение по маржинальности — в п.п. Сортировка — по величине отклонения.</div>
+            <div class="chart-note">* Отклонение ₽ = прогноз текущего периода − факт периода сравнения. Отклонение по маржинальности — в п.п.</div>
         </div>
         
         <!-- БЛОК 3 -->
@@ -262,22 +241,13 @@
             <div id="protoActiveList"></div>
             <div class="groups-section-title">Новый протокол (заполняется на планёрке)</div>
             <div id="protoFormArea">
-                <div class="proto-block">
-                    <div class="proto-block-title">1. Позиции с отрицательным прогнозом закрытия</div>
-                    <div id="protoNegForecast"></div>
-                </div>
-                <div class="proto-block">
-                    <div class="proto-block-title">2. Позиции с отрицательной динамикой закрытия</div>
-                    <div id="protoNegDynamics"></div>
-                </div>
-                <div class="proto-block">
-                    <div class="proto-block-title">3. Доп. вопросы</div>
-                    <div id="protoQuestions"></div>
-                    <button class="proto-add-btn" onclick="addQuestionRow()">+ Добавить вопрос</button>
-                </div>
+                <div class="proto-block"><div class="proto-block-title">1. Позиции с отрицательным прогнозом закрытия</div><div id="protoNegForecast"></div></div>
+                <div class="proto-block"><div class="proto-block-title">2. Позиции с отрицательной динамикой закрытия</div><div id="protoNegDynamics"></div></div>
+                <div class="proto-block"><div class="proto-block-title">3. Доп. вопросы</div><div id="protoQuestions"></div>
+                    <button class="proto-add-btn" onclick="addQuestionRow()">+ Добавить вопрос</button></div>
                 <button class="login-btn proto-save-btn" onclick="saveProtocol()">Сохранить протокол</button>
             </div>
-            <div class="chart-note">* Протокол хранится в браузере (localStorage). Позиция уходит в положительную зону → пункт «Выполнен» (серый) и исчезает на следующей планёрке.</div>
+            <div class="chart-note">* Протокол хранится в браузере (localStorage). Позиция уходит в плюс → «Выполнен» (серый) и исчезает на следующей планёрке.</div>
         </div>
     </div>
 
@@ -289,111 +259,73 @@
 
         async function loadSheetData() {
             if (!SHEET_CSV_URL) return;
-            try {
-                const res = await fetch(SHEET_CSV_URL);
-                const text = await res.text();
-                console.log('CSV загружен, строк:', text.trim().split('\n').length);
-            } catch (e) { console.warn('Не удалось загрузить данные из Google Sheets:', e); }
+            try { const r = await fetch(SHEET_CSV_URL); const t = await r.text(); console.log('CSV строк:', t.trim().split('\n').length); }
+            catch (e) { console.warn('Sheets:', e); }
         }
 
-        // === КАЛЕНДАРЬ ===
         function getWeeksInMonth(year, monthIdx) {
-            const weeks = [];
-            const d = new Date(year, monthIdx, 1);
-            const offsetToThursday = (4 - d.getDay() + 7) % 7;
-            d.setDate(d.getDate() + offsetToThursday);
+            const weeks = []; const d = new Date(year, monthIdx, 1);
+            d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7));
             while (d.getMonth() === monthIdx && d.getFullYear() === year) {
                 const monday = new Date(d); monday.setDate(monday.getDate() - 3);
                 const sunday = new Date(d); sunday.setDate(sunday.getDate() + 3);
-                weeks.push({ start: monday, end: sunday });
-                d.setDate(d.getDate() + 7);
+                weeks.push({ start: monday, end: sunday }); d.setDate(d.getDate() + 7);
             }
             return weeks;
         }
         function getISOWeek(date) {
             const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            const dayNum = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - ys) / 86400000) + 1) / 7);
         }
         function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
         function keyOfMonday(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-        function mondayFromKey(key) { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); }
-        function weeksDiff(fromKey, toKey) { return Math.round((mondayFromKey(toKey) - mondayFromKey(fromKey)) / (7 * 86400000)); }
-        function getCurrentMondayKey() {
-            const now = new Date();
-            const m = new Date(now);
-            m.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-            return keyOfMonday(m);
-        }
+        function mondayFromKey(k) { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); }
+        function weeksDiff(a, b) { return Math.round((mondayFromKey(b) - mondayFromKey(a)) / (7 * 86400000)); }
+        function getCurrentMondayKey() { const n = new Date(); const m = new Date(n); m.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return keyOfMonday(m); }
 
-        // === ДЕМО-ДАННЫЕ ===
-        function seededRandom(seed) {
-            let s = seed;
-            return function() { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-        }
+        function seededRandom(seed) { let s = seed; return function() { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
 
         function generateDemoMonth(monthKey, weeksCount) {
             const [year, m] = monthKey.split('-').map(Number);
             const rnd = seededRandom(year * 100 + m);
-            
             const planRub = Math.round((1500000 + rnd() * 600000) / 10000) * 10000;
             const weekPlan = planRub / weeksCount;
-            
-            const factRub = [];
-            for (let w = 0; w < weeksCount; w++) {
-                factRub.push(Math.round(weekPlan * (0.7 + rnd() * 0.6) / 10000) * 10000);
-            }
-            
+            const factRub = []; for (let w = 0; w < weeksCount; w++) factRub.push(Math.round(weekPlan * (0.7 + rnd() * 0.6) / 10000) * 10000);
             const planPct = Math.round((22 + rnd() * 8) * 10) / 10;
-            const factPct = [];
-            for (let w = 0; w < weeksCount; w++) {
-                factPct.push(Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 7) * 10) / 10);
-            }
-            
+            const factPct = []; for (let w = 0; w < weeksCount; w++) factPct.push(Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 7) * 10) / 10);
             const gPlan = GROUP_NAMES.map(() => Math.round((150000 + rnd() * 350000) / 10000) * 10000);
             const gBase = GROUP_NAMES.map(() => (rnd() * 2 - 1) * 0.25);
-            
             const monthGroups = GROUP_NAMES.map((name, gi) => {
                 const fact = Math.round(gPlan[gi] * (0.75 + rnd() * 0.55) / 1000) * 1000;
                 const fPct = Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 6) * 10) / 10;
                 return { name, plan: gPlan[gi], fact, factPct: fPct };
             });
-            
             const snapshots = [];
             for (let i = 0; i < weeksCount; i++) {
                 const rs = seededRandom(year * 10000 + m * 100 + i);
-                const groups = GROUP_NAMES.map((name, gi) => {
+                snapshots.push({ groups: GROUP_NAMES.map((name, gi) => {
                     const dev = gBase[gi] + (rs() - 0.5) * 0.15;
-                    const forecast = Math.round(gPlan[gi] * (1 + dev) / 1000) * 1000;
-                    const forecastPct = Math.round(Math.max(5, planPct + (rs() * 2 - 1) * 6) * 10) / 10;
-                    return { name, plan: gPlan[gi], forecast, forecastPct };
-                });
-                snapshots.push({ groups });
+                    return { name, plan: gPlan[gi], forecast: Math.round(gPlan[gi] * (1 + dev) / 1000) * 1000,
+                        forecastPct: Math.round(Math.max(5, planPct + (rs() * 2 - 1) * 6) * 10) / 10 };
+                }) });
             }
-            
             const weeks = getWeeksInMonth(year, m - 1);
-            const spanStart = new Date(weeks[0].start);
-            const spanEnd = new Date(weeks[weeks.length - 1].end);
-            const ordersDaily = [];
-            let obase = 5.2 + rnd() * 1.6;
+            const spanStart = new Date(weeks[0].start), spanEnd = new Date(weeks[weeks.length - 1].end);
+            const ordersDaily = []; let obase = 5.2 + rnd() * 1.6;
             const totalDays = Math.round((spanEnd - spanStart) / 86400000) + 1;
             for (let i = 0; i < totalDays; i++) {
-                const d = addDays(spanStart, i);
-                const dow = d.getDay();
+                const d = addDays(spanStart, i); const dow = d.getDay();
                 const weekend = (dow === 0 || dow === 6) ? 0.55 : 1;
-                obase += (rnd() - 0.5) * 0.4;
-                obase = Math.min(7.8, Math.max(4.2, obase));
+                obase += (rnd() - 0.5) * 0.4; obase = Math.min(7.8, Math.max(4.2, obase));
                 const rub = Math.round(obase * weekend * 1000000 / 1000) * 1000;
-                const pcs = Math.round(rub / (1700 + rnd() * 800));
-                ordersDaily.push({ t: d.getTime(), rub, pcs });
+                ordersDaily.push({ t: d.getTime(), rub, pcs: Math.round(rub / (1700 + rnd() * 800)) });
             }
-            
-            return { planRub, factRub, planPct, factPct, snapshots, monthGroups, ordersDaily };
+            const ordersPcsPlan = Math.round(weeksCount * 16000 * (0.9 + rnd() * 0.2));
+            return { planRub, factRub, planPct, factPct, snapshots, monthGroups, ordersDaily, ordersPcsPlan };
         }
 
-        // === ФОРМАТЫ ===
         const fmtShort = d => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
         const fmtMillions = v => (v / 1e6).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
         const fmtRub = v => v.toLocaleString('ru-RU') + ' ₽';
@@ -407,210 +339,172 @@
             const rawStep = maxValue / tickCount;
             const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
             const norm = rawStep / mag;
-            let step;
-            if (norm <= 1) step = mag;
-            else if (norm <= 2) step = 2 * mag;
-            else if (norm <= 2.5) step = 2.5 * mag;
-            else if (norm <= 5) step = 5 * mag;
-            else step = 10 * mag;
+            let step; if (norm <= 1) step = mag; else if (norm <= 2) step = 2 * mag; else if (norm <= 2.5) step = 2.5 * mag; else if (norm <= 5) step = 5 * mag; else step = 10 * mag;
             return { step, max: Math.ceil(maxValue / step) * step };
         }
 
-        // === ГЛАВНЫЙ ГРАФИК ===
+        // === ГРАФИК: 4 ПОЛОСЫ ===
         function drawChart(boxId, tooltipId, cfg) {
-            const box = document.getElementById(boxId);
-            const tooltip = document.getElementById(tooltipId);
-            const weeks = cfg.weeks, weekLabels = cfg.weekLabels;
+            const box = document.getElementById(boxId), tooltip = document.getElementById(tooltipId);
+            const weeks = cfg.weeks, weekLabels = cfg.weekLabels, n = weeks.length;
             const lineVals = cfg.lineValues, factVals = cfg.factValues, factWeekly = cfg.factWeekly;
             const pctVals = cfg.pctValues, ordersDaily = cfg.ordersDaily || [];
             const weekOrdRub = cfg.weekOrdRub || [], weekOrdPcs = cfg.weekOrdPcs || [], projPcs = cfg.projPcs || [];
-            const plan = cfg.plan, pctPlan = cfg.pctPlan;
-            const n = weeks.length;
+            const plan = cfg.plan, pctPlan = cfg.pctPlan, pcsPlan = cfg.pcsPlan || 0;
 
-            const W = 880, H = 440;
-            const padL = 70, padR = 140, padT = 40, padB = 55;
+            const W = 880, H = 640, padL = 70, padR = 120, padT = 30, padB = 50;
             const inset = 35;
             const innerW = W - padL - padR, innerH = H - padT - padB;
-            const baseY = padT + innerH;
+            const baseY = padT + innerH, plotRight = W - padR;
             const dataW = innerW - 2 * inset;
-            const plotRight = W - padR;
+            const bandH = innerH / 4;
+            const qTop = q => padT + bandH * q;
+            const yBand = (q, v, max) => qTop(q + 1) - bandH * 0.08 - (v / max) * (bandH * 0.84);
 
-            const poolL = [plan, ...lineVals, ...factVals].filter(v => typeof v === 'number');
-            const scaleL = niceScale(Math.max(...poolL));
-            const poolR = [pctPlan, ...pctVals].filter(v => typeof v === 'number');
-            const scaleR = niceScale(Math.max(...poolR));
-            const ordersMax = Math.max(...ordersDaily.map(o => o.rub), 1);
-            
+            const scaleB = niceScale(Math.max(plan, ...lineVals, ...factVals));
+            const scaleC = niceScale(Math.max(pctPlan, ...pctVals));
+            const scaleD = Math.max(...ordersDaily.map(o => o.rub), 1);
+            const scaleA = niceScale(Math.max(pcsPlan, ...projPcs));
+
             const x = i => padL + inset + (n === 1 ? dataW / 2 : dataW * i / (n - 1));
-            const yL = v => padT + innerH - (v / scaleL.max) * innerH;
-            const yR = v => padT + innerH - (v / scaleR.max) * innerH;
-            const thirdH = innerH / 3;
-            const yO = v => baseY - (v / ordersMax) * thirdH;
-
-            const pctLabelY = pctVals.map(v => {
-                const py = yR(v);
-                return (py - 10 < padT + 12) ? py + 22 : py - 10;
-            });
 
             let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
-            for (let t = 0; t <= scaleL.max + scaleL.step * 0.001; t += scaleL.step) {
-                const yy = yL(t);
-                svg += `<line x1="${padL}" y1="${yy}" x2="${plotRight}" y2="${yy}" stroke="#e5e7eb" stroke-width="1"/>`;
-                svg += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="12" fill="#6b7280" font-family="Forum">${fmtMillions(t)}</text>`;
-            }
-            for (let t = 0; t <= scaleR.max + scaleR.step * 0.001; t += scaleR.step) {
-                const yy = yR(t);
-                svg += `<text x="${plotRight + 8}" y="${yy + 4}" text-anchor="start" font-size="12" fill="#d97706" font-family="Forum">${t.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}</text>`;
-            }
-            svg += `<line x1="${padL}" y1="${padT - 5}" x2="${padL}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
-            svg += `<line x1="${plotRight}" y1="${padT - 5}" x2="${plotRight}" y2="${baseY}" stroke="#d97706" stroke-width="1.5"/>`;
+            // Разделители полос
+            [1, 2, 3].forEach(q => { svg += `<line x1="${padL}" y1="${qTop(q)}" x2="${plotRight}" y2="${qTop(q)}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2 4"/>`; });
+            // Оси
+            svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
+            svg += `<line x1="${plotRight}" y1="${padT}" x2="${plotRight}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
             svg += `<line x1="${padL}" y1="${baseY}" x2="${plotRight}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
-            svg += `<text x="${padL - 55}" y="${padT - 16}" text-anchor="start" font-size="12" font-weight="700" fill="#6b7280" font-family="Forum">Маржа, млн. руб.</text>`;
-            svg += `<text x="${plotRight + 55}" y="${padT - 16}" text-anchor="end" font-size="12" font-weight="700" fill="#d97706" font-family="Forum">Маржинальность, %</text>`;
 
-            const gx = W - 68;
-            svg += `<line x1="${gx}" y1="${baseY}" x2="${gx}" y2="${baseY - thirdH}" stroke="#22c55e" stroke-width="1.5"/>`;
-            [0, 0.5, 1].forEach(f => {
-                const v = ordersMax * f, yy = baseY - thirdH * f;
-                svg += `<line x1="${gx - 4}" y1="${yy}" x2="${gx}" y2="${yy}" stroke="#22c55e" stroke-width="1.5"/>`;
-                svg += `<text x="${gx + 8}" y="${yy + 4}" font-size="11" fill="#16a34a" font-family="Forum">${fmtMillions(v)}</text>`;
+            // Шкала: полоса 1 (маржа, слева)
+            [0, 0.5, 1].forEach(f => { const v = scaleB.max * f; const yy = yBand(1, v, scaleB.max);
+                svg += `<text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#6b7280" font-family="Forum">${fmtMillions(v)}</text>`; });
+            svg += `<text x="${padL - 55}" y="${qTop(1) + 12}" text-anchor="start" font-size="12" font-weight="700" fill="#E33D78" font-family="Forum">Маржа, млн. руб.</text>`;
+            // Полоса 0 (заказы шт, справа)
+            [0, 0.5, 1].forEach(f => { const v = scaleA.max * f; const yy = yBand(0, v, scaleA.max);
+                svg += `<text x="${plotRight + 8}" y="${yy + 4}" text-anchor="start" font-size="11" fill="#14b8a6" font-family="Forum">${fmtRubShort(v)}</text>`; });
+            svg += `<text x="${plotRight + 8}" y="${qTop(0) + 12}" text-anchor="start" font-size="12" font-weight="700" fill="#14b8a6" font-family="Forum">Заказы, шт</text>`;
+            // Полоса 2 (маржинальность, справа)
+            [0, 0.5, 1].forEach(f => { const v = scaleC.max * f; const yy = yBand(2, v, scaleC.max);
+                svg += `<text x="${plotRight + 8}" y="${yy + 4}" text-anchor="start" font-size="11" fill="#d97706" font-family="Forum">${v.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}</text>`; });
+            svg += `<text x="${plotRight + 8}" y="${qTop(2) + 12}" text-anchor="start" font-size="12" font-weight="700" fill="#d97706" font-family="Forum">Маржинальность, %</text>`;
+            // Полоса 3 (заказы млн, справа)
+            [0, 0.5, 1].forEach(f => { const v = scaleD * f; const yy = yBand(3, v, scaleD);
+                svg += `<text x="${plotRight + 8}" y="${yy + 4}" text-anchor="start" font-size="11" fill="#16a34a" font-family="Forum">${fmtMillions(v)}</text>`; });
+            svg += `<text x="${plotRight + 8}" y="${qTop(3) + 12}" text-anchor="start" font-size="12" font-weight="700" fill="#16a34a" font-family="Forum">Заказы, млн. руб.</text>`;
+
+            // ПОЛОСА 0: Заказы шт (план пунктир + прогноз)
+            if (pcsPlan) {
+                const py = yBand(0, pcsPlan, scaleA.max);
+                svg += `<line x1="${padL}" y1="${py}" x2="${plotRight}" y2="${py}" stroke="#14b8a6" stroke-width="2" stroke-dasharray="6 6"/>`;
+                svg += `<text x="${plotRight - 4}" y="${py - 6}" text-anchor="end" font-size="11" font-weight="700" fill="#14b8a6" font-family="Forum">План: ${fmtRubShort(pcsPlan)}</text>`;
+            }
+            if (projPcs.length > 1) {
+                let p = `M ${x(0)} ${yBand(0, projPcs[0], scaleA.max)}`;
+                projPcs.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yBand(0, v, scaleA.max)}`; });
+                svg += `<path d="${p}" fill="none" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round"/>`;
+            }
+            projPcs.forEach((v, i) => {
+                const py = yBand(0, v, scaleA.max);
+                svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="4" fill="white" stroke="#14b8a6" stroke-width="2.5"
+                    data-label="Заказы (прогноз), ${weekLabels[i]}" data-value="${v.toLocaleString('ru-RU')} шт."/>`;
+                svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="#14b8a6" font-family="Forum">${fmtRubShort(v)}</text>`;
             });
-            svg += `<text x="${gx + 8}" y="${baseY - thirdH - 10}" font-size="12" font-weight="700" fill="#16a34a" font-family="Forum">Заказы, млн. руб.</text>`;
 
-            if (ordersDaily.length > 1) {
-                const spanStartMs = weeks[0].start.getTime();
-                const spanEndMs = weeks[n - 1].end.getTime() + 86400000;
-                const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
-                let oPath = '';
-                ordersDaily.forEach((o, i) => { oPath += (i === 0 ? 'M ' : ' L ') + xDay(o.t) + ' ' + yO(o.rub); });
-                svg += `<path d="${oPath}" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`;
-                ordersDaily.forEach(o => {
-                    const d = new Date(o.t);
-                    svg += `<circle class="chart-point" cx="${xDay(o.t)}" cy="${yO(o.rub)}" r="2.5" fill="#22c55e"
-                        data-label="${fmtShort(d)}" data-value="Заказы: ${fmtMillions(o.rub)} млн руб • ${o.pcs.toLocaleString('ru-RU')} шт."/>`;
-                });
-            }
-
-            const planY = yL(plan);
-            svg += `<rect x="4" y="${planY - 9}" width="${padL - 12}" height="18" fill="white" opacity="0.92"/>`;
-            svg += `<line x1="${padL - 6}" y1="${planY}" x2="${padL}" y2="${planY}" stroke="#78A6C7" stroke-width="2.5"/>`;
-            svg += `<text x="${padL - 10}" y="${planY + 4}" text-anchor="end" font-size="12" font-weight="700" fill="#78A6C7" font-family="Forum">${fmtMillions(plan)}</text>`;
-
-            const ppY = yR(pctPlan);
-            svg += `<rect x="${plotRight + 4}" y="${ppY - 9}" width="60" height="18" fill="white" opacity="0.92"/>`;
-            svg += `<line x1="${plotRight}" y1="${ppY}" x2="${plotRight + 6}" y2="${ppY}" stroke="#F59E0B" stroke-width="2.5"/>`;
-            svg += `<text x="${plotRight + 8}" y="${ppY + 4}" text-anchor="start" font-size="12" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(pctPlan)}</text>`;
-
-            // Вертикальные пунктиры до сливовых точек
-            for (let i = 0; i < n; i++) {
-                const f = factVals[i];
-                if (typeof f !== 'number') continue;
-                const px = x(i), factY = yL(f);
-                svg += `<line x1="${px}" y1="${factY}" x2="${px}" y2="${baseY}" stroke="#7D3673" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="4 4"/>`;
-            }
-
-            svg += `<line x1="${padL}" y1="${planY}" x2="${plotRight}" y2="${planY}" stroke="#78A6C7" stroke-width="2.5" stroke-dasharray="8 6"/>`;
-            svg += `<line x1="${padL}" y1="${ppY}" x2="${plotRight}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
-
-            // ЛИНИЯ ФАКТА (накопительно) — соединяем сливовые точки
+            // ПОЛОСА 1: Маржа (план розовый пунктир + прогноз розовый + факт сливовый)
+            const planY = yBand(1, plan, scaleB.max);
+            svg += `<line x1="${padL}" y1="${planY}" x2="${plotRight}" y2="${planY}" stroke="#E33D78" stroke-width="2.5" stroke-dasharray="8 6"/>`;
+            svg += `<text x="${padL - 8}" y="${planY - 6}" text-anchor="end" font-size="11" font-weight="700" fill="#E33D78" font-family="Forum">${fmtMillions(plan)}</text>`;
             if (factVals.length > 1) {
-                let fPath = `M ${x(0)} ${yL(factVals[0])}`;
-                factVals.forEach((v, i) => { if (i > 0) fPath += ` L ${x(i)} ${yL(v)}`; });
-                svg += `<path d="${fPath}" fill="none" stroke="#7D3673" stroke-width="2.5" stroke-linecap="round"/>`;
+                let f = `M ${x(0)} ${yBand(1, factVals[0], scaleB.max)}`;
+                factVals.forEach((v, i) => { if (i > 0) f += ` L ${x(i)} ${yBand(1, v, scaleB.max)}`; });
+                svg += `<path d="${f}" fill="none" stroke="#7D3673" stroke-width="2.5" stroke-linecap="round"/>`;
             }
-
-            // Сливовые точки + подпись У ТОЧКИ + тултип
-            factVals.forEach((f, i) => {
-                const px = x(i), py = yL(f);
+            factVals.forEach((v, i) => {
+                const px = x(i), py = yBand(1, v, scaleB.max);
+                svg += `<line x1="${px}" y1="${py}" x2="${px}" y2="${qTop(2)}" stroke="#7D3673" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="4 4"/>`;
                 const weekly = factWeekly[i];
-                let tip = `Факт за неделю: ${fmtRub(weekly)}`;
+                let tip = `Маржа за неделю: ${fmtRub(weekly)}`;
                 if (i > 0) {
                     const d = weekly - factWeekly[i - 1];
                     const dp = factWeekly[i - 1] ? (d / factWeekly[i - 1] * 100) : 0;
                     tip += ` • Динамика: ${fmtDevRub(d)} (${dp >= 0 ? '+' : '−'}${Math.abs(dp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`;
                 }
                 if (weekOrdPcs[i]) {
-                    const ordDyn = i > 0 ? (weekOrdRub[i] - weekOrdRub[i - 1]) : 0;
-                    tip += ` • Заказы: ${weekOrdPcs[i].toLocaleString('ru-RU')} шт. (${fmtMillions(weekOrdRub[i])} млн руб.`;
-                    tip += i > 0 ? `, ${fmtDevRub(ordDyn)})` : `)`;
+                    tip += ` • Заказы: ${weekOrdPcs[i].toLocaleString('ru-RU')} шт.`;
+                    if (i > 0) {
+                        const pd = weekOrdPcs[i] - weekOrdPcs[i - 1];
+                        const pp = weekOrdPcs[i - 1] ? (pd / weekOrdPcs[i - 1] * 100) : 0;
+                        tip += ` • Динамика заказов: ${pd >= 0 ? '+' : '−'}${Math.abs(pd).toLocaleString('ru-RU')} шт. (${pp >= 0 ? '+' : '−'}${Math.abs(pp).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`;
+                    }
                 }
                 svg += `<circle class="chart-point" cx="${px}" cy="${py}" r="4.5" fill="#7D3673" data-label="Факт недели ${weekLabels[i]}" data-value="${tip}"/>`;
-                
-                // Подпись у точки (горизонтально), с антиколлизией
-                let ly = py - 12;
-                if (ly < padT + 10) ly = py + 22;
-                if (typeof lineVals[i] === 'number' && Math.abs(py - yL(lineVals[i])) < 24) ly = py + 22;
-                svg += `<text x="${px}" y="${ly}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7D3673" font-family="Forum">${fmtRubShort(f)}</text>`;
+                let ly = py - 12; if (ly < qTop(1) + 10) ly = py + 22;
+                if (typeof lineVals[i] === 'number' && Math.abs(py - yBand(1, lineVals[i], scaleB.max)) < 24) ly = py + 22;
+                svg += `<text x="${px}" y="${ly}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7D3673" font-family="Forum">${fmtRubShort(v)}</text>`;
+            });
+            if (lineVals.length > 1) {
+                let l = `M ${x(0)} ${yBand(1, lineVals[0], scaleB.max)}`;
+                lineVals.forEach((v, i) => { if (i > 0) l += ` L ${x(i)} ${yBand(1, v, scaleB.max)}`; });
+                svg += `<path class="chart-line" d="${l}" fill="none" stroke="#E33D78" stroke-width="3" stroke-linecap="round"/>`;
+            }
+            lineVals.forEach((v, i) => {
+                const py = yBand(1, v, scaleB.max);
+                svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="6" fill="white" stroke="#E33D78" stroke-width="3"
+                    data-label="Прогноз, ${weekLabels[i]}" data-value="${fmtRub(v)}"/>`;
+                let flY = py - 12; if (flY < qTop(1) + 10) flY = py + 22;
+                svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#E33D78" font-family="Forum">${fmtRubShort(v)}</text>`;
             });
 
-            // ЛИНИЯ ПРОГНОЗА + розовые точки (заказы ПРОГНОЗНЫЕ)
-            if (lineVals.length) {
-                let linePath = `M ${x(0)} ${yL(lineVals[0])}`;
-                lineVals.forEach((v, i) => { if (i > 0) linePath += ` L ${x(i)} ${yL(v)}`; });
-                if (lineVals.length > 1) {
-                    svg += `<path class="chart-line" d="${linePath}" fill="none" stroke="#E33D78" stroke-width="3" stroke-linecap="round"/>`;
-                }
-                lineVals.forEach((v, i) => {
-                    const range = `${fmtShort(weeks[i].start)}–${fmtShort(weeks[i].end)}`;
-                    let tip = fmtRub(v);
-                    if (projPcs[i]) tip += ` • Заказы (прогноз): ${projPcs[i].toLocaleString('ru-RU')} шт.`;
-                    svg += `<circle class="chart-point" cx="${x(i)}" cy="${yL(v)}" r="6" fill="white" stroke="#E33D78" stroke-width="3"
-                        data-label="Прогноз, ${weekLabels[i]} (${range})" data-value="${tip}"/>`;
-                    const fy = yL(v);
-                    let flY = fy - 12;
-                    if (flY < padT + 10) flY = fy + 22;
-                    if (typeof pctVals[i] === 'number' && Math.abs(flY - pctLabelY[i]) < 14) {
-                        flY = (flY === fy - 12) ? fy + 22 : fy - 12;
-                    }
-                    svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#E33D78" font-family="Forum">${fmtRubShort(v)}</text>`;
+            // ПОЛОСА 2: Маржинальность
+            const ppY = yBand(2, pctPlan, scaleC.max);
+            svg += `<line x1="${padL}" y1="${ppY}" x2="${plotRight}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
+            svg += `<text x="${plotRight - 4}" y="${ppY - 6}" text-anchor="end" font-size="11" font-weight="700" fill="#d97706" font-family="Forum">План: ${fmtPct(pctPlan)}</text>`;
+            if (pctVals.length > 1) {
+                let p = `M ${x(0)} ${yR2(pctVals[0])}`;
+                function yR2(v){return yBand(2,v,scaleC.max);}
+                pctVals.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yR2(v)}`; });
+                svg += `<path d="${p}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`;
+            }
+            pctVals.forEach((v, i) => {
+                const py = yBand(2, v, scaleC.max);
+                svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="4.5" fill="white" stroke="#F59E0B" stroke-width="2.5"
+                    data-label="Маржинальность, ${weekLabels[i]}" data-value="${fmtPct(v)}"/>`;
+                svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(v)}</text>`;
+            });
+
+            // ПОЛОСА 3: Заказы млн ежедневно
+            if (ordersDaily.length > 1) {
+                const spanStartMs = weeks[0].start.getTime(), spanEndMs = weeks[n - 1].end.getTime() + 86400000;
+                const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
+                let o = '';
+                ordersDaily.forEach((od, i) => { o += (i === 0 ? 'M ' : ' L ') + xDay(od.t) + ' ' + yBand(3, od.rub, scaleD); });
+                svg += `<path d="${o}" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`;
+                ordersDaily.forEach(od => {
+                    const d = new Date(od.t);
+                    svg += `<circle class="chart-point" cx="${xDay(od.t)}" cy="${yBand(3, od.rub, scaleD)}" r="2.5" fill="#22c55e"
+                        data-label="${fmtShort(d)}" data-value="Заказы: ${fmtMillions(od.rub)} млн руб • ${od.pcs.toLocaleString('ru-RU')} шт."/>`;
                 });
             }
 
-            if (pctVals.length) {
-                let pctPath = `M ${x(0)} ${yR(pctVals[0])}`;
-                pctVals.forEach((v, i) => { if (i > 0) pctPath += ` L ${x(i)} ${yR(v)}`; });
-                if (pctVals.length > 1) {
-                    svg += `<path d="${pctPath}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`;
-                }
-                pctVals.forEach((v, i) => {
-                    const py = yR(v);
-                    svg += `<circle class="chart-point" cx="${x(i)}" cy="${py}" r="4.5" fill="white" stroke="#F59E0B" stroke-width="2.5"
-                        data-label="Маржинальность, ${weekLabels[i]}" data-value="${fmtPct(v)}"/>`;
-                    svg += `<text x="${x(i)}" y="${pctLabelY[i]}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#d97706" font-family="Forum">${fmtPct(v)}</text>`;
-                });
-            }
-
-            if (!lineVals.length && !factVals.length) {
-                svg += `<text x="${padL + innerW / 2}" y="${padT + innerH / 2}" text-anchor="middle" font-size="14" fill="#94a3b8" font-family="Forum">Факт и прогноз появятся после закрытия первой недели</text>`;
-            }
-
+            // Подписи недель
             weeks.forEach((w, i) => {
-                const range = `${fmtShort(w.start)}–${fmtShort(w.end)}`;
                 svg += `<text x="${x(i)}" y="${baseY + 22}" text-anchor="middle" font-size="13" font-weight="700" fill="#544273" font-family="Forum">${weekLabels[i]}</text>`;
-                svg += `<text x="${x(i)}" y="${baseY + 40}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${range}</text>`;
+                svg += `<text x="${x(i)}" y="${baseY + 40}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${fmtShort(w.start)}–${fmtShort(w.end)}</text>`;
             });
 
             svg += `</svg>`;
-
             box.querySelectorAll('svg').forEach(el => el.remove());
             box.insertAdjacentHTML('beforeend', svg);
 
             const path = box.querySelector('.chart-line');
-            if (path) {
-                const len = path.getTotalLength();
-                path.style.strokeDasharray = len;
-                path.style.strokeDashoffset = len;
-                path.getBoundingClientRect();
-                path.style.transition = 'stroke-dashoffset 1s ease';
-                path.style.strokeDashoffset = '0';
-            }
+            if (path) { const len = path.getTotalLength(); path.style.strokeDasharray = len; path.style.strokeDashoffset = len; path.getBoundingClientRect(); path.style.transition = 'stroke-dashoffset 1s ease'; path.style.strokeDashoffset = '0'; }
 
             box.querySelectorAll('.chart-point').forEach(pt => {
                 pt.dataset.r0 = pt.getAttribute('r');
                 const show = () => {
-                    const b = box.getBoundingClientRect();
-                    const r = pt.getBoundingClientRect();
+                    const b = box.getBoundingClientRect(), r = pt.getBoundingClientRect();
                     tooltip.innerHTML = `<strong>${pt.dataset.label}</strong>${pt.dataset.value}`;
                     tooltip.style.display = 'block';
                     tooltip.style.left = (r.left - b.left + r.width / 2) + 'px';
@@ -618,13 +512,11 @@
                     pt.setAttribute('r', String(parseFloat(pt.dataset.r0) + 2));
                 };
                 const hide = () => { tooltip.style.display = 'none'; pt.setAttribute('r', pt.dataset.r0); };
-                pt.addEventListener('mouseenter', show);
-                pt.addEventListener('mouseleave', hide);
+                pt.addEventListener('mouseenter', show); pt.addEventListener('mouseleave', hide);
                 pt.addEventListener('touchstart', e => { e.preventDefault(); show(); });
             });
         }
 
-        // === ТЕКУЩИЙ АНАЛИЗ ===
         function getCurrentAnalysis() {
             const now = new Date();
             const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -640,41 +532,37 @@
             const cmpGroups = cmpData.monthGroups || [];
             const dynRows = snapGroups.map(g => {
                 const c = cmpGroups.find(x => x.name === g.name);
-                const factRub = c ? c.fact : g.plan;
-                const factPct = c ? c.factPct : data.planPct;
-                return { ...g, factRub, factPct, devRub: g.forecast - factRub, devPct: g.forecastPct - factPct };
+                return { ...g, factRub: c ? c.fact : g.plan, factPct: c ? c.factPct : data.planPct, devRub: g.forecast - (c ? c.fact : g.plan), devPct: g.forecastPct - (c ? c.factPct : data.planPct) };
             });
-            const lastClosedMonday = closedCount ? weeks[closedCount - 1].start : null;
-            return { curKey, weeks, closedCount, snapGroups, dynRows, data, lastClosedMonday };
+            return { curKey, weeks, closedCount, snapGroups, dynRows, data, lastClosedMonday: closedCount ? weeks[closedCount - 1].start : null };
         }
 
         function devForWeek(name, type, monday) {
             if (!monday) return null;
-            const thursday = addDays(monday, 3);
-            const monthKey = `${thursday.getFullYear()}-${String(thursday.getMonth() + 1).padStart(2, '0')}`;
-            const weeks = getWeeksInMonth(thursday.getFullYear(), thursday.getMonth());
+            const th = addDays(monday, 3);
+            const mk = `${th.getFullYear()}-${String(th.getMonth() + 1).padStart(2, '0')}`;
+            const weeks = getWeeksInMonth(th.getFullYear(), th.getMonth());
             const idx = weeks.findIndex(w => w.start.getTime() === monday.getTime());
             if (idx < 0) return null;
-            const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, weeks.length);
+            const data = CHART_DATA[mk] || generateDemoMonth(mk, weeks.length);
             const g = data.snapshots[idx].groups.find(x => x.name === name);
             if (!g) return null;
             if (type === 'forecast') return g.forecast - g.plan;
-            const cmpDate = new Date(thursday.getFullYear(), thursday.getMonth() - 1, 1);
-            const cmpKey = `${cmpDate.getFullYear()}-${String(cmpDate.getMonth() + 1).padStart(2, '0')}`;
-            const cmpData = CHART_DATA[cmpKey] || generateDemoMonth(cmpKey, getWeeksInMonth(cmpDate.getFullYear(), cmpDate.getMonth()).length);
-            const c = (cmpData.monthGroups || []).find(x => x.name === name);
+            const cd = new Date(th.getFullYear(), th.getMonth() - 1, 1);
+            const ck = `${cd.getFullYear()}-${String(cd.getMonth() + 1).padStart(2, '0')}`;
+            const cData = CHART_DATA[ck] || generateDemoMonth(ck, getWeeksInMonth(cd.getFullYear(), cd.getMonth()).length);
+            const c = (cData.monthGroups || []).find(x => x.name === name);
             return g.forecast - (c ? c.fact : g.plan);
         }
 
-        // === СОГЛАСОВАННЫЙ ПРОГНОЗ: накопленный факт + проекция оставшихся недель ===
         function buildForecast(cum, weeksCount, factCount, uptoIdx, seedBase) {
             const out = [];
             for (let i = 0; i <= uptoIdx; i++) {
                 const closed = i < factCount;
                 const lastClosed = Math.max(0, factCount - 1);
                 const cumI = closed ? cum[i] : cum[lastClosed];
-                const weeksUsed = closed ? (i + 1) : factCount;
-                const avg = weeksUsed ? cumI / weeksUsed : 0;
+                const used = closed ? (i + 1) : factCount;
+                const avg = used ? cumI / used : 0;
                 const remaining = weeksCount - (closed ? (i + 1) : factCount);
                 const k = 0.85 + seededRandom(seedBase + i * 31)() * 0.3;
                 out.push(Math.round(cumI + remaining * avg * k));
@@ -685,285 +573,159 @@
         function renderWeek(weekKey) {
             const [y, m, d] = weekKey.split('-').map(Number);
             const monday = new Date(y, m - 1, d);
-            const thursday = addDays(monday, 3);
-            const monthKey = `${thursday.getFullYear()}-${String(thursday.getMonth() + 1).padStart(2, '0')}`;
-            const weeks = getWeeksInMonth(thursday.getFullYear(), thursday.getMonth());
+            const th = addDays(monday, 3);
+            const mk = `${th.getFullYear()}-${String(th.getMonth() + 1).padStart(2, '0')}`;
+            const weeks = getWeeksInMonth(th.getFullYear(), th.getMonth());
             const idx = Math.max(0, weeks.findIndex(w => w.start.getTime() === monday.getTime()));
             const weekLabels = weeks.map(w => `Нед ${getISOWeek(w.start)}`);
             const n = weeks.length;
-            
-            const data = CHART_DATA[monthKey] || generateDemoMonth(monthKey, n);
-            
+            const data = CHART_DATA[mk] || generateDemoMonth(mk, n);
             const today = new Date(); today.setHours(0, 0, 0, 0);
             const selEnd = new Date(weeks[idx].end);
             const ref = selEnd < today ? selEnd : new Date();
             const factCount = weeks.filter(w => w.end <= ref).length;
-            
             const snap = data.snapshots[idx] || data.snapshots[n - 1];
-            
-            // Накопительный факт
             const factWeekly = (data.factRub || []).slice(0, factCount);
-            const cum = []; let s = 0;
-            factWeekly.forEach(v => { s += v; cum.push(s); });
-            
-            // Недельные заказы (факт) из дневных
-            const weekOrdRub = weeks.map(w => {
-                const a = w.start.getTime(), b = w.end.getTime();
-                return (data.ordersDaily || []).filter(o => o.t >= a && o.t <= b).reduce((t, o) => t + o.rub, 0);
-            });
-            const weekOrdPcs = weeks.map(w => {
-                const a = w.start.getTime(), b = w.end.getTime();
-                return (data.ordersDaily || []).filter(o => o.t >= a && o.t <= b).reduce((t, o) => t + o.pcs, 0);
-            });
-            
-            // Прогноз маржи (сходится с фактом на последней закрытой неделе)
+            const cum = []; let s = 0; factWeekly.forEach(v => { s += v; cum.push(s); });
+            const weekOrdRub = weeks.map(w => { const a = w.start.getTime(), b = w.end.getTime(); return (data.ordersDaily || []).filter(o => o.t >= a && o.t <= b).reduce((t, o) => t + o.rub, 0); });
+            const weekOrdPcs = weeks.map(w => { const a = w.start.getTime(), b = w.end.getTime(); return (data.ordersDaily || []).filter(o => o.t >= a && o.t <= b).reduce((t, o) => t + o.pcs, 0); });
             const seedBase = y * 1000 + m * 10;
             const fc = cum.length ? buildForecast(cum, n, factCount, idx, seedBase) : [];
-            
-            // Прогноз заказов (шт) — накопленные + проекция
-            const cumPcs = []; let sp = 0;
-            weekOrdPcs.slice(0, factCount).forEach(v => { sp += v; cumPcs.push(sp); });
+            const cumPcs = []; let sp = 0; weekOrdPcs.slice(0, factCount).forEach(v => { sp += v; cumPcs.push(sp); });
             const projPcs = cumPcs.length ? buildForecast(cumPcs, n, factCount, idx, seedBase + 7) : [];
-            
-            const refMs = ref.getTime();
-            const ordersDaily = (data.ordersDaily || []).filter(o => o.t <= refMs);
-            
-            drawChart('chartBoxRub', 'tooltipRub', {
-                weeks, weekLabels,
-                plan: data.planRub, pctPlan: data.planPct,
-                lineValues: fc, factValues: cum, factWeekly,
-                pctValues: (data.factPct || []).slice(0, factCount),
-                ordersDaily, weekOrdRub, weekOrdPcs, projPcs,
-            });
-            
+            const ordersDaily = (data.ordersDaily || []).filter(o => o.t <= ref.getTime());
+            drawChart('chartBoxRub', 'tooltipRub', { weeks, weekLabels, plan: data.planRub, pctPlan: data.planPct, pcsPlan: data.ordersPcsPlan,
+                lineValues: fc, factValues: cum, factWeekly, pctValues: (data.factPct || []).slice(0, factCount), ordersDaily, weekOrdRub, weekOrdPcs, projPcs });
             renderGroups(snap.groups || []);
-            
-            // Динамика маржинальности: выбранная неделя vs предыдущая
-            let prevGroups = null, prevLabel = '';
+            let prevGroups, prevLabel;
             if (idx > 0) { prevGroups = data.snapshots[idx - 1].groups; prevLabel = weekLabels[idx - 1]; }
-            else {
-                const pm = new Date(thursday.getFullYear(), thursday.getMonth() - 1, 1);
-                const pKey = `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, '0')}`;
-                const pData = CHART_DATA[pKey] || generateDemoMonth(pKey, getWeeksInMonth(pm.getFullYear(), pm.getMonth()).length);
-                prevGroups = pData.snapshots[pData.snapshots.length - 1].groups;
-                prevLabel = 'пред. мес.';
-            }
+            else { const pm = new Date(th.getFullYear(), th.getMonth() - 1, 1); const pk = `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, '0')}`;
+                const pd = CHART_DATA[pk] || generateDemoMonth(pk, getWeeksInMonth(pm.getFullYear(), pm.getMonth()).length);
+                prevGroups = pd.snapshots[pd.snapshots.length - 1].groups; prevLabel = 'пред. мес.'; }
             renderPctDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
         }
 
         function renderGroups(groups) {
-            const withDev = groups.map(g => ({ ...g, dev: g.forecast - g.plan }));
-            const pos = withDev.filter(g => g.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
-            const neg = withDev.filter(g => g.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
-            const buildRows = list => list.length
-                ? list.map(g => `<tr><td>${g.name}</td><td>${fmtRub(g.plan)} / ${fmtRub(g.forecast)}</td><td class="${g.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(g.dev)}</td></tr>`).join('')
-                : `<tr><td colspan="3" style="color:#94a3b8;">Нет групп</td></tr>`;
+            const wd = groups.map(g => ({ ...g, dev: g.forecast - g.plan }));
+            const pos = wd.filter(g => g.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
+            const neg = wd.filter(g => g.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
+            const rows = l => l.length ? l.map(g => `<tr><td>${g.name}</td><td>${fmtRub(g.plan)} / ${fmtRub(g.forecast)}</td><td class="${g.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(g.dev)}</td></tr>`).join('') : `<tr><td colspan="3" style="color:#94a3b8;">Нет групп</td></tr>`;
             const head = `<tr><th>Группа</th><th>План / Прогноз</th><th>Отклонение</th></tr>`;
             document.getElementById('groupsGrid').innerHTML = `
-                <div class="groups-panel positive"><div class="groups-panel-title">➕ Положительный прогноз закрытия</div>
-                    <table class="groups-table"><thead>${head}</thead><tbody>${buildRows(pos)}</tbody></table></div>
-                <div class="groups-panel negative"><div class="groups-panel-title">➖ Отрицательный прогноз закрытия</div>
-                    <table class="groups-table"><thead>${head}</thead><tbody>${buildRows(neg)}</tbody></table></div>`;
+                <div class="groups-panel positive"><div class="groups-panel-title">➕ Положительный прогноз закрытия</div><table class="groups-table"><thead>${head}</thead><tbody>${rows(pos)}</tbody></table></div>
+                <div class="groups-panel negative"><div class="groups-panel-title">➖ Отрицательный прогноз закрытия</div><table class="groups-table"><thead>${head}</thead><tbody>${rows(neg)}</tbody></table></div>`;
         }
 
-        function renderPctDynamics(nowGroups, prevGroups, nowLabel, prevLabel) {
-            const rows = nowGroups.map(g => {
-                const p = (prevGroups || []).find(x => x.name === g.name);
-                const now = g.forecastPct, prev = p ? p.forecastPct : now;
-                return { name: g.name, now, prev, dev: now - prev };
-            });
+        function renderPctDynamics(nowG, prevG, nowL, prevL) {
+            const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecastPct, prev = p ? p.forecastPct : now; return { name: g.name, now, prev, dev: now - prev }; });
             const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
             const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
-            const buildRows = list => list.length
-                ? list.map(r => `<tr><td>${r.name}</td><td>${fmtPct(r.prev)}</td><td>${fmtPct(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.dev)}</td></tr>`).join('')
-                : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`;
-            const head = `<tr><th>Группа</th><th>Марж-ть ${prevLabel}</th><th>Марж-ть ${nowLabel}</th><th>Отклонение</th></tr>`;
+            const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${fmtPct(r.prev)}</td><td>${fmtPct(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.dev)}</td></tr>`).join('') : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`;
+            const head = `<tr><th>Группа</th><th>Марж-ть ${prevL}</th><th>Марж-ть ${nowL}</th><th>Отклонение</th></tr>`;
             document.getElementById('pctDynGrid').innerHTML = `
-                <div class="groups-panel positive"><div class="groups-panel-title">➕ Рост маржинальности</div>
-                    <table class="groups-table compact"><thead>${head}</thead><tbody>${buildRows(pos)}</tbody></table></div>
-                <div class="groups-panel negative"><div class="groups-panel-title">➖ Снижение маржинальности</div>
-                    <table class="groups-table compact"><thead>${head}</thead><tbody>${buildRows(neg)}</tbody></table></div>`;
+                <div class="groups-panel positive"><div class="groups-panel-title">➕ Рост маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div>
+                <div class="groups-panel negative"><div class="groups-panel-title">➖ Снижение маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`;
         }
 
-        // === 28 ДНЕЙ ===
         function getDailyBars(days) {
-            const out = [];
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            for (let i = days - 1; i >= 0; i--) {
-                const d = addDays(today, -i);
-                const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-                const rnd = seededRandom(seed);
-                const dow = d.getDay();
-                const weekend = (dow === 0 || dow === 6) ? 0.55 : 1;
-                const total = Math.round((4.2 + rnd() * 3.2) * weekend * 10) / 10;
-                out.push({ date: d, total });
-            }
+            const out = []; const today = new Date(); today.setHours(0, 0, 0, 0);
+            for (let i = days - 1; i >= 0; i--) { const d = addDays(today, -i); const rnd = seededRandom(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate());
+                const weekend = (d.getDay() === 0 || d.getDay() === 6) ? 0.55 : 1; out.push({ date: d, total: Math.round((4.2 + rnd() * 3.2) * weekend * 10) / 10 }); }
             return out;
         }
-        function shareFor(date, ci) {
-            const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
-            const rnd = seededRandom(seed + 977 * ci + ci * ci * 13);
-            const base = 8 + ((ci * 53) % 14);
-            return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10));
-        }
+        function shareFor(date, ci) { const rnd = seededRandom(date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + 977 * ci + ci * ci * 13); const base = 8 + ((ci * 53) % 14); return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10)); }
         function renderBars(catName) {
-            const box = document.getElementById('chartBoxBars');
-            const tooltip = document.getElementById('tooltipBars');
-            const days = getDailyBars(28);
-            const ci = Math.max(0, GROUP_NAMES.indexOf(catName));
+            const box = document.getElementById('chartBoxBars'), tooltip = document.getElementById('tooltipBars');
+            const days = getDailyBars(28); const ci = Math.max(0, GROUP_NAMES.indexOf(catName));
             const W = 1140, H = 340, padL = 30, padR = 10, padT = 34, padB = 34;
             const innerW = W - padL - padR, innerH = H - padT - padB, baseY = padT + innerH;
-            const maxTotal = Math.max(...days.map(d => d.total)) * 1.18;
-            const maxShare = 30, slot = innerW / 28, barW = slot * 0.62;
+            const maxTotal = Math.max(...days.map(d => d.total)) * 1.18, maxShare = 30, slot = innerW / 28, barW = slot * 0.62;
             let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
             days.forEach((d, i) => {
                 const x = padL + slot * i + (slot - barW) / 2;
-                const hT = d.total / maxTotal * innerH;
-                const share = shareFor(d.date, ci);
-                const hS = share / maxShare * (innerH * 0.3);
+                const hT = d.total / maxTotal * innerH, share = shareFor(d.date, ci), hS = share / maxShare * (innerH * 0.3);
                 const weekend = (d.date.getDay() === 0 || d.date.getDay() === 6);
                 svg += `<rect x="${x}" y="${baseY - hT}" width="${barW}" height="${hT}" fill="#BFD7F0" rx="2"/>`;
                 svg += `<rect x="${x}" y="${baseY - hS}" width="${barW}" height="${hS}" fill="#78A6C7" rx="2"/>`;
                 svg += `<text x="${x + barW / 2}" y="${baseY - hT - 6}" text-anchor="middle" font-size="9.5" fill="#544273" font-family="Forum">${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн</text>`;
                 svg += `<text x="${x + barW / 2}" y="${baseY - hS - 5}" text-anchor="middle" font-size="9.5" fill="#1C0D2E" font-family="Forum">${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%</text>`;
                 svg += `<text x="${padL + slot * i + slot / 2}" y="${baseY + 18}" text-anchor="middle" font-size="11" fill="${weekend ? '#E33D78' : '#6b7280'}" font-family="Forum">${String(d.date.getDate()).padStart(2, '0')}</text>`;
-                svg += `<rect class="chart-point bar-hit" x="${padL + slot * i}" y="${padT}" width="${slot}" height="${innerH}" fill="transparent"
-                    data-label="${fmtShort(d.date)} • ${catName}" data-value="Заказы: ${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн руб • Доля: ${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%"/>`;
+                svg += `<rect class="chart-point bar-hit" x="${padL + slot * i}" y="${padT}" width="${slot}" height="${innerH}" fill="transparent" data-label="${fmtShort(d.date)} • ${catName}" data-value="Заказы: ${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн руб • Доля: ${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%"/>`;
             });
-            svg += `<line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
-            svg += `</svg>`;
+            svg += `<line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/></svg>`;
             box.querySelectorAll('svg').forEach(el => el.remove());
             box.insertAdjacentHTML('beforeend', svg);
             box.querySelectorAll('.bar-hit').forEach(pt => {
-                const show = () => {
-                    const b = box.getBoundingClientRect();
-                    const r = pt.getBoundingClientRect();
-                    tooltip.innerHTML = `<strong>${pt.dataset.label}</strong>${pt.dataset.value}`;
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = (r.left - b.left + r.width / 2) + 'px';
-                    tooltip.style.top = (r.top - b.top - 8) + 'px';
-                };
+                const show = () => { const b = box.getBoundingClientRect(), r = pt.getBoundingClientRect(); tooltip.innerHTML = `<strong>${pt.dataset.label}</strong>${pt.dataset.value}`; tooltip.style.display = 'block'; tooltip.style.left = (r.left - b.left + r.width / 2) + 'px'; tooltip.style.top = (r.top - b.top - 8) + 'px'; };
                 const hide = () => { tooltip.style.display = 'none'; };
-                pt.addEventListener('mouseenter', show);
-                pt.addEventListener('mouseleave', hide);
+                pt.addEventListener('mouseenter', show); pt.addEventListener('mouseleave', hide);
             });
         }
-        function buildCatOptions() {
-            const select = document.getElementById('catSelect');
-            GROUP_NAMES.forEach(name => {
-                const opt = document.createElement('option');
-                opt.value = name; opt.textContent = name;
-                select.appendChild(opt);
-            });
-            select.addEventListener('change', e => renderBars(e.target.value));
-            renderBars(GROUP_NAMES[0]);
-        }
+        function buildCatOptions() { const s = document.getElementById('catSelect'); GROUP_NAMES.forEach(nm => { const o = document.createElement('option'); o.value = nm; o.textContent = nm; s.appendChild(o); }); s.addEventListener('change', e => renderBars(e.target.value)); renderBars(GROUP_NAMES[0]); }
 
-        // === ДИНАМИКА К ПЕРИОДУ ===
         function renderDynamics(compareKey) {
-            const grid = document.getElementById('dynGrid');
-            const a = getCurrentAnalysis();
-            if (a.closedCount === 0) {
-                grid.innerHTML = `<div class="proto-empty">По текущему периоду ещё нет закрытых недель.</div>`;
-                return;
-            }
+            const grid = document.getElementById('dynGrid'); const a = getCurrentAnalysis();
+            if (a.closedCount === 0) { grid.innerHTML = `<div class="proto-empty">Нет закрытых недель.</div>`; return; }
             const [cy, cm] = compareKey.split('-').map(Number);
             const cmpData = CHART_DATA[compareKey] || generateDemoMonth(compareKey, getWeeksInMonth(cy, cm - 1).length);
             const cmpGroups = cmpData.monthGroups || [];
-            const rows = a.snapGroups.map(g => {
-                const c = cmpGroups.find(x => x.name === g.name);
-                const factRub = c ? c.fact : g.plan;
-                const factPctV = c ? c.factPct : a.data.planPct;
-                return { name: g.name, factRub, forecastRub: g.forecast, devRub: g.forecast - factRub, factPct: factPctV, forecastPct: g.forecastPct, devPct: g.forecastPct - factPctV };
-            });
+            const rows = a.snapGroups.map(g => { const c = cmpGroups.find(x => x.name === g.name); const fr = c ? c.fact : g.plan; const fp = c ? c.factPct : a.data.planPct;
+                return { name: g.name, factRub: fr, forecastRub: g.forecast, devRub: g.forecast - fr, factPct: fp, forecastPct: g.forecastPct, devPct: g.forecastPct - fp }; });
             const pos = rows.filter(r => r.devRub >= 0).sort((a2, b) => Math.abs(b.devRub) - Math.abs(a2.devRub)).slice(0, 20);
             const neg = rows.filter(r => r.devRub < 0).sort((a2, b) => Math.abs(b.devRub) - Math.abs(a2.devRub)).slice(0, 20);
-            const buildRows = list => list.length
-                ? list.map(r => `<tr><td>${r.name}</td><td>${fmtRub(r.factRub)}</td><td>${fmtRub(r.forecastRub)}</td><td class="${r.devRub >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(r.devRub)}</td><td>${fmtPct(r.factPct)}</td><td>${fmtPct(r.forecastPct)}</td><td class="${r.devPct >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.devPct)}</td></tr>`).join('')
-                : `<tr><td colspan="7" style="color:#94a3b8;">Нет данных</td></tr>`;
+            const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${fmtRub(r.factRub)}</td><td>${fmtRub(r.forecastRub)}</td><td class="${r.devRub >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(r.devRub)}</td><td>${fmtPct(r.factPct)}</td><td>${fmtPct(r.forecastPct)}</td><td class="${r.devPct >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.devPct)}</td></tr>`).join('') : `<tr><td colspan="7" style="color:#94a3b8;">Нет данных</td></tr>`;
             const head = `<tr><th>Группа</th><th>Факт ₽</th><th>Прогноз ₽</th><th>Откл. ₽</th><th>Факт %</th><th>Прогноз %</th><th>Откл. п.п.</th></tr>`;
             grid.innerHTML = `
-                <div class="groups-panel positive tall"><div class="groups-panel-title">➕ Положительная динамика</div>
-                    <table class="groups-table compact"><thead>${head}</thead><tbody>${buildRows(pos)}</tbody></table></div>
-                <div class="groups-panel negative tall"><div class="groups-panel-title">➖ Отрицательная динамика</div>
-                    <table class="groups-table compact"><thead>${head}</thead><tbody>${buildRows(neg)}</tbody></table></div>`;
+                <div class="groups-panel positive tall"><div class="groups-panel-title">➕ Положительная динамика</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div>
+                <div class="groups-panel negative tall"><div class="groups-panel-title">➖ Отрицательная динамика</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`;
         }
 
         // === ПРОТОКОЛ ===
-        const PROTO_KEY = 'ba_protocols_v1';
-        const SEED_KEY = 'ba_proto_seeded_v1';
+        const PROTO_KEY = 'ba_protocols_v1', SEED_KEY = 'ba_proto_seeded_v1';
         let editState = null;
         function loadProtocols() { try { return JSON.parse(localStorage.getItem(PROTO_KEY)) || []; } catch (e) { return []; } }
-        function persistProtocols(list) { localStorage.setItem(PROTO_KEY, JSON.stringify(list)); }
+        function persistProtocols(l) { localStorage.setItem(PROTO_KEY, JSON.stringify(l)); }
         function newId() { return 'i' + Date.now() + Math.random().toString(36).slice(2, 7); }
-
         function seedDemoProtocols(a) {
             if (localStorage.getItem(SEED_KEY)) return;
-            const curKey = getCurrentMondayKey();
-            const curMonday = mondayFromKey(curKey);
-            const prev1 = keyOfMonday(addDays(curMonday, -7));
-            const prev2 = keyOfMonday(addDays(curMonday, -14));
-            const pos = a.snapGroups.filter(g => g.dev >= 0);
-            const neg = a.snapGroups.filter(g => g.dev < 0);
-            const negDyn = a.dynRows.filter(g => g.devRub < 0);
-            const protocols = [];
-            const p2items = [];
-            if (pos[0]) p2items.push({ id: 'seedA', type: 'forecast', name: pos[0].name, status: 'active', doneWeek: null,
-                measures: [{ id: 'seedA1', text: 'Запустить акцию и обновить инфографику', weekKey: prev2, status: 'active' }] });
-            p2items.push({ id: 'seedB', type: 'question', name: 'Согласовать медиаплан на следующий месяц', status: 'done', doneWeek: prev2,
-                measures: [{ id: 'seedB1', text: 'Ответственный: маркетинг, срок до 15 числа', weekKey: prev2, status: 'active' }] });
-            protocols.push({ weekKey: prev2, items: p2items });
-            const p1items = [];
-            if (neg[0]) p1items.push({ id: 'seedC', type: 'forecast', name: neg[0].name, status: 'active', doneWeek: null,
-                measures: [
-                    { id: 'seedC1', text: 'Скидка −15% на неходовые позиции', weekKey: prev1, status: 'edited', editedWeek: curKey },
-                    { id: 'seedC2', text: 'Скидка сработала на половину: добавить связку с бестселлером, обновить главную и инфографику', weekKey: curKey, status: 'active' }
-                ] });
-            if (negDyn[0] && (!neg[0] || negDyn[0].name !== neg[0].name)) p1items.push({ id: 'seedD', type: 'dynamics', name: negDyn[0].name, status: 'active', doneWeek: null,
-                measures: [{ id: 'seedD1', text: 'Пересмотреть закупочные цены, запросить условия у 2 альтернативных поставщиков', weekKey: prev1, status: 'active' }] });
-            p1items.push({ id: 'seedE', type: 'question', name: 'Контент-отдел перегружен — сроки срываются', status: 'active', doneWeek: null,
-                measures: [{ id: 'seedE1', text: 'Нанять фрилансера до 25 числа, ответственный: HR', weekKey: prev1, status: 'active' }] });
-            protocols.push({ weekKey: prev1, items: p1items });
-            persistProtocols(protocols);
-            localStorage.setItem(SEED_KEY, '1');
+            const curKey = getCurrentMondayKey(), curMonday = mondayFromKey(curKey);
+            const prev1 = keyOfMonday(addDays(curMonday, -7)), prev2 = keyOfMonday(addDays(curMonday, -14));
+            const pos = a.snapGroups.filter(g => g.dev >= 0), neg = a.snapGroups.filter(g => g.dev < 0), negDyn = a.dynRows.filter(g => g.devRub < 0);
+            const protocols = []; const p2 = [];
+            if (pos[0]) p2.push({ id: 'seedA', type: 'forecast', name: pos[0].name, status: 'active', doneWeek: null, measures: [{ id: 'seedA1', text: 'Запустить акцию и обновить инфографику', weekKey: prev2, status: 'active' }] });
+            p2.push({ id: 'seedB', type: 'question', name: 'Согласовать медиаплан на следующий месяц', status: 'done', doneWeek: prev2, measures: [{ id: 'seedB1', text: 'Ответственный: маркетинг, срок до 15 числа', weekKey: prev2, status: 'active' }] });
+            protocols.push({ weekKey: prev2, items: p2 });
+            const p1 = [];
+            if (neg[0]) p1.push({ id: 'seedC', type: 'forecast', name: neg[0].name, status: 'active', doneWeek: null, measures: [
+                { id: 'seedC1', text: 'Скидка −15% на неходовые позиции', weekKey: prev1, status: 'edited', editedWeek: curKey },
+                { id: 'seedC2', text: 'Скидка сработала на половину: добавить связку с бестселлером, обновить главную и инфографику', weekKey: curKey, status: 'active' }] });
+            if (negDyn[0] && (!neg[0] || negDyn[0].name !== neg[0].name)) p1.push({ id: 'seedD', type: 'dynamics', name: negDyn[0].name, status: 'active', doneWeek: null, measures: [{ id: 'seedD1', text: 'Пересмотреть закупочные цены, запросить условия у 2 альтернативных поставщиков', weekKey: prev1, status: 'active' }] });
+            p1.push({ id: 'seedE', type: 'question', name: 'Контент-отдел перегружен — сроки срываются', status: 'active', doneWeek: null, measures: [{ id: 'seedE1', text: 'Нанять фрилансера до 25 числа, ответственный: HR', weekKey: prev1, status: 'active' }] });
+            protocols.push({ weekKey: prev1, items: p1 });
+            persistProtocols(protocols); localStorage.setItem(SEED_KEY, '1');
         }
-
         function renderProtocol() {
-            const a = getCurrentAnalysis();
-            const curWeekKey = getCurrentMondayKey();
-            const curMonday = mondayFromKey(curWeekKey);
-            document.getElementById('protoWeekLabel').innerHTML =
-                `Планёрка: <strong>Неделя ${getISOWeek(curMonday)}</strong> • ${fmtShort(curMonday)}–${fmtShort(addDays(curMonday, 6))}`;
+            const a = getCurrentAnalysis(); const curWeekKey = getCurrentMondayKey(); const curMonday = mondayFromKey(curWeekKey);
+            document.getElementById('protoWeekLabel').innerHTML = `Планёрка: <strong>Неделя ${getISOWeek(curMonday)}</strong> • ${fmtShort(curMonday)}–${fmtShort(addDays(curMonday, 6))}`;
             seedDemoProtocols(a);
-            const protocols = loadProtocols();
-            let changed = false;
-            protocols.forEach(p => p.items.forEach(it => {
-                if (!it.measures) it.measures = [{ id: newId(), text: it.action || '', weekKey: p.weekKey, status: 'active' }];
-            }));
+            const protocols = loadProtocols(); let changed = false;
+            protocols.forEach(p => p.items.forEach(it => { if (!it.measures) it.measures = [{ id: newId(), text: it.action || '', weekKey: p.weekKey, status: 'active' }]; }));
             protocols.forEach(p => p.items.forEach(it => {
                 if (it.status === 'active' && it.type !== 'question') {
                     let positive = false;
                     if (it.type === 'forecast') { const g = a.snapGroups.find(x => x.name === it.name); positive = g && g.dev >= 0; }
-                    else if (it.type === 'dynamics') { const g = a.dynRows.find(x => x.name === it.name); positive = g && g.devRub >= 0; }
+                    else { const g = a.dynRows.find(x => x.name === it.name); positive = g && g.devRub >= 0; }
                     if (positive) { it.status = 'done'; it.doneWeek = curWeekKey; changed = true; }
                 }
             }));
             if (changed) persistProtocols(protocols);
-            const activeItems = [], doneItems = [];
-            protocols.forEach(p => p.items.forEach(it => {
-                if (it.status === 'active') activeItems.push({ ...it, protoWeek: p.weekKey });
-                else if (it.status === 'done' && weeksDiff(it.doneWeek, curWeekKey) === 0) doneItems.push({ ...it, protoWeek: p.weekKey });
-            }));
-            document.getElementById('protoActiveList').innerHTML =
-                [...activeItems.map(it => protoItemHTML(it, a)), ...doneItems.map(it => protoItemHTML(it, a))].join('') ||
-                '<div class="proto-empty">Активных мероприятий пока нет — заполните форму ниже.</div>';
+            const act = [], done = [];
+            protocols.forEach(p => p.items.forEach(it => { if (it.status === 'active') act.push({ ...it, protoWeek: p.weekKey }); else if (it.status === 'done' && weeksDiff(it.doneWeek, curWeekKey) === 0) done.push({ ...it, protoWeek: p.weekKey }); }));
+            document.getElementById('protoActiveList').innerHTML = [...act.map(it => protoItemHTML(it, a)), ...done.map(it => protoItemHTML(it, a))].join('') || '<div class="proto-empty">Активных мероприятий пока нет — заполните форму ниже.</div>';
             renderProtoForm(a, protocols);
         }
-
         function protoItemHTML(it, a) {
-            const badge = it.type === 'forecast' ? '<span class="proto-badge b-forecast">Прогноз</span>'
-                : it.type === 'dynamics' ? '<span class="proto-badge b-dynamics">Динамика</span>'
-                : '<span class="proto-badge b-question">Вопрос</span>';
+            const badge = it.type === 'forecast' ? '<span class="proto-badge b-forecast">Прогноз</span>' : it.type === 'dynamics' ? '<span class="proto-badge b-dynamics">Динамика</span>' : '<span class="proto-badge b-question">Вопрос</span>';
             const done = it.status === 'done';
             let dynLine = '';
             if (it.type !== 'question' && a.lastClosedMonday) {
@@ -971,191 +733,81 @@
                 const prevDev = devForWeek(it.name, it.type, addDays(a.lastClosedMonday, -7));
                 if (curDev !== null) {
                     let html = `Отклонение: <span class="${curDev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(curDev)}</span>`;
-                    if (prevDev !== null) {
-                        const dyn = curDev - prevDev;
-                        const cls = dyn > 0 ? 'dev-pos' : dyn < 0 ? 'dev-neg' : '';
-                        const arrow = dyn > 0 ? '↑' : dyn < 0 ? '↓' : '→';
-                        html += ` • нед. назад: ${fmtDevRub(prevDev)} • за неделю: <span class="${cls}">${arrow} ${fmtDevRub(dyn)}</span>`;
-                    }
+                    if (prevDev !== null) { const dyn = curDev - prevDev; const cls = dyn > 0 ? 'dev-pos' : dyn < 0 ? 'dev-neg' : ''; const ar = dyn > 0 ? '↑' : dyn < 0 ? '↓' : '→'; html += ` • нед. назад: ${fmtDevRub(prevDev)} • за неделю: <span class="${cls}">${ar} ${fmtDevRub(dyn)}</span>`; }
                     dynLine = `<div class="proto-item-dyn">${html}</div>`;
                 }
             }
-            const measuresHtml = (it.measures || []).map(ms => {
-                if (editState && editState.itemId === it.id && editState.measureId === ms.id) {
-                    return `<div class="measure-row editing"><input id="measure-input" class="proto-input" value="${ms.text.replace(/"/g, '&quot;')}">
-                        <button class="proto-done-btn" onclick="saveMeasureEdit('${it.id}','${ms.id}')">Сохранить</button>
-                        <button class="proto-edit-btn" onclick="cancelEdit()">Отмена</button></div>`;
-                }
-                if (ms.status === 'edited') {
-                    return `<div class="measure-row edited">• ${ms.text} <span class="measure-week">(скорректировано в Нед ${getISOWeek(mondayFromKey(ms.editedWeek))})</span></div>`;
-                }
-                return `<div class="measure-row">• <span class="measure-week">(Нед ${getISOWeek(mondayFromKey(ms.weekKey))})</span> ${ms.text}
-                    ${!done ? `<button class="proto-edit-btn" onclick="editMeasure('${it.id}','${ms.id}')">✎</button>` : ''}</div>`;
+            const measures = (it.measures || []).map(ms => {
+                if (editState && editState.itemId === it.id && editState.measureId === ms.id) return `<div class="measure-row editing"><input id="measure-input" class="proto-input" value="${ms.text.replace(/"/g, '&quot;')}"><button class="proto-done-btn" onclick="saveMeasureEdit('${it.id}','${ms.id}')">Сохранить</button><button class="proto-edit-btn" onclick="cancelEdit()">Отмена</button></div>`;
+                if (ms.status === 'edited') return `<div class="measure-row edited">• ${ms.text} <span class="measure-week">(скорректировано в Нед ${getISOWeek(mondayFromKey(ms.editedWeek))})</span></div>`;
+                return `<div class="measure-row">• <span class="measure-week">(Нед ${getISOWeek(mondayFromKey(ms.weekKey))})</span> ${ms.text}${!done ? ` <button class="proto-edit-btn" onclick="editMeasure('${it.id}','${ms.id}')">✎</button>` : ''}</div>`;
             }).join('');
-            const newMeasureRow = (editState && editState.itemId === it.id && editState.measureId === null)
-                ? `<div class="measure-row editing"><input id="measure-input" class="proto-input" placeholder="Текст нового мероприятия">
-                   <button class="proto-done-btn" onclick="saveMeasureEdit('${it.id}', null)">Сохранить</button>
-                   <button class="proto-edit-btn" onclick="cancelEdit()">Отмена</button></div>` : '';
-            const addBtn = (!done && !(editState && editState.itemId === it.id && editState.measureId === null))
-                ? `<button class="proto-add-btn small" onclick="addMeasure('${it.id}')">+ Мероприятие</button>` : '';
-            return `<div class="proto-item ${done ? 'done' : ''}">
-                <div class="proto-item-head">${badge}<span class="proto-item-name">${it.name}</span>${done ? '<span class="proto-done-badge">✓ Выполнен</span>' : ''}</div>
-                ${dynLine}${measuresHtml}${newMeasureRow}${addBtn}
-                <div class="proto-item-meta"><span>Протокол: Нед ${getISOWeek(mondayFromKey(it.protoWeek))}</span>
-                    ${done ? `<span>• Закрыт: Нед ${getISOWeek(mondayFromKey(it.doneWeek))}</span>` : ''}
-                    ${(!done && it.type === 'question') ? `<button class="proto-done-btn" onclick="markDone('${it.id}')">✓ Отметить выполненным</button>` : ''}
-                </div></div>`;
+            const newM = (editState && editState.itemId === it.id && editState.measureId === null) ? `<div class="measure-row editing"><input id="measure-input" class="proto-input" placeholder="Текст нового мероприятия"><button class="proto-done-btn" onclick="saveMeasureEdit('${it.id}', null)">Сохранить</button><button class="proto-edit-btn" onclick="cancelEdit()">Отмена</button></div>` : '';
+            const addBtn = (!done && !(editState && editState.itemId === it.id && editState.measureId === null)) ? `<button class="proto-add-btn small" onclick="addMeasure('${it.id}')">+ Мероприятие</button>` : '';
+            return `<div class="proto-item ${done ? 'done' : ''}"><div class="proto-item-head">${badge}<span class="proto-item-name">${it.name}</span>${done ? '<span class="proto-done-badge">✓ Выполнен</span>' : ''}</div>${dynLine}${measures}${newM}${addBtn}<div class="proto-item-meta"><span>Протокол: Нед ${getISOWeek(mondayFromKey(it.protoWeek))}</span>${done ? `<span>• Закрыт: Нед ${getISOWeek(mondayFromKey(it.doneWeek))}</span>` : ''}${(!done && it.type === 'question') ? `<button class="proto-done-btn" onclick="markDone('${it.id}')">✓ Отметить выполненным</button>` : ''}</div></div>`;
         }
-        function editMeasure(itemId, measureId) { editState = { itemId, measureId }; renderProtocol(); }
+        function editMeasure(i, m) { editState = { itemId: i, measureId: m }; renderProtocol(); }
         function cancelEdit() { editState = null; renderProtocol(); }
-        function addMeasure(itemId) { editState = { itemId, measureId: null }; renderProtocol(); }
+        function addMeasure(i) { editState = { itemId: i, measureId: null }; renderProtocol(); }
         function saveMeasureEdit(itemId, measureId) {
-            const input = document.getElementById('measure-input');
-            const val = input ? input.value.trim() : '';
+            const input = document.getElementById('measure-input'); const val = input ? input.value.trim() : '';
             if (!val) { alert('Введите текст мероприятия'); return; }
-            const curKey = getCurrentMondayKey();
-            const protocols = loadProtocols();
-            protocols.forEach(p => p.items.forEach(it => {
-                if (it.id !== itemId) return;
-                if (measureId) {
-                    const ms = it.measures.find(m => m.id === measureId);
-                    if (ms) { ms.status = 'edited'; ms.editedWeek = curKey; it.measures.push({ id: newId(), text: val, weekKey: curKey, status: 'active' }); }
-                } else it.measures.push({ id: newId(), text: val, weekKey: curKey, status: 'active' });
-            }));
-            persistProtocols(protocols);
-            editState = null;
-            renderProtocol();
+            const curKey = getCurrentMondayKey(); const protocols = loadProtocols();
+            protocols.forEach(p => p.items.forEach(it => { if (it.id !== itemId) return;
+                if (measureId) { const ms = it.measures.find(m => m.id === measureId); if (ms) { ms.status = 'edited'; ms.editedWeek = curKey; it.measures.push({ id: newId(), text: val, weekKey: curKey, status: 'active' }); } }
+                else it.measures.push({ id: newId(), text: val, weekKey: curKey, status: 'active' }); }));
+            persistProtocols(protocols); editState = null; renderProtocol();
         }
-        function markDone(id) {
-            const curWeekKey = getCurrentMondayKey();
-            const protocols = loadProtocols();
-            let found = false;
-            protocols.forEach(p => p.items.forEach(it => {
-                if (it.id === id && it.status === 'active') { it.status = 'done'; it.doneWeek = curWeekKey; found = true; }
-            }));
-            if (found) { persistProtocols(protocols); renderProtocol(); }
-        }
+        function markDone(id) { const cw = getCurrentMondayKey(); const protocols = loadProtocols(); let f = false; protocols.forEach(p => p.items.forEach(it => { if (it.id === id && it.status === 'active') { it.status = 'done'; it.doneWeek = cw; f = true; } })); if (f) { persistProtocols(protocols); renderProtocol(); } }
         function renderProtoForm(a, protocols) {
-            const activeNames = new Set();
-            protocols.forEach(p => p.items.forEach(it => { if (it.status === 'active') activeNames.add(it.type + '|' + it.name); }));
+            const activeNames = new Set(); protocols.forEach(p => p.items.forEach(it => { if (it.status === 'active') activeNames.add(it.type + '|' + it.name); }));
             const negF = a.snapGroups.filter(g => g.dev < 0 && !activeNames.has('forecast|' + g.name));
             const negD = a.dynRows.filter(g => g.devRub < 0 && !activeNames.has('dynamics|' + g.name));
-            document.getElementById('protoNegForecast').innerHTML = negF.length
-                ? negF.map(g => `<div class="proto-row"><div class="proto-row-label">${g.name} <span class="dev-neg">${fmtDevRub(g.dev)}</span></div>
-                    <input class="proto-input" data-type="forecast" data-name="${g.name}" placeholder="Мероприятие для исключения отклонения"></div>`).join('')
-                : '<div class="proto-empty">Нет позиций с отрицательным прогнозом 🎉</div>';
-            document.getElementById('protoNegDynamics').innerHTML = negD.length
-                ? negD.map(g => `<div class="proto-row"><div class="proto-row-label">${g.name} <span class="dev-neg">${fmtDevRub(g.devRub)}</span></div>
-                    <input class="proto-input" data-type="dynamics" data-name="${g.name}" placeholder="Мероприятие для исключения отклонения"></div>`).join('')
-                : '<div class="proto-empty">Нет позиций с отрицательной динамикой 🎉</div>';
-            const qBox = document.getElementById('protoQuestions');
-            if (!qBox.children.length) qBox.innerHTML = questionRowHTML();
+            document.getElementById('protoNegForecast').innerHTML = negF.length ? negF.map(g => `<div class="proto-row"><div class="proto-row-label">${g.name} <span class="dev-neg">${fmtDevRub(g.dev)}</span></div><input class="proto-input" data-type="forecast" data-name="${g.name}" placeholder="Мероприятие для исключения отклонения"></div>`).join('') : '<div class="proto-empty">Нет позиций с отрицательным прогнозом 🎉</div>';
+            document.getElementById('protoNegDynamics').innerHTML = negD.length ? negD.map(g => `<div class="proto-row"><div class="proto-row-label">${g.name} <span class="dev-neg">${fmtDevRub(g.devRub)}</span></div><input class="proto-input" data-type="dynamics" data-name="${g.name}" placeholder="Мероприятие для исключения отклонения"></div>`).join('') : '<div class="proto-empty">Нет позиций с отрицательной динамикой 🎉</div>';
+            const q = document.getElementById('protoQuestions'); if (!q.children.length) q.innerHTML = questionRowHTML();
         }
-        function questionRowHTML() {
-            return `<div class="proto-row proto-q-row"><input class="proto-input q-text" placeholder="Вопрос"><input class="proto-input q-action" placeholder="Мероприятие / ответственный"></div>`;
-        }
+        function questionRowHTML() { return `<div class="proto-row proto-q-row"><input class="proto-input q-text" placeholder="Вопрос"><input class="proto-input q-action" placeholder="Мероприятие / ответственный"></div>`; }
         function addQuestionRow() { document.getElementById('protoQuestions').insertAdjacentHTML('beforeend', questionRowHTML()); }
         function saveProtocol() {
-            const curWeekKey = getCurrentMondayKey();
-            const protocols = loadProtocols();
-            let proto = protocols.find(p => p.weekKey === curWeekKey);
-            if (!proto) { proto = { weekKey: curWeekKey, items: [] }; protocols.push(proto); }
+            const cw = getCurrentMondayKey(); const protocols = loadProtocols();
+            let proto = protocols.find(p => p.weekKey === cw); if (!proto) { proto = { weekKey: cw, items: [] }; protocols.push(proto); }
             let added = 0;
-            document.querySelectorAll('#protoFormArea .proto-input[data-type]').forEach(inp => {
-                const val = inp.value.trim();
-                if (!val) return;
-                proto.items.push({ id: newId(), type: inp.dataset.type, name: inp.dataset.name,
-                    measures: [{ id: newId(), text: val, weekKey: curWeekKey, status: 'active' }], status: 'active', doneWeek: null });
-                added++;
-            });
-            document.querySelectorAll('#protoQuestions .proto-q-row').forEach(row => {
-                const q = row.querySelector('.q-text').value.trim();
-                const act = row.querySelector('.q-action').value.trim();
-                if (q && act) {
-                    proto.items.push({ id: newId(), type: 'question', name: q,
-                        measures: [{ id: newId(), text: act, weekKey: curWeekKey, status: 'active' }], status: 'active', doneWeek: null });
-                    added++;
-                }
-            });
-            persistProtocols(protocols);
-            document.getElementById('protoQuestions').innerHTML = questionRowHTML();
-            renderProtocol();
+            document.querySelectorAll('#protoFormArea .proto-input[data-type]').forEach(inp => { const v = inp.value.trim(); if (!v) return; proto.items.push({ id: newId(), type: inp.dataset.type, name: inp.dataset.name, measures: [{ id: newId(), text: v, weekKey: cw, status: 'active' }], status: 'active', doneWeek: null }); added++; });
+            document.querySelectorAll('#protoQuestions .proto-q-row').forEach(row => { const q = row.querySelector('.q-text').value.trim(); const act = row.querySelector('.q-action').value.trim(); if (q && act) { proto.items.push({ id: newId(), type: 'question', name: q, measures: [{ id: newId(), text: act, weekKey: cw, status: 'active' }], status: 'active', doneWeek: null }); added++; } });
+            persistProtocols(protocols); document.getElementById('protoQuestions').innerHTML = questionRowHTML(); renderProtocol();
             if (added) alert(`Протокол сохранён: добавлено мероприятий — ${added}.`);
         }
 
-        // === СЕЛЕКТОРЫ ===
         function buildWeekOptions() {
-            const select = document.getElementById('weekSelect');
-            const now = new Date();
-            const curMonday = new Date(now);
-            curMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-            curMonday.setHours(0, 0, 0, 0);
-            const total = 16;
-            for (let i = total - 1; i >= 0; i--) {
-                const monday = new Date(curMonday);
-                monday.setDate(monday.getDate() - 7 * i);
-                const sunday = addDays(monday, 6);
-                const key = keyOfMonday(monday);
-                const opt = document.createElement('option');
-                opt.value = key;
-                opt.textContent = `Нед ${getISOWeek(monday)} • ${fmtShort(monday)}–${fmtShort(sunday)}`;
-                select.appendChild(opt);
-            }
-            select.addEventListener('change', e => renderWeek(e.target.value));
-            renderWeek(select.value);
+            const s = document.getElementById('weekSelect'); const now = new Date();
+            const curMonday = new Date(now); curMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7)); curMonday.setHours(0, 0, 0, 0);
+            for (let i = 15; i >= 0; i--) { const monday = new Date(curMonday); monday.setDate(monday.getDate() - 7 * i); const sunday = addDays(monday, 6);
+                const o = document.createElement('option'); o.value = keyOfMonday(monday); o.textContent = `Нед ${getISOWeek(monday)} • ${fmtShort(monday)}–${fmtShort(sunday)}`; s.appendChild(o); }
+            s.addEventListener('change', e => renderWeek(e.target.value)); renderWeek(s.value);
         }
         function buildCompareOptions() {
-            const select = document.getElementById('compareSelect');
-            const now = new Date();
-            for (let i = 1; i <= 12; i++) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                const opt = document.createElement('option');
-                opt.value = key;
-                opt.textContent = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-                select.appendChild(opt);
-            }
-            select.addEventListener('change', e => renderDynamics(e.target.value));
-            renderDynamics(select.value);
+            const s = document.getElementById('compareSelect'); const now = new Date();
+            for (let i = 1; i <= 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const o = document.createElement('option'); o.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; o.textContent = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }); s.appendChild(o); }
+            s.addEventListener('change', e => renderDynamics(e.target.value)); renderDynamics(s.value);
             document.getElementById('curPeriodLabel').textContent = now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         }
 
-        // === ПАРОЛЬ ===
-        async function hashPassword(password) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
+        async function hashPassword(p) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join(''); }
         async function checkPassword() {
-            const input = document.getElementById('passwordInput').value;
-            const errorEl = document.getElementById('errorMessage');
-            if (!input) { errorEl.style.display = 'block'; errorEl.textContent = 'Введите пароль'; return; }
-            const inputHash = await hashPassword(input);
-            if (inputHash === PASSWORD_HASH) {
+            const input = document.getElementById('passwordInput').value; const err = document.getElementById('errorMessage');
+            if (!input) { err.style.display = 'block'; err.textContent = 'Введите пароль'; return; }
+            if (await hashPassword(input) === PASSWORD_HASH) {
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('protectedContent').classList.add('visible');
                 document.body.classList.add('content-visible');
                 sessionStorage.setItem('accessGranted', 'true');
-            } else {
-                errorEl.style.display = 'block';
-                errorEl.textContent = 'Неверный пароль. Попробуйте ещё раз.';
-                document.getElementById('passwordInput').value = '';
-            }
+            } else { err.style.display = 'block'; err.textContent = 'Неверный пароль. Попробуйте ещё раз.'; document.getElementById('passwordInput').value = ''; }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadSheetData();
-            buildWeekOptions();
-            buildCompareOptions();
-            buildCatOptions();
-            renderProtocol();
-            if (sessionStorage.getItem('accessGranted') === 'true') {
-                document.getElementById('loginBox').style.display = 'none';
-                document.getElementById('protectedContent').classList.add('visible');
-                document.body.classList.add('content-visible');
-            }
+            await loadSheetData(); buildWeekOptions(); buildCompareOptions(); buildCatOptions(); renderProtocol();
+            if (sessionStorage.getItem('accessGranted') === 'true') { document.getElementById('loginBox').style.display = 'none'; document.getElementById('protectedContent').classList.add('visible'); document.body.classList.add('content-visible'); }
         });
     </script>
 </body>
