@@ -154,7 +154,7 @@
             </div>
             <div class="chart-box" id="chartBoxBars"><div class="chart-tooltip" id="tooltipBars"></div></div>
 
-            <div class="chart-note">* 3 полосы: Заказы шт (план/прогноз/факт + бледный дневной график млн руб), Маржа млн руб, Маржинальность %. В скобках — отклонение от плана (роз: млн/%, бирюз: тыс/%, янтарь: п.п.). Сливовые точки — динамика к прошлой неделе (₽ и % / шт и %). Данные демонстрационные.</div>
+            <div class="chart-note">* 3 полосы. Верхняя: Заказы шт (слева) + бледный дневной график Заказы млн руб (ось справа). Маржа млн руб (справа), Маржинальность % (слева). В скобках — отклонение от плана. Сливовые точки — динамика к прошлой неделе. Данные демонстрационные.</div>
         </div>
 
         <div class="block">
@@ -277,11 +277,13 @@
                 svg += `<text x="${tX}" y="${qTop(q) - 8}" text-anchor="${tAnchor}" font-size="12" font-weight="700" fill="${color}" font-family="Forum">${title}</text>`;
             }
 
+            // Оси: верхняя полоса — шт слева (бирюза) + млн руб справа (зелёная); маржа справа; маржинальность слева
             bandAxis(0, 'left', C_PCS, scaleA.max, v => fmtRubShort(v), 'Заказы, шт', pcsPlan);
+            bandAxis(0, 'right', C_ORD, scaleD, v => fmtMillions(v), 'Заказы, млн. руб.', null);
             bandAxis(1, 'right', C_MARGIN, scaleB.max, v => fmtMillions(v), 'Маржа, млн. руб.', plan);
             bandAxis(2, 'left', C_PCT, scaleC.max, v => fmt1(v), 'Маржинальность, %', pctPlan);
 
-            // ПОЛОСА 0: Заказы шт + бледный дневной график млн руб
+            // ПОЛОСА 0: бледный дневной график (млн руб, справа ось) + шт серии
             if (ordersDaily.length > 1) {
                 const spanStartMs = weeks[0].start.getTime(), spanEndMs = weeks[n - 1].end.getTime() + 86400000;
                 const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
@@ -334,7 +336,7 @@
                 svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C_MARGIN}" font-family="Forum">${fmtRubShort(v)}${paren}</text>`;
             });
 
-            // ПОЛОСА 2: Маржинальность (скобки = отклонение от плана, п.п.)
+            // ПОЛОСА 2: Маржинальность
             const ppY = yBand(2, pctPlan, scaleC.max);
             svg += `<line x1="${padL}" y1="${ppY}" x2="${plotRight}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
             if (pctVals.length > 1) { let p = `M ${x(0)} ${yBand(2, pctVals[0], scaleC.max)}`; pctVals.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yBand(2, v, scaleC.max)}`; }); svg += `<path d="${p}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`; }
@@ -405,7 +407,7 @@
         function renderPctDynamics(nowG, prevG, nowL, prevL) { const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecastPct, prev = p ? p.forecastPct : now; return { name: g.name, now, prev, dev: now - prev }; }); const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${fmtPct(r.prev)}</td><td>${fmtPct(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.dev)}</td></tr>`).join('') : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`; const head = `<tr><th>Группа</th><th>Марж-ть ${prevL}</th><th>Марж-ть ${nowL}</th><th>Отклонение</th></tr>`; document.getElementById('pctDynGrid').innerHTML = `<div class="groups-panel positive"><div class="groups-panel-title">➕ Рост маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div><div class="groups-panel negative"><div class="groups-panel-title">➖ Снижение маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`; }
 
         function getDailyBars(days) { const out = []; const today = new Date(); today.setHours(0, 0, 0, 0); for (let i = days - 1; i >= 0; i--) { const d = addDays(today, -i); const rnd = seededRandom(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()); const weekend = (d.getDay() === 0 || d.getDay() === 6) ? 0.55 : 1; out.push({ date: d, total: Math.round((4.2 + rnd() * 3.2) * weekend * 10) / 10 }); } return out; }
-        function shareFor(date, ci) { const rnd = seededRandom(date.getFullYear() * 10000 + (d2 => d2)(0) + (date.getMonth() + 1) * 100 + date.getDate() + 977 * ci + ci * ci * 13); const base = 8 + ((ci * 53) % 14); return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10)); }
+        function shareFor(date, ci) { const rnd = seededRandom(date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + 977 * ci + ci * ci * 13); const base = 8 + ((ci * 53) % 14); return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10)); }
         function renderBars(catName) { const box = document.getElementById('chartBoxBars'), tooltip = document.getElementById('tooltipBars'); const days = getDailyBars(28); const ci = Math.max(0, GROUP_NAMES.indexOf(catName)); const W = 1140, H = 340, padL = 30, padR = 10, padT = 34, padB = 34; const innerW = W - padL - padR, innerH = H - padT - padB, baseY = padT + innerH; const maxTotal = Math.max(...days.map(d => d.total)) * 1.18, maxShare = 30, slot = innerW / 28, barW = slot * 0.62; let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`; days.forEach((d, i) => { const x = padL + slot * i + (slot - barW) / 2; const hT = d.total / maxTotal * innerH, share = shareFor(d.date, ci), hS = share / maxShare * (innerH * 0.3); const weekend = (d.date.getDay() === 0 || d.date.getDay() === 6); svg += `<rect x="${x}" y="${baseY - hT}" width="${barW}" height="${hT}" fill="#BFD7F0" rx="2"/>`; svg += `<rect x="${x}" y="${baseY - hS}" width="${barW}" height="${hS}" fill="#78A6C7" rx="2"/>`; svg += `<text x="${x + barW / 2}" y="${baseY - hT - 6}" text-anchor="middle" font-size="9.5" fill="#544273" font-family="Forum">${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн</text>`; svg += `<text x="${x + barW / 2}" y="${baseY - hS - 5}" text-anchor="middle" font-size="9.5" fill="#1C0D2E" font-family="Forum">${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%</text>`; svg += `<text x="${padL + slot * i + slot / 2}" y="${baseY + 18}" text-anchor="middle" font-size="11" fill="${weekend ? '#E33D78' : '#6b7280'}" font-family="Forum">${String(d.date.getDate()).padStart(2, '0')}</text>`; svg += `<rect class="chart-point bar-hit" x="${padL + slot * i}" y="${padT}" width="${slot}" height="${innerH}" fill="transparent" data-label="${fmtShort(d.date)} • ${catName}" data-value="Заказы: ${d.total.toLocaleString('ru-RU', { minimumFractionDigits: 1 })} млн руб • Доля: ${share.toLocaleString('ru-RU', { minimumFractionDigits: 1 })}%"/>`; }); svg += `<line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/></svg>`; box.querySelectorAll('svg').forEach(el => el.remove()); box.insertAdjacentHTML('beforeend', svg); box.querySelectorAll('.bar-hit').forEach(pt => { const show = () => { const b = box.getBoundingClientRect(), r = pt.getBoundingClientRect(); tooltip.innerHTML = `<strong>${pt.dataset.label}</strong>${pt.dataset.value}`; tooltip.style.display = 'block'; tooltip.style.left = (r.left - b.left + r.width / 2) + 'px'; tooltip.style.top = (r.top - b.top - 8) + 'px'; }; const hide = () => { tooltip.style.display = 'none'; }; pt.addEventListener('mouseenter', show); pt.addEventListener('mouseleave', hide); }); }
         function buildCatOptions() { const s = document.getElementById('catSelect'); GROUP_NAMES.forEach(nm => { const o = document.createElement('option'); o.value = nm; o.textContent = nm; s.appendChild(o); }); s.addEventListener('change', e => renderBars(e.target.value)); renderBars(GROUP_NAMES[0]); }
 
