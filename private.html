@@ -158,6 +158,12 @@
             <div class="groups-section-title">Динамика маржинальности по группам товаров (на выбранную неделю)</div>
             <div class="groups-grid" id="pctDynGrid"></div>
 
+            <div class="groups-section-title">Динамика маржи по группам товаров (на выбранную неделю)</div>
+            <div class="groups-grid" id="marginDynGrid"></div>
+
+            <div class="groups-section-title">Динамика заказов по группам товаров (на выбранную неделю)</div>
+            <div class="groups-grid" id="ordersDynGrid"></div>
+
             <div class="groups-section-title">Заказы за 28 дней и доля категории</div>
             <div class="chart-toolbar">
                 <div class="legend-item"><span class="bar-swatch light"></span>Заказы всех категорий, млн руб</div>
@@ -166,7 +172,7 @@
             </div>
             <div class="chart-box" id="chartBoxBars"><div class="chart-tooltip" id="tooltipBars"></div></div>
 
-            <div class="chart-note">* 3 полосы. Точки с отрицательным отклонением пульсируют красным. В скобках: розовая — отклонение от плана (млн/%), сливовая маржа — динамика к прошлой неделе (тыс/%), сливовая/бирюзовая заказы — (шт/%). Данные демонстрационные.</div>
+            <div class="chart-note">* 3 полосы. Точки с отрицательным отклонением пульсируют красным. Таблицы динамики: отклонение в абсолютной и относительной величине. Данные демонстрационные.</div>
         </div>
 
         <div class="block">
@@ -226,7 +232,7 @@
             const gBase = GROUP_NAMES.map(() => (rnd() * 2 - 1) * 0.25);
             const monthGroups = GROUP_NAMES.map((name, gi) => { const fact = Math.round(gPlan[gi] * (0.75 + rnd() * 0.55) / 1000) * 1000; const fPct = Math.round(Math.max(5, planPct + (rnd() * 2 - 1) * 6) * 10) / 10; return { name, plan: gPlan[gi], fact, factPct: fPct }; });
             const snapshots = [];
-            for (let i = 0; i < weeksCount; i++) { const rs = seededRandom(year * 10000 + m * 100 + i); snapshots.push({ groups: GROUP_NAMES.map((name, gi) => { const dev = gBase[gi] + (rs() - 0.5) * 0.15; return { name, plan: gPlan[gi], forecast: Math.round(gPlan[gi] * (1 + dev) / 1000) * 1000, forecastPct: Math.round(Math.max(5, planPct + (rs() * 2 - 1) * 6) * 10) / 10 }; }) }); }
+            for (let i = 0; i < weeksCount; i++) { const rs = seededRandom(year * 10000 + m * 100 + i); snapshots.push({ groups: GROUP_NAMES.map((name, gi) => { const dev = gBase[gi] + (rs() - 0.5) * 0.15; return { name, plan: gPlan[gi], forecast: Math.round(gPlan[gi] * (1 + dev) / 1000) * 1000, forecastPct: Math.round(Math.max(5, planPct + (rs() * 2 - 1) * 6) * 10) / 10, pcs: Math.round((gPlan[gi] / 2000) * (1 + dev)) }; }) }); }
             const weeks = getWeeksInMonth(year, m - 1);
             const spanStart = new Date(weeks[0].start), spanEnd = new Date(weeks[weeks.length - 1].end);
             const ordersDaily = []; let obase = 5.2 + rnd() * 1.6;
@@ -286,7 +292,6 @@
                 if (planVal != null) { const py = yBand(q, planVal, max); const midY = yBand(q, max / 2, max); const ly = (Math.abs(py - midY) < 11) ? py - 12 : py; svg += `<line x1="${ax}" y1="${py}" x2="${side === 'left' ? ax - 5 : ax + 5}" y2="${py}" stroke="${color}" stroke-width="2.5"/>`; svg += `<text x="${lx}" y="${ly + 4}" text-anchor="${anchor}" font-size="11.5" font-weight="700" fill="${color}" font-family="Forum">${fmt(planVal)}</text>`; }
                 const tX = side === 'left' ? 6 : W - 6;
                 const tAnchor = side === 'left' ? 'start' : 'end';
-                // Название оси внутри своей полосы, не наезжает на соседнюю
                 svg += `<text x="${tX}" y="${qTop(q) + 6}" text-anchor="${tAnchor}" font-size="12" font-weight="700" fill="${color}" font-family="Forum">${title}</text>`;
             }
 
@@ -295,7 +300,6 @@
             bandAxis(1, 'right', C_MARGIN, scaleB.max, v => fmtMillions(v), 'Маржа, млн. руб.', plan);
             bandAxis(2, 'left', C_PCT, scaleC.max, v => fmt1(v), 'Маржинальность, %', pctPlan);
 
-            // ПОЛОСА 0
             if (ordersDaily.length > 1) {
                 const spanStartMs = weeks[0].start.getTime(), spanEndMs = weeks[n - 1].end.getTime() + 86400000;
                 const xDay = t => padL + inset + dataW * ((t - spanStartMs) / (spanEndMs - spanStartMs));
@@ -328,7 +332,6 @@
                 svg += `<text x="${x(i)}" y="${py - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="${bad ? C_DOWN : C_PCS}" font-family="Forum">${fmtRubShort(v)}${paren}</text>`;
             });
 
-            // ПОЛОСА 1: Маржа
             const planY = yBand(1, plan, scaleB.max);
             svg += `<line x1="${padL}" y1="${planY}" x2="${plotRight}" y2="${planY}" stroke="${C_MARGIN}" stroke-width="2.5" stroke-dasharray="8 6"/>`;
             if (factVals.length > 1) { let f = `M ${x(0)} ${yBand(1, factVals[0], scaleB.max)}`; factVals.forEach((v, i) => { if (i > 0) f += ` L ${x(i)} ${yBand(1, v, scaleB.max)}`; }); svg += `<path d="${f}" fill="none" stroke="${C_FACT}" stroke-width="2.5" stroke-linecap="round"/>`; }
@@ -358,7 +361,6 @@
                 svg += `<text x="${x(i)}" y="${flY}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${bad ? C_DOWN : C_MARGIN}" font-family="Forum">${fmtRubShort(v)}${paren}</text>`;
             });
 
-            // ПОЛОСА 2: Маржинальность
             const ppY = yBand(2, pctPlan, scaleC.max);
             svg += `<line x1="${padL}" y1="${ppY}" x2="${plotRight}" y2="${ppY}" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 6"/>`;
             if (pctVals.length > 1) { let p = `M ${x(0)} ${yBand(2, pctVals[0], scaleC.max)}`; pctVals.forEach((v, i) => { if (i > 0) p += ` L ${x(i)} ${yBand(2, v, scaleC.max)}`; }); svg += `<path d="${p}" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>`; }
@@ -395,6 +397,39 @@
 
         function buildForecast(cum, weeksCount, factCount, uptoIdx, seedBase) { const out = []; for (let i = 0; i <= uptoIdx; i++) { const closed = i < factCount; const lastClosed = Math.max(0, factCount - 1); const cumI = closed ? cum[i] : cum[lastClosed]; const used = closed ? (i + 1) : factCount; const avg = used ? cumI / used : 0; const remaining = weeksCount - (closed ? (i + 1) : factCount); const k = 0.85 + seededRandom(seedBase + i * 31)() * 0.3; out.push(Math.round(cumI + remaining * avg * k)); } return out; }
 
+        // === Универсальные панели динамики (абсолют + относительная) ===
+        function dynPanels(rows, o) {
+            const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
+            const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
+            const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${o.fmtVal(r.prev)}</td><td>${o.fmtVal(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${o.fmtDev(r)}</td></tr>`).join('') : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`;
+            const head = `<tr><th>Группа</th><th>${o.prevHead}</th><th>${o.nowHead}</th><th>Отклонение</th></tr>`;
+            return `<div class="groups-panel positive"><div class="groups-panel-title">${o.posTitle}</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div>
+                    <div class="groups-panel negative"><div class="groups-panel-title">${o.negTitle}</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`;
+        }
+        const signPct = (v, d = 1) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: d })}%`;
+
+        function renderPctDynamics(nowG, prevG, nowL, prevL) {
+            const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecastPct, prev = p ? p.forecastPct : now; return { name: g.name, now, prev, dev: now - prev }; });
+            document.getElementById('pctDynGrid').innerHTML = dynPanels(rows, {
+                prevHead: `Марж-ть ${prevL}`, nowHead: `Марж-ть ${nowL}`, posTitle: '➕ Рост маржинальности', negTitle: '➖ Снижение маржинальности',
+                fmtVal: v => fmtPct(v), fmtDev: r => fmtDevPp(r.dev)
+            });
+        }
+        function renderMarginDynamics(nowG, prevG, nowL, prevL) {
+            const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecast, prev = p ? p.forecast : now; const dev = now - prev; const devPct = prev ? dev / prev * 100 : 0; return { name: g.name, now, prev, dev, devPct }; });
+            document.getElementById('marginDynGrid').innerHTML = dynPanels(rows, {
+                prevHead: `Маржа ${prevL}`, nowHead: `Маржа ${nowL}`, posTitle: '➕ Рост маржи', negTitle: '➖ Снижение маржи',
+                fmtVal: v => fmtRubShort(v), fmtDev: r => `${fmtDevRub(r.dev)} (${signPct(r.devPct)})`
+            });
+        }
+        function renderOrdersDynamics(nowG, prevG, nowL, prevL) {
+            const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.pcs || 0, prev = p ? (p.pcs || 0) : now; const dev = now - prev; const devPct = prev ? dev / prev * 100 : 0; return { name: g.name, now, prev, dev, devPct }; });
+            document.getElementById('ordersDynGrid').innerHTML = dynPanels(rows, {
+                prevHead: `Заказы ${prevL}`, nowHead: `Заказы ${nowL}`, posTitle: '➕ Рост заказов', negTitle: '➖ Снижение заказов',
+                fmtVal: v => v.toLocaleString('ru-RU') + ' шт', fmtDev: r => `${r.dev >= 0 ? '+' : '−'}${Math.abs(r.dev).toLocaleString('ru-RU')} шт (${signPct(r.devPct)})`
+            });
+        }
+
         function renderWeek(weekKey) {
             const [y, m, d] = weekKey.split('-').map(Number);
             const monday = new Date(y, m - 1, d); const th = addDays(monday, 3);
@@ -423,11 +458,11 @@
             if (idx > 0) { prevGroups = data.snapshots[idx - 1].groups; prevLabel = weekLabels[idx - 1]; }
             else { const pm = new Date(th.getFullYear(), th.getMonth() - 1, 1); const pk = `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, '0')}`; const pd = CHART_DATA[pk] || generateDemoMonth(pk, getWeeksInMonth(pm.getFullYear(), pm.getMonth()).length); prevGroups = pd.snapshots[pd.snapshots.length - 1].groups; prevLabel = 'пред. мес.'; }
             renderPctDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
+            renderMarginDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
+            renderOrdersDynamics(snap.groups || [], prevGroups, weekLabels[idx], prevLabel);
         }
 
         function renderGroups(groups) { const wd = groups.map(g => ({ ...g, dev: g.forecast - g.plan })); const pos = wd.filter(g => g.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const neg = wd.filter(g => g.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const rows = l => l.length ? l.map(g => `<tr><td>${g.name}</td><td>${fmtRub(g.plan)} / ${fmtRub(g.forecast)}</td><td class="${g.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevRub(g.dev)}</td></tr>`).join('') : `<tr><td colspan="3" style="color:#94a3b8;">Нет групп</td></tr>`; const head = `<tr><th>Группа</th><th>План / Прогноз</th><th>Отклонение</th></tr>`; document.getElementById('groupsGrid').innerHTML = `<div class="groups-panel positive"><div class="groups-panel-title">➕ Положительный прогноз закрытия</div><table class="groups-table"><thead>${head}</thead><tbody>${rows(pos)}</tbody></table></div><div class="groups-panel negative"><div class="groups-panel-title">➖ Отрицательный прогноз закрытия</div><table class="groups-table"><thead>${head}</thead><tbody>${rows(neg)}</tbody></table></div>`; }
-
-        function renderPctDynamics(nowG, prevG, nowL, prevL) { const rows = nowG.map(g => { const p = (prevG || []).find(x => x.name === g.name); const now = g.forecastPct, prev = p ? p.forecastPct : now; return { name: g.name, now, prev, dev: now - prev }; }); const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)); const build = l => l.length ? l.map(r => `<tr><td>${r.name}</td><td>${fmtPct(r.prev)}</td><td>${fmtPct(r.now)}</td><td class="${r.dev >= 0 ? 'dev-pos' : 'dev-neg'}">${fmtDevPp(r.dev)}</td></tr>`).join('') : `<tr><td colspan="4" style="color:#94a3b8;">Нет данных</td></tr>`; const head = `<tr><th>Группа</th><th>Марж-ть ${prevL}</th><th>Марж-ть ${nowL}</th><th>Отклонение</th></tr>`; document.getElementById('pctDynGrid').innerHTML = `<div class="groups-panel positive"><div class="groups-panel-title">➕ Рост маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(pos)}</tbody></table></div><div class="groups-panel negative"><div class="groups-panel-title">➖ Снижение маржинальности</div><table class="groups-table compact"><thead>${head}</thead><tbody>${build(neg)}</tbody></table></div>`; }
 
         function getDailyBars(days) { const out = []; const today = new Date(); today.setHours(0, 0, 0, 0); for (let i = days - 1; i >= 0; i--) { const d = addDays(today, -i); const rnd = seededRandom(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()); const weekend = (d.getDay() === 0 || d.getDay() === 6) ? 0.55 : 1; out.push({ date: d, total: Math.round((4.2 + rnd() * 3.2) * weekend * 10) / 10 }); } return out; }
         function shareFor(date, ci) { const rnd = seededRandom(date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + 977 * ci + ci * ci * 13); const base = 8 + ((ci * 53) % 14); return Math.min(28, Math.max(3, Math.round((base + (rnd() - 0.5) * 8) * 10) / 10)); }
