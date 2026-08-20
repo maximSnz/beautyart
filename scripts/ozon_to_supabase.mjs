@@ -19,37 +19,30 @@ async function tryBatch(paths,chunk,fill){
   return null;
 }
 
-// FBO остатки: читаем ВСЕ страницы (last_id), суммируем present по складам
-async function fetchFBO(offers,verbose){
-  let last='', rows=0, pages=0;
-  do{
-    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:offers,last_id:last,limit:1000});
-    const list=r.products||[];
-    list.forEach(it=>{
-      const s=it.present||0;
-      if(it.product_id!=null) stocks[it.product_id]=(stocks[it.product_id]||0)+s;
-      if(it.offer_id) stocksOffer[it.offer_id]=(stocksOffer[it.offer_id]||0)+s;
-    });
-    rows+=list.length; pages++;
-    last=r.last_id||'';
-  }while(last);
-  if(verbose)console.log('fbo first chunk: rows',rows,'pages',pages);
-}
-
+// атрибуты пачками по 100
 for(let i=0;i<items.length;i+=100){
-  const slice=items.slice(i,i+100);
-  const chunk=slice.map(x=>x.product_id);
-  const offers=slice.map(x=>x.offer_id).filter(Boolean);
-  const verbose=(i===0);
-
+  const chunk=items.slice(i,i+100).map(x=>x.product_id);
   await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
-
-  try{ await fetchFBO(offers,verbose); if(verbose)console.log('stocks source: /v1/.../fbo (paged)'); }
-  catch(e){ if(verbose)console.log('stocks fbo err:',e.message); }
-
-  console.log('fetched',Math.min(i+100,items.length),'/',items.length);
 }
 
+// остатки FBO мелкими пачками по 20 артикулов (метод режет на 1000 строк)
+const offersAll=items.map(x=>x.offer_id).filter(Boolean);
+let fboRows=0;
+for(let i=0;i<offersAll.length;i+=20){
+  const of=offersAll.slice(i,i+20);
+  const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,last_id:'',limit:1000});
+  const list=r.products||[];
+  fboRows+=list.length;
+  if(list.length>=1000)console.log('WARNING: truncated at offset',i);
+  list.forEach(it=>{
+    const s=it.present||0;
+    if(it.product_id!=null) stocks[it.product_id]=(stocks[it.product_id]||0)+s;
+    if(it.offer_id) stocksOffer[it.offer_id]=(stocksOffer[it.offer_id]||0)+s;
+  });
+}
+console.log('fbo rows total:',fboRows,'| stocks source: /v1/.../fbo (chunks of 20)');
+
+// цены пошточно + остатки как запасной
 for(const b of items){
   try{
     const r=await ozon('/v2/product/info',{product_id:b.product_id});
@@ -63,6 +56,7 @@ const rows=items.map(b=>{
   const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
   return { product_id:b.product_id, offer_id:a.offer_id??b.offer_id??'', name:a.name??'', price:Number(p.price??0), stock:stocks[b.product_id]??stocksOffer[b.offer_id]??0, visibility:a.visibility??'', raw:a, updated_at:new Date().toISOString() };
 });
+console.log('TOTAL FBO stock:',rows.reduce((s,r)=>s+(r.stock||0),0));
 
 if(rows.length){
   const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/products?on_conflict=product_id`,{
