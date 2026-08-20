@@ -10,8 +10,6 @@ const iOffer=head.findIndex(h=>/артикул|offer|article/i.test(h||''));
 const iSup=2, iVat=4;
 const iCz=head.findIndex(h=>/чз|честн|знак/i.test(h||''));
 const revCols=[]; head.forEach((h,i)=>{const d=parseDate(h||''); if(d) revCols.push({i,date:d});});
-const oldest=revCols.length?revCols[0].date:new Date();
-const latest=revCols.length?revCols[revCols.length-1].date:new Date();
 console.log('article col:',iOffer,'| revision cols:',revCols.map(c=>`${c.i}:${c.date.toLocaleDateString('ru-RU')}`).join(', '));
 
 const products=await (await fetch(process.env.SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,supplier,vat,cz',{headers:HD})).json();
@@ -23,13 +21,18 @@ for(let r=1;r<rows.length;r++){
   const cur=byOffer[offer]; if(!cur)continue; matched++;
   const pid=cur.product_id, row=rows[r];
 
-  // в рамках дня — последняя цена; затем схлопываем подряд одинаковые
+  // цены товара: в рамках дня последняя, пустые не учитываются
   const dayMap=new Map();
   for(const c of revCols){const cost=num(row[c.i]); if(cost==null||cost<=0)continue; dayMap.set(c.date.toDateString(),{cost,date:c.date});}
+  const vals=[...dayMap.values()];
+  // свои старшая/младшая даты товара — по первой и последней НЕпустой цене
+  const rowOldest=vals.length?vals[0].date:null;
+  const rowLatest=vals.length?vals[vals.length-1].date:null;
+
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=eq.импорт`,{method:'DELETE',headers:HD});
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=is.null`,{method:'DELETE',headers:HD});
   const revs=[]; let prev=null;
-  for(const {cost,date} of dayMap.values()){ if(prev!==null&&cost===prev)continue; revs.push({product_id:pid,cost,created_by:null,created_at:date.toISOString()}); prev=cost;}
+  for(const {cost,date} of vals){ if(prev!==null&&cost===prev)continue; revs.push({product_id:pid,cost,created_by:null,created_at:date.toISOString()}); prev=cost;}
   if(revs.length)await fetch(process.env.SUPABASE_URL+'/rest/v1/product_prices',{method:'POST',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(revs)});
 
   const upd={};
@@ -40,8 +43,8 @@ for(let r=1;r<rows.length;r++){
 
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_meta_history?product_id=eq.${pid}`,{method:'DELETE',headers:HD});
   const meta=[];
-  if(newSup)meta.push({product_id:pid,field:'supplier',value:newSup,created_by:null,created_at:oldest.toISOString()});
-  if(newVat)meta.push({product_id:pid,field:'vat',value:newVat,created_by:null,created_at:latest.toISOString()});
+  if(newSup&&rowOldest)meta.push({product_id:pid,field:'supplier',value:newSup,created_by:null,created_at:rowOldest.toISOString()});
+  if(newVat&&rowLatest)meta.push({product_id:pid,field:'vat',value:newVat,created_by:null,created_at:rowLatest.toISOString()});
   if(meta.length)await fetch(process.env.SUPABASE_URL+'/rest/v1/product_meta_history',{method:'POST',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(meta)});
 }
 console.log('matched offers:',matched,'of',products.length);
