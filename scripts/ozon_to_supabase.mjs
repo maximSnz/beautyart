@@ -7,7 +7,6 @@ async function ozon(path,body){
 }
 const asArr=r=>Array.isArray(r?.result)?r.result:(r?.result?.items||[]);
 
-// 1) весь список
 let items=[],last_id='';
 do{ const r=await ozon('/v3/product/list',{filter:{},limit:1000,last_id}); items=items.concat(r.result?.items||[]); last_id=r.result?.last_id||''; }while(last_id);
 console.log('total products:',items.length);
@@ -20,31 +19,50 @@ async function tryBatch(paths,chunk,fill){
   return null;
 }
 
+// варианты тела для FBO (API просит offer_ids/skus)
+const FBO_MAKERS=[
+  of=>({filter:{offer_ids:of,skus:[]},last_id:'',limit:1000}),
+  of=>({filter:{offer_ids:of},last_id:'',limit:1000}),
+  of=>({offer_ids:of,skus:[],last_id:'',limit:1000}),
+  of=>({offer_ids:of,last_id:'',limit:1000}),
+];
+let fboSpec=null;
+async function pickFBO(offers,verbose){
+  for(let k=0;k<FBO_MAKERS.length;k++){
+    try{
+      const r=await fetch(OZON+'/v1/product/info/stocks-by-warehouse/fbo',{method:'POST',headers:H,body:JSON.stringify(FBO_MAKERS[k](offers))});
+      const txt=await r.text();
+      if(verbose)console.log('FBO body',k,'->',r.status,txt.slice(0,200));
+      if(!r.ok)continue;
+      const arr=asArr(JSON.parse(txt));
+      if(arr.length){fboSpec=k;return arr;}
+    }catch(e){ if(verbose)console.log('FBO body',k,'err',e.message); }
+  }
+  return [];
+}
+
 for(let i=0;i<items.length;i+=100){
   const slice=items.slice(i,i+100);
   const chunk=slice.map(x=>x.product_id);
   const offers=slice.map(x=>x.offer_id).filter(Boolean);
+  const verbose=(i===0);
 
   await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
 
-  // остатки FBO — метод требует offer_id
-  try{
-    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{filter:{offer_id:offers,visibility:'ALL'},last_id:'',limit:1000});
-    asArr(r).forEach(it=>{ const s=(it.stocks||[]).reduce((t,x)=>t+(x.present||0),0); if(it.product_id!=null)stocks[it.product_id]=s; if(it.offer_id)stocksOffer[it.offer_id]=s; });
-    if(i===0)console.log('stocks source: /v1/product/info/stocks-by-warehouse/fbo');
-  }catch(e){ if(i===0)console.log('stocks fbo err:',e.message); }
+  let arr;
+  if(fboSpec!=null){ try{ arr=asArr(await ozon('/v1/product/info/stocks-by-warehouse/fbo',FBO_MAKERS[fboSpec](offers))); }catch(e){ arr=[]; } }
+  else arr=await pickFBO(offers,verbose);
+  arr.forEach(it=>{ const s=(it.stocks||[]).reduce((t,x)=>t+(x.present||0),0); if(it.product_id!=null)stocks[it.product_id]=s; if(it.offer_id)stocksOffer[it.offer_id]=s; });
+  if(verbose)console.log('stocks source:',fboSpec!=null?`FBO body ${fboSpec}`:'none');
 
   console.log('fetched',Math.min(i+100,items.length),'/',items.length);
 }
 
-// цены пошточно (пакетные не ответили) + остатки как запасной
 for(const b of items){
   try{
     const r=await ozon('/v2/product/info',{product_id:b.product_id});
-    const res=r.result||{};
-    prices[b.product_id]=res;
-    if(stocks[b.product_id]==null && stocksOffer[b.offer_id]==null)
-      stocks[b.product_id]=(res.stocks||[]).reduce((t,x)=>t+(x.present||0),0);
+    const res=r.result||{}; prices[b.product_id]=res;
+    if(stocks[b.product_id]==null&&stocksOffer[b.offer_id]==null) stocks[b.product_id]=(res.stocks||[]).reduce((t,x)=>t+(x.present||0),0);
   }catch(e){}
 }
 console.log('prices source: per-product /v2/product/info');
