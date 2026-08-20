@@ -19,23 +19,33 @@ async function tryBatch(paths,chunk,fill){
   return null;
 }
 
-for(let i=0;i<items.length;i+=100){
-  const slice=items.slice(i,i+100);
-  const chunk=slice.map(x=>x.product_id);
-  const offers=slice.map(x=>x.offer_id).filter(Boolean);
-
-  await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
-
-  // Остатки FBO: тело с offer_ids сверху, ответ в поле products
-  try{
-    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:offers,last_id:'',limit:1000});
-    (r.products||[]).forEach(it=>{
+// FBO остатки: читаем ВСЕ страницы (last_id), суммируем present по складам
+async function fetchFBO(offers,verbose){
+  let last='', rows=0, pages=0;
+  do{
+    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:offers,last_id:last,limit:1000});
+    const list=r.products||[];
+    list.forEach(it=>{
       const s=it.present||0;
       if(it.product_id!=null) stocks[it.product_id]=(stocks[it.product_id]||0)+s;
       if(it.offer_id) stocksOffer[it.offer_id]=(stocksOffer[it.offer_id]||0)+s;
     });
-    if(i===0)console.log('stocks source: /v1/.../fbo (products)');
-  }catch(e){ if(i===0)console.log('stocks fbo err:',e.message); }
+    rows+=list.length; pages++;
+    last=r.last_id||'';
+  }while(last);
+  if(verbose)console.log('fbo first chunk: rows',rows,'pages',pages);
+}
+
+for(let i=0;i<items.length;i+=100){
+  const slice=items.slice(i,i+100);
+  const chunk=slice.map(x=>x.product_id);
+  const offers=slice.map(x=>x.offer_id).filter(Boolean);
+  const verbose=(i===0);
+
+  await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
+
+  try{ await fetchFBO(offers,verbose); if(verbose)console.log('stocks source: /v1/.../fbo (paged)'); }
+  catch(e){ if(verbose)console.log('stocks fbo err:',e.message); }
 
   console.log('fetched',Math.min(i+100,items.length),'/',items.length);
 }
