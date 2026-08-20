@@ -14,20 +14,22 @@
  th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
  th{color:#666}
  .hide{display:none}
- .meta{color:#94a3b8;font-size:.85em;margin:8px 0}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
- a{color:#544273}
  .cost{font-weight:700;color:#1C0D2E}
  .acts{white-space:nowrap}
  .acts button{margin-right:4px}
  .histrow td{background:#f8f9fb}
  .hist{font-size:.85em;color:#544273}
  .cur{color:#22c55e;font-weight:700}
- details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin-bottom:14px}
- details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;font-size:1em;user-select:none}
+ .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+ .toolbar input{flex:1;min-width:200px}
+ .legend{margin-left:auto;color:#94a3b8;font-size:.8em;white-space:nowrap}
+ details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 14px}
+ details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;user-select:none}
  details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
  details.arc .inner{padding:10px 14px}
- .ret{background:linear-gradient(90deg,#22c55e,#16a34a)}
+ tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
 </style></head>
 <body>
 <div class="login" id="login">
@@ -39,9 +41,11 @@
   <h2>📦 База товаров</h2>
   <div class="meta" id="meta">загрузка…</div>
   <div class="err" id="err"></div>
-  <input id="q" placeholder="Поиск по названию / артикулу" style="width:100%;margin-bottom:10px" oninput="render()">
-  <button onclick="load()">⟳ Обновить</button>
-  <a href="index.html" style="margin-left:10px">← на главную</a>
+  <div class="toolbar">
+    <input id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
+    <button onclick="load()">⟳ Обновить</button>
+    <div class="legend">✎ цена • 🕘 история • 🗄 архив</div>
+  </div>
 
   <details class="arc" id="arcDetails">
     <summary>🗄 Архив (<span id="arcCount">0</span>)</summary>
@@ -55,7 +59,6 @@
   <table><thead><tr>
     <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Себестоимость, ₽</th><th>Действия</th>
   </tr></thead><tbody id="tb"></tbody></table>
-  <div class="meta">✎ — новая себестоимость • 🕘 — история • 🗄 — в архив</div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
@@ -109,13 +112,19 @@ function render(){
   document.getElementById('arcBody').innerHTML=arc.map(r=>{
     const cur=(PRICES[r.product_id]||[])[0];
     return `<tr id="row-${r.product_id}">${cells(r,cur)}
-      <td class="acts"><button class="ret" onclick="setArchived(${r.product_id},false)">Вернуть</button></td></tr>`;
+      <td class="acts"><button onclick="hist(${r.product_id})">🕘</button><button onclick="setArchived(${r.product_id},false)">↩</button></td></tr>`;
   }).join('')||`<tr><td colspan="7" style="color:#94a3b8">Архив пуст</td></tr>`;
-  document.getElementById('tb').innerHTML=act.map(r=>{
+  // группировка активных по поставщику
+  const sorted=[...act].sort((a,b)=>(a.supplier||'—').localeCompare(b.supplier||'—','ru')||(a.name||'').localeCompare(b.name||'','ru'));
+  let html='', lastSup=null;
+  for(const r of sorted){
+    const sup=r.supplier||'—';
+    if(sup!==lastSup){ html+=`<tr class="group"><td colspan="7">${esc(sup)}</td></tr>`; lastSup=sup; }
     const cur=(PRICES[r.product_id]||[])[0];
-    return `<tr id="row-${r.product_id}">${cells(r,cur)}
+    html+=`<tr id="row-${r.product_id}">${cells(r,cur)}
       <td class="acts"><button onclick="editCost(${r.product_id},'${esc(r.offer_id)}')">✎</button><button onclick="hist(${r.product_id})">🕘</button><button onclick="setArchived(${r.product_id},true)">🗄</button></td></tr>`;
-  }).join('');
+  }
+  document.getElementById('tb').innerHTML=html;
 }
 async function setField(pid,field,val){
   try{
