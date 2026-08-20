@@ -19,41 +19,23 @@ async function tryBatch(paths,chunk,fill){
   return null;
 }
 
-// варианты тела для FBO (API просит offer_ids/skus)
-const FBO_MAKERS=[
-  of=>({filter:{offer_ids:of,skus:[]},last_id:'',limit:1000}),
-  of=>({filter:{offer_ids:of},last_id:'',limit:1000}),
-  of=>({offer_ids:of,skus:[],last_id:'',limit:1000}),
-  of=>({offer_ids:of,last_id:'',limit:1000}),
-];
-let fboSpec=null;
-async function pickFBO(offers,verbose){
-  for(let k=0;k<FBO_MAKERS.length;k++){
-    try{
-      const r=await fetch(OZON+'/v1/product/info/stocks-by-warehouse/fbo',{method:'POST',headers:H,body:JSON.stringify(FBO_MAKERS[k](offers))});
-      const txt=await r.text();
-      if(verbose)console.log('FBO body',k,'->',r.status,txt.slice(0,200));
-      if(!r.ok)continue;
-      const arr=asArr(JSON.parse(txt));
-      if(arr.length){fboSpec=k;return arr;}
-    }catch(e){ if(verbose)console.log('FBO body',k,'err',e.message); }
-  }
-  return [];
-}
-
 for(let i=0;i<items.length;i+=100){
   const slice=items.slice(i,i+100);
   const chunk=slice.map(x=>x.product_id);
   const offers=slice.map(x=>x.offer_id).filter(Boolean);
-  const verbose=(i===0);
 
   await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
 
-  let arr;
-  if(fboSpec!=null){ try{ arr=asArr(await ozon('/v1/product/info/stocks-by-warehouse/fbo',FBO_MAKERS[fboSpec](offers))); }catch(e){ arr=[]; } }
-  else arr=await pickFBO(offers,verbose);
-  arr.forEach(it=>{ const s=(it.stocks||[]).reduce((t,x)=>t+(x.present||0),0); if(it.product_id!=null)stocks[it.product_id]=s; if(it.offer_id)stocksOffer[it.offer_id]=s; });
-  if(verbose)console.log('stocks source:',fboSpec!=null?`FBO body ${fboSpec}`:'none');
+  // Остатки FBO: тело с offer_ids сверху, ответ в поле products
+  try{
+    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:offers,last_id:'',limit:1000});
+    (r.products||[]).forEach(it=>{
+      const s=it.present||0;
+      if(it.product_id!=null) stocks[it.product_id]=(stocks[it.product_id]||0)+s;
+      if(it.offer_id) stocksOffer[it.offer_id]=(stocksOffer[it.offer_id]||0)+s;
+    });
+    if(i===0)console.log('stocks source: /v1/.../fbo (products)');
+  }catch(e){ if(i===0)console.log('stocks fbo err:',e.message); }
 
   console.log('fetched',Math.min(i+100,items.length),'/',items.length);
 }
