@@ -107,6 +107,9 @@ async function editCost(pid,offer){
   const n=Number(String(val).replace(',','.').replace(/\s/g,''));
   if(!isFinite(n)||n<0){alert('Введите число');return;}
   try{
+    // за один день — одна ревизия: заменяем сегодняшнюю, если была
+    const d0=new Date(); d0.setHours(0,0,0,0); const d1=new Date(d0); d1.setDate(d1.getDate()+1);
+    await fetch(SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=eq.закупщик&created_at=gte.${d0.toISOString()}&created_at=lt.${d1.toISOString()}`,{method:'DELETE',headers:HD});
     const r=await fetch(SUPABASE_URL+'/rest/v1/product_prices',{method:'POST',
       headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},
       body:JSON.stringify([{product_id:pid,cost:n,created_by:'закупщик'}])});
@@ -116,12 +119,15 @@ async function editCost(pid,offer){
 }
 function hist(pid){
   const old=document.getElementById('hist-'+pid); if(old){old.remove();return;}
-  const costs=(PRICES[pid]||[]).map((p,i)=>({d:p.created_at,html:`<span class="${i===0?'cur':''}">${Number(p.cost).toLocaleString('ru-RU')} ₽</span>${i===0?' (текущая)':''}${p.created_by?' · '+esc(p.created_by):''}`}));
-  const meta=(META[pid]||[]).map(m=>({d:m.created_at,html:`${m.field==='supplier'?'Поставщик':'НДС'}: <b>${esc(m.value||'')}</b>${m.created_by?' · '+esc(m.created_by):''}`}));
-  const all=[...costs,...meta].sort((a,b)=>new Date(b.d)-new Date(a.d));
-  const html=`<tr class="histrow" id="hist-${pid}"><td colspan="7"><div class="hist">История изменений: `+
-    (all.length?all.map(e=>`<div>${new Date(e.d).toLocaleString('ru-RU')} — ${e.html}</div>`).join(''):'нет изменений')+
-    `</div></td></tr>`;
+  // одна ревизия цены в день (последняя)
+  const seen=new Set(); const costs=[];
+  for(const p of (PRICES[pid]||[])){ const k=new Date(p.created_at).toDateString(); if(seen.has(k))continue; seen.add(k); costs.push(p); }
+  const dayMap=new Map();
+  const add=(d,html)=>{ const k=d.toDateString(); if(!dayMap.has(k))dayMap.set(k,{d:new Date(d.getFullYear(),d.getMonth(),d.getDate()),parts:[]}); dayMap.get(k).parts.push(html); };
+  costs.forEach((p,i)=>{ add(new Date(p.created_at), `<span class="${i===0?'cur':''}">${Number(p.cost).toLocaleString('ru-RU')} ₽</span>${i===0?' (текущая)':''}${p.created_by?' · '+esc(p.created_by):''}`); });
+  (META[pid]||[]).forEach(m=>{ add(new Date(m.created_at), `${m.field==='supplier'?'Поставщик':'НДС'}: <b>${esc(m.value||'')}</b>${m.created_by?' · '+esc(m.created_by):''}`); });
+  const lines=[...dayMap.values()].sort((a,b)=>b.d-a.d).map(g=>`<div>${g.d.toLocaleDateString('ru-RU')} — ${g.parts.join(' • ')}</div>`).join('');
+  const html=`<tr class="histrow" id="hist-${pid}"><td colspan="7"><div class="hist">История изменений: `+(lines||'нет изменений')+`</div></td></tr>`;
   document.getElementById('row-'+pid).insertAdjacentHTML('afterend',html);
 }
 </script></body></html>
