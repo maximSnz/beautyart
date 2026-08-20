@@ -2,21 +2,25 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Art — База товаров</title>
+<title>Beauty Art — База товаров / закупщик</title>
 <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 <style>
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
  .login,.wrap{max-width:1100px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
  h2{font-family:'Forum';color:#1C0D2E}
  input{padding:10px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:1em}
- button{padding:10px 16px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ button{padding:8px 12px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
  table{width:100%;border-collapse:collapse;font-size:.9em}
- th,td{padding:8px;border-bottom:1px dashed #cbd5e1;text-align:left}
+ th,td{padding:8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:top}
  th{color:#666}
  .hide{display:none}
  .meta{color:#94a3b8;font-size:.85em;margin:8px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  a{color:#544273}
+ .cost{font-weight:700;color:#1C0D2E}
+ .histrow td{background:#f8f9fb}
+ .hist{font-size:.85em;color:#544273}
+ .cur{color:#22c55e;font-weight:700}
 </style></head>
 <body>
 <div class="login" id="login">
@@ -25,20 +29,25 @@
   <button onclick="go()">Войти</button>
 </div>
 <div class="wrap hide" id="app">
-  <h2>📦 База товаров (Ozon)</h2>
+  <h2>📦 База товаров — рабочее место закупщика</h2>
   <div class="meta" id="meta">загрузка…</div>
   <div class="err" id="err"></div>
   <input id="q" placeholder="Поиск по названию / артикулу" style="width:100%;margin-bottom:10px" oninput="render()">
   <button onclick="load()">⟳ Обновить</button>
   <a href="index.html" style="margin-left:10px">← на главную</a>
-  <table><thead><tr><th>Артикул</th><th>Название</th><th>Цена, ₽</th><th>Остаток</th></tr></thead><tbody id="tb"></tbody></table>
+  <table><thead><tr>
+    <th>Артикул</th><th>Название</th><th>Цена Ozon, ₽</th><th>Себестоимость, ₽</th><th>Действия</th>
+  </tr></thead><tbody id="tb"></tbody></table>
+  <div class="meta">✎ — установить новую себестоимость (создаёт ревизию) • 🕘 — история ревизий</div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
-const SUPABASE_ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
-let ROWS=[];
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+let ROWS=[],PRICES={};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -49,26 +58,56 @@ async function go(){
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
-  // только нужные колонки (без тяжёлого raw) + 3 попытки
-  const url=SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,price,stock,updated_at&order=name.asc&limit=1000';
-  for(let attempt=1;attempt<=3;attempt++){
+  for(let a=1;a<=3;a++){
     try{
-      const r=await fetch(url,{headers:{apikey:SUPABASE_ANON,Authorization:'Bearer '+SUPABASE_ANON}});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      ROWS=await r.json();
+      const [rp,rc]=await Promise.all([
+        fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,price,updated_at&order=name.asc&limit=1000',{headers:HD}),
+        fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at,created_by&order=created_at.desc&limit=10000',{headers:HD})
+      ]);
+      if(!rp.ok||!rc.ok) throw new Error('HTTP '+rp.status+'/'+rc.status);
+      ROWS=await rp.json(); const pr=await rc.json();
+      PRICES={}; pr.forEach(p=>{(PRICES[p.product_id]=PRICES[p.product_id]||[]).push(p);});
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Всего товаров: ${ROWS.length} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Товаров: ${ROWS.length} • синхронизировано: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
-    }catch(e){
-      if(attempt<3){ await sleep(800*attempt); continue; }
-      err.textContent='Ошибка загрузки: '+e.message+'. Если повторяется — отключите VPN/блокировщики и нажмите «Обновить».';
-    }
+    }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  document.getElementById('tb').innerHTML=f.slice(0,500).map(r=>
-    `<tr><td>${r.offer_id||''}</td><td>${r.name||''}</td><td>${Number(r.price||0).toLocaleString('ru-RU')}</td><td>${r.stock||0}</td></tr>`).join('');
+  document.getElementById('tb').innerHTML=f.slice(0,500).map(r=>{
+    const cur=(PRICES[r.product_id]||[])[0];
+    return `<tr id="row-${r.product_id}">
+      <td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td>
+      <td>${Number(r.price||0).toLocaleString('ru-RU')}</td>
+      <td class="cost">${cur?Number(cur.cost).toLocaleString('ru-RU'):'—'}</td>
+      <td><button onclick="editCost(${r.product_id},'${esc(r.offer_id)}')">✎</button>
+          <button onclick="hist(${r.product_id})">🕘</button></td>
+    </tr>`;
+  }).join('');
+}
+async function editCost(pid,offer){
+  const cur=(PRICES[pid]||[])[0];
+  const val=prompt(`Новая себестоимость для ${offer} (текущая: ${cur?cur.cost:'—'}):`, cur?cur.cost:'');
+  if(val===null||val==='')return;
+  const num=Number(String(val).replace(',','.').replace(/\s/g,''));
+  if(!isFinite(num)||num<0){alert('Введите число');return;}
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/product_prices',{method:'POST',
+      headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify([{product_id:pid,cost:num,created_by:'закупщик'}])});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    await load();
+  }catch(e){ alert('Не сохранилось: '+e.message); }
+}
+function hist(pid){
+  const old=document.getElementById('hist-'+pid);
+  if(old){old.remove();return;}
+  const list=(PRICES[pid]||[]);
+  const html=`<tr class="histrow" id="hist-${pid}"><td colspan="5"><div class="hist">История ревизий: `+
+    (list.length?list.map((p,i)=>`<div>${new Date(p.created_at).toLocaleString('ru-RU')} — <span class="${i===0?'cur':''}">${Number(p.cost).toLocaleString('ru-RU')} ₽</span>${i===0?' (текущая)':''} · ${esc(p.created_by||'')}</div>`).join(''):'нет ревизий')+
+    `</div></td></tr>`;
+  document.getElementById('row-'+pid).insertAdjacentHTML('afterend',html);
 }
 </script></body></html>
