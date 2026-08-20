@@ -1,9 +1,14 @@
 const OZON='https://api-seller.ozon.ru';
 const H={ 'Client-Id':process.env.OZON_CLIENT_ID,'Api-Key':process.env.OZON_API_KEY,'Content-Type':'application/json' };
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function ozon(path,body){
-  const r=await fetch(OZON+path,{method:'POST',headers:H,body:JSON.stringify(body)});
-  if(!r.ok) throw new Error(`${path} -> HTTP ${r.status}: ${await r.text()}`);
-  return r.json();
+  for(let attempt=1;attempt<=6;attempt++){
+    const r=await fetch(OZON+path,{method:'POST',headers:H,body:JSON.stringify(body)});
+    if(r.status===429){ await sleep(1000*attempt); continue; }   // rate limit -> ждём и повторяем
+    if(!r.ok) throw new Error(`${path} -> HTTP ${r.status}: ${await r.text()}`);
+    return r.json();
+  }
+  throw new Error(`${path} -> 429 after retries`);
 }
 const asArr=r=>Array.isArray(r?.result)?r.result:(r?.result?.items||[]);
 
@@ -19,13 +24,13 @@ async function tryBatch(paths,chunk,fill){
   return null;
 }
 
-// атрибуты пачками по 100
 for(let i=0;i<items.length;i+=100){
   const chunk=items.slice(i,i+100).map(x=>x.product_id);
   await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
+  await sleep(300);
 }
 
-// остатки FBO мелкими пачками по 20 артикулов (метод режет на 1000 строк)
+// остатки FBO пачками по 20, с паузой между запросами
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 let fboRows=0;
 for(let i=0;i<offersAll.length;i+=20){
@@ -39,16 +44,18 @@ for(let i=0;i<offersAll.length;i+=20){
     if(it.product_id!=null) stocks[it.product_id]=(stocks[it.product_id]||0)+s;
     if(it.offer_id) stocksOffer[it.offer_id]=(stocksOffer[it.offer_id]||0)+s;
   });
+  await sleep(400);
 }
 console.log('fbo rows total:',fboRows,'| stocks source: /v1/.../fbo (chunks of 20)');
 
-// цены пошточно + остатки как запасной
+// цены поштучно, с паузой
 for(const b of items){
   try{
     const r=await ozon('/v2/product/info',{product_id:b.product_id});
     const res=r.result||{}; prices[b.product_id]=res;
     if(stocks[b.product_id]==null&&stocksOffer[b.offer_id]==null) stocks[b.product_id]=(res.stocks||[]).reduce((t,x)=>t+(x.present||0),0);
   }catch(e){}
+  await sleep(150);
 }
 console.log('prices source: per-product /v2/product/info');
 
