@@ -182,8 +182,8 @@ function hist(pid){
   for(const p of (PRICES[pid]||[])){ const k=new Date(p.created_at).toDateString(); if(seen.has(k))continue; seen.add(k); costs.push(p); }
   const dayMap=new Map();
   const add=(d,html)=>{ const k=d.toDateString(); if(!dayMap.has(k))dayMap.set(k,{d:new Date(d.getFullYear(),d.getMonth(),d.getDate()),parts:[]}); dayMap.get(k).parts.push(html); };
-  costs.forEach((p,i)=>{ add(new Date(p.created_at), `<span class="${i===0?'cur':''}">${Number(p.cost).toLocaleString('ru-RU')} ₽</span>${i===0?' (текущая)':''}${p.created_by?' · '+esc(p.created_by):''}`); });
-  (META[pid]||[]).forEach(m=>{ add(new Date(m.created_at), `${m.field==='supplier'?'Поставщик':'НДС'}: <b>${esc(m.value||'')}</b>${m.created_by?' · '+esc(m.created_by):''}`); });
+  costs.forEach((p,i)=>{ add(new Date(p.created_at), `<span class="${i===0?'cur':''}">${Number(p.cost).toLocaleString('ru-RU')} ₽</span>${i===0?' (текущая)':''}`); });
+  (META[pid]||[]).forEach(m=>{ add(new Date(m.created_at), `${m.field==='supplier'?'Поставщик':'НДС'}: <b>${esc(m.value||'')}</b>`); });
   const lines=[...dayMap.values()].sort((a,b)=>b.d-a.d).map(g=>`<div>${g.d.toLocaleDateString('ru-RU')} — ${g.parts.join(' • ')}</div>`).join('');
   const html=`<tr class="histrow" id="hist-${pid}"><td colspan="7"><div class="hist">История изменений: `+(lines||'нет изменений')+`</div></td></tr>`;
   const row=document.getElementById('row-'+pid); if(row) row.insertAdjacentHTML('afterend',html);
