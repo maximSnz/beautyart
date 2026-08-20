@@ -23,6 +23,11 @@
  .histrow td{background:#f8f9fb}
  .hist{font-size:.85em;color:#544273}
  .cur{color:#22c55e;font-weight:700}
+ details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin-bottom:14px}
+ details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;font-size:1em;user-select:none}
+ details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ details.arc .inner{padding:10px 14px}
+ .ret{background:linear-gradient(90deg,#22c55e,#16a34a)}
 </style></head>
 <body>
 <div class="login" id="login">
@@ -37,10 +42,20 @@
   <input id="q" placeholder="Поиск по названию / артикулу" style="width:100%;margin-bottom:10px" oninput="render()">
   <button onclick="load()">⟳ Обновить</button>
   <a href="index.html" style="margin-left:10px">← на главную</a>
+
+  <details class="arc" id="arcDetails">
+    <summary>🗄 Архив (<span id="arcCount">0</span>)</summary>
+    <div class="inner">
+      <table><thead><tr>
+        <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Себестоимость, ₽</th><th>Действия</th>
+      </tr></thead><tbody id="arcBody"></tbody></table>
+    </div>
+  </details>
+
   <table><thead><tr>
     <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Себестоимость, ₽</th><th>Действия</th>
   </tr></thead><tbody id="tb"></tbody></table>
-  <div class="meta">✎ — новая себестоимость (ревизия) • 🕘 — история изменений</div>
+  <div class="meta">✎ — новая себестоимость • 🕘 — история • 🗄 — в архив</div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
@@ -63,7 +78,7 @@ async function load(){
   for(let a=1;a<=3;a++){
     try{
       const [rp,rc,rm]=await Promise.all([
-        fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,supplier,vat,cz,updated_at&order=name.asc&limit=1000',{headers:HD}),
+        fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,supplier,vat,cz,archived,updated_at&order=name.asc&limit=1000',{headers:HD}),
         fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at,created_by&order=created_at.desc&limit=10000',{headers:HD}),
         fetch(SUPABASE_URL+'/rest/v1/product_meta_history?select=product_id,field,value,created_at,created_by&order=created_at.desc&limit=10000',{headers:HD})
       ]);
@@ -71,25 +86,35 @@ async function load(){
       ROWS=await rp.json(); const pr=await rc.json(); const mr=await rm.json();
       PRICES={}; pr.forEach(p=>{(PRICES[p.product_id]=PRICES[p.product_id]||[]).push(p);});
       META={}; mr.forEach(m=>{(META[m.product_id]=META[m.product_id]||[]).push(m);});
+      const act=ROWS.filter(r=>!r.archived).length;
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Товаров: ${ROWS.length} • синхронизировано: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Товаров в работе: ${act} • синхронизировано: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
+function cells(r,cur){
+  return `<td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td>
+    <td>${esc(r.supplier||'—')}</td>
+    <td>${esc(r.vat||'—')}</td>
+    <td><input type="checkbox" ${r.cz?'checked':''} onchange="setField(${r.product_id},'cz',this.checked)"></td>
+    <td class="cost">${cur?Number(cur.cost).toLocaleString('ru-RU'):'—'}</td>`;
+}
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
-  const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  document.getElementById('tb').innerHTML=f.slice(0,500).map(r=>{
+  const all=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
+  const act=all.filter(r=>!r.archived);
+  const arc=all.filter(r=>!!r.archived);
+  document.getElementById('arcCount').textContent=arc.length;
+  document.getElementById('arcBody').innerHTML=arc.map(r=>{
     const cur=(PRICES[r.product_id]||[])[0];
-    return `<tr id="row-${r.product_id}">
-      <td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td>
-      <td>${esc(r.supplier||'—')}</td>
-      <td>${esc(r.vat||'—')}</td>
-      <td><input type="checkbox" ${r.cz?'checked':''} onchange="setField(${r.product_id},'cz',this.checked)"></td>
-      <td class="cost">${cur?Number(cur.cost).toLocaleString('ru-RU'):'—'}</td>
-      <td class="acts"><button onclick="editCost(${r.product_id},'${esc(r.offer_id)}')">✎</button><button onclick="hist(${r.product_id})">🕘</button></td>
-    </tr>`;
+    return `<tr id="row-${r.product_id}">${cells(r,cur)}
+      <td class="acts"><button class="ret" onclick="setArchived(${r.product_id},false)">Вернуть</button></td></tr>`;
+  }).join('')||`<tr><td colspan="7" style="color:#94a3b8">Архив пуст</td></tr>`;
+  document.getElementById('tb').innerHTML=act.map(r=>{
+    const cur=(PRICES[r.product_id]||[])[0];
+    return `<tr id="row-${r.product_id}">${cells(r,cur)}
+      <td class="acts"><button onclick="editCost(${r.product_id},'${esc(r.offer_id)}')">✎</button><button onclick="hist(${r.product_id})">🕘</button><button onclick="setArchived(${r.product_id},true)">🗄</button></td></tr>`;
   }).join('');
 }
 async function setField(pid,field,val){
@@ -100,6 +125,13 @@ async function setField(pid,field,val){
     const row=ROWS.find(x=>x.product_id===pid); if(row) row[field]=val;
   }catch(e){ alert('Не сохранилось: '+e.message); }
 }
+async function setArchived(pid,val){
+  try{
+    const r=await fetch(SUPABASE_URL+`/rest/v1/products?product_id=eq.${pid}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({archived:val})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    await load();
+  }catch(e){ alert('Не сохранилось: '+e.message); }
+}
 async function editCost(pid,offer){
   const cur=(PRICES[pid]||[])[0];
   const val=prompt(`Новая себестоимость для ${offer} (текущая: ${cur?cur.cost:'—'}):`, cur?cur.cost:'');
@@ -107,7 +139,6 @@ async function editCost(pid,offer){
   const n=Number(String(val).replace(',','.').replace(/\s/g,''));
   if(!isFinite(n)||n<0){alert('Введите число');return;}
   try{
-    // за один день — одна ревизия: заменяем сегодняшнюю, если была
     const d0=new Date(); d0.setHours(0,0,0,0); const d1=new Date(d0); d1.setDate(d1.getDate()+1);
     await fetch(SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=eq.закупщик&created_at=gte.${d0.toISOString()}&created_at=lt.${d1.toISOString()}`,{method:'DELETE',headers:HD});
     const r=await fetch(SUPABASE_URL+'/rest/v1/product_prices',{method:'POST',
@@ -119,7 +150,6 @@ async function editCost(pid,offer){
 }
 function hist(pid){
   const old=document.getElementById('hist-'+pid); if(old){old.remove();return;}
-  // одна ревизия цены в день (последняя)
   const seen=new Set(); const costs=[];
   for(const p of (PRICES[pid]||[])){ const k=new Date(p.created_at).toDateString(); if(seen.has(k))continue; seen.add(k); costs.push(p); }
   const dayMap=new Map();
@@ -128,6 +158,6 @@ function hist(pid){
   (META[pid]||[]).forEach(m=>{ add(new Date(m.created_at), `${m.field==='supplier'?'Поставщик':'НДС'}: <b>${esc(m.value||'')}</b>${m.created_by?' · '+esc(m.created_by):''}`); });
   const lines=[...dayMap.values()].sort((a,b)=>b.d-a.d).map(g=>`<div>${g.d.toLocaleDateString('ru-RU')} — ${g.parts.join(' • ')}</div>`).join('');
   const html=`<tr class="histrow" id="hist-${pid}"><td colspan="7"><div class="hist">История изменений: `+(lines||'нет изменений')+`</div></td></tr>`;
-  document.getElementById('row-'+pid).insertAdjacentHTML('afterend',html);
+  const row=document.getElementById('row-'+pid); if(row) row.insertAdjacentHTML('afterend',html);
 }
 </script></body></html>
