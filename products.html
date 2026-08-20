@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Art — База товаров</title>
+<title>Beauty Art — База товаров Ozon</title>
 <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 <style>
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
@@ -30,8 +30,10 @@
  details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
  details.arc .inner{padding:10px 14px}
  tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
- .editable{cursor:pointer;border-bottom:1px dotted #78A6C7}
+ .editable{cursor:pointer}
+ .editable::after{content:" ✎";opacity:.3;font-size:.8em}
  .editable:hover{color:#E33D78}
+ .editable:hover::after{opacity:1}
 </style></head>
 <body>
 <div class="login" id="login">
@@ -40,13 +42,13 @@
   <button onclick="go()">Войти</button>
 </div>
 <div class="wrap hide" id="app">
-  <h2>📦 База товаров</h2>
+  <h2>📦 База товаров Ozon</h2>
   <div class="meta" id="meta">загрузка…</div>
   <div class="err" id="err"></div>
   <div class="toolbar">
     <input id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <button onclick="load()">⟳ Обновить</button>
-    <div class="legend">🕘 история • 🗄 архив • клик по цене / поставщику / НДС — изменить</div>
+    <div class="legend">🕘 история • 🗄 архив</div>
   </div>
 
   <details class="arc" id="arcDetails">
