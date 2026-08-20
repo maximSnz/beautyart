@@ -7,8 +7,7 @@ const num=v=>{const n=Number(String(v??'').replace(/\s/g,'').replace(',','.'));r
 const rows=parseCSV(fs.readFileSync('data/history.csv','utf8'));
 const head=rows[0];
 const iOffer=head.findIndex(h=>/артикул|offer|article/i.test(h||''));
-const iSup=2;  // колонка C
-const iVat=4;  // колонка E
+const iSup=2, iVat=4;
 const iCz=head.findIndex(h=>/чз|честн|знак/i.test(h||''));
 const revCols=[]; head.forEach((h,i)=>{const d=parseDate(h||''); if(d) revCols.push({i,date:d});});
 const oldest=revCols.length?revCols[0].date:new Date();
@@ -24,21 +23,21 @@ for(let r=1;r<rows.length;r++){
   const cur=byOffer[offer]; if(!cur)continue; matched++;
   const pid=cur.product_id, row=rows[r];
 
-  // Ревизии цен: даты из строки 1, повторы схлопнуты, старые импорты перезаписываются
+  // в рамках дня — последняя цена; затем схлопываем подряд одинаковые
+  const dayMap=new Map();
+  for(const c of revCols){const cost=num(row[c.i]); if(cost==null||cost<=0)continue; dayMap.set(c.date.toDateString(),{cost,date:c.date});}
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=eq.импорт`,{method:'DELETE',headers:HD});
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=is.null`,{method:'DELETE',headers:HD});
   const revs=[]; let prev=null;
-  for(const c of revCols){const cost=num(row[c.i]); if(cost==null||cost<=0)continue; if(prev!==null&&cost===prev)continue; revs.push({product_id:pid,cost,created_by:null,created_at:c.date.toISOString()}); prev=cost;}
+  for(const {cost,date} of dayMap.values()){ if(prev!==null&&cost===prev)continue; revs.push({product_id:pid,cost,created_by:null,created_at:date.toISOString()}); prev=cost;}
   if(revs.length)await fetch(process.env.SUPABASE_URL+'/rest/v1/product_prices',{method:'POST',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(revs)});
 
-  // Текущие значения в карточку
   const upd={};
   const newSup=(row[iSup]||'').trim(); if(newSup)upd.supplier=newSup;
   const newVat=(row[iVat]||'').trim(); if(newVat)upd.vat=newVat;
   if(iCz>=0)upd.cz=/(да|1|\+|yes|true)/i.test((row[iCz]||'').trim());
   if(Object.keys(upd).length)await fetch(process.env.SUPABASE_URL+`/rest/v1/products?product_id=eq.${pid}`,{method:'PATCH',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(upd)});
 
-  // Разовое посевное значение в историю: поставщик — самой старой датой, НДС — самой новой; без «импорт»
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_meta_history?product_id=eq.${pid}`,{method:'DELETE',headers:HD});
   const meta=[];
   if(newSup)meta.push({product_id:pid,field:'supplier',value:newSup,created_by:null,created_at:oldest.toISOString()});
