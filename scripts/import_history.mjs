@@ -11,6 +11,8 @@ const iSup=2;  // колонка C
 const iVat=4;  // колонка E
 const iCz=head.findIndex(h=>/чз|честн|знак/i.test(h||''));
 const revCols=[]; head.forEach((h,i)=>{const d=parseDate(h||''); if(d) revCols.push({i,date:d});});
+const oldest=revCols.length?revCols[0].date:new Date();
+const latest=revCols.length?revCols[revCols.length-1].date:new Date();
 console.log('article col:',iOffer,'| revision cols:',revCols.map(c=>`${c.i}:${c.date.toLocaleDateString('ru-RU')}`).join(', '));
 
 const products=await (await fetch(process.env.SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,supplier,vat,cz',{headers:HD})).json();
@@ -22,21 +24,25 @@ for(let r=1;r<rows.length;r++){
   const cur=byOffer[offer]; if(!cur)continue; matched++;
   const pid=cur.product_id, row=rows[r];
 
-  // ревизии цен (даты из строки 1); старые импорты перезаписываются
+  // Ревизии цен: даты из строки 1, повторы схлопнуты, старые импорты перезаписываются
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=eq.импорт`,{method:'DELETE',headers:HD});
   await fetch(process.env.SUPABASE_URL+`/rest/v1/product_prices?product_id=eq.${pid}&created_by=is.null`,{method:'DELETE',headers:HD});
-  const revs=[];
-  for(const c of revCols){const cost=num(row[c.i]); if(cost==null||cost<=0)continue; revs.push({product_id:pid,cost,created_by:null,created_at:c.date.toISOString()});}
+  const revs=[]; let prev=null;
+  for(const c of revCols){const cost=num(row[c.i]); if(cost==null||cost<=0)continue; if(prev!==null&&cost===prev)continue; revs.push({product_id:pid,cost,created_by:null,created_at:c.date.toISOString()}); prev=cost;}
   if(revs.length)await fetch(process.env.SUPABASE_URL+'/rest/v1/product_prices',{method:'POST',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(revs)});
 
-  // поставщик (C) и НДС (E): обновляем и пишем в историю ТОЛЬКО при изменении
-  const upd={}, meta=[];
-  const newSup=(row[iSup]||'').trim();
-  if(newSup && newSup!==(cur.supplier||'')){upd.supplier=newSup; meta.push({product_id:pid,field:'supplier',value:newSup,created_by:'импорт'});}
-  const newVat=(row[iVat]||'').trim();
-  if(newVat && newVat!==(cur.vat||'')){upd.vat=newVat; meta.push({product_id:pid,field:'vat',value:newVat,created_by:'импорт'});}
-  if(iCz>=0){const cz=/(да|1|\+|yes|true)/i.test((row[iCz]||'').trim()); if(cz!==!!cur.cz) upd.cz=cz;}
+  // Текущие значения в карточку
+  const upd={};
+  const newSup=(row[iSup]||'').trim(); if(newSup)upd.supplier=newSup;
+  const newVat=(row[iVat]||'').trim(); if(newVat)upd.vat=newVat;
+  if(iCz>=0)upd.cz=/(да|1|\+|yes|true)/i.test((row[iCz]||'').trim());
   if(Object.keys(upd).length)await fetch(process.env.SUPABASE_URL+`/rest/v1/products?product_id=eq.${pid}`,{method:'PATCH',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(upd)});
+
+  // Разовое посевное значение в историю: поставщик — самой старой датой, НДС — самой новой; без «импорт»
+  await fetch(process.env.SUPABASE_URL+`/rest/v1/product_meta_history?product_id=eq.${pid}`,{method:'DELETE',headers:HD});
+  const meta=[];
+  if(newSup)meta.push({product_id:pid,field:'supplier',value:newSup,created_by:null,created_at:oldest.toISOString()});
+  if(newVat)meta.push({product_id:pid,field:'vat',value:newVat,created_by:null,created_at:latest.toISOString()});
   if(meta.length)await fetch(process.env.SUPABASE_URL+'/rest/v1/product_meta_history',{method:'POST',headers:{...HD,Prefer:'return=minimal'},body:JSON.stringify(meta)});
 }
 console.log('matched offers:',matched,'of',products.length);
