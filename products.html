@@ -30,6 +30,8 @@
  details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
  details.arc .inner{padding:10px 14px}
  tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
+ .editable{cursor:pointer;border-bottom:1px dotted #78A6C7}
+ .editable:hover{color:#E33D78}
 </style></head>
 <body>
 <div class="login" id="login">
@@ -44,20 +46,20 @@
   <div class="toolbar">
     <input id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <button onclick="load()">⟳ Обновить</button>
-    <div class="legend">✎ цена • 🕘 история • 🗄 архив</div>
+    <div class="legend">🕘 история • 🗄 архив • клик по цене / поставщику / НДС — изменить</div>
   </div>
 
   <details class="arc" id="arcDetails">
     <summary>🗄 Архив (<span id="arcCount">0</span>)</summary>
     <div class="inner">
       <table><thead><tr>
-        <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Себестоимость, ₽</th><th>Действия</th>
+        <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Цена, ₽</th><th>Действия</th>
       </tr></thead><tbody id="arcBody"></tbody></table>
     </div>
   </details>
 
   <table><thead><tr>
-    <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Себестоимость, ₽</th><th>Действия</th>
+    <th>Артикул</th><th>Название</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>Цена, ₽</th><th>Действия</th>
   </tr></thead><tbody id="tb"></tbody></table>
 </div>
 <script>
@@ -98,10 +100,10 @@ async function load(){
 }
 function cells(r,cur){
   return `<td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td>
-    <td>${esc(r.supplier||'—')}</td>
-    <td>${esc(r.vat||'—')}</td>
+    <td class="editable" title="Изменить поставщика" onclick="editSup(${r.product_id})">${esc(r.supplier||'—')}</td>
+    <td class="editable" title="Изменить НДС" onclick="editVat(${r.product_id})">${esc(r.vat||'—')}</td>
     <td><input type="checkbox" ${r.cz?'checked':''} onchange="setField(${r.product_id},'cz',this.checked)"></td>
-    <td class="cost">${cur?Number(cur.cost).toLocaleString('ru-RU'):'—'}</td>`;
+    <td class="cost editable" title="Изменить цену" onclick="editCost(${r.product_id})">${cur?Number(cur.cost).toLocaleString('ru-RU'):'—'}</td>`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -114,7 +116,6 @@ function render(){
     return `<tr id="row-${r.product_id}">${cells(r,cur)}
       <td class="acts"><button onclick="hist(${r.product_id})">🕘</button><button onclick="setArchived(${r.product_id},false)">↩</button></td></tr>`;
   }).join('')||`<tr><td colspan="7" style="color:#94a3b8">Архив пуст</td></tr>`;
-  // группировка активных по поставщику
   const sorted=[...act].sort((a,b)=>(a.supplier||'—').localeCompare(b.supplier||'—','ru')||(a.name||'').localeCompare(b.name||'','ru'));
   let html='', lastSup=null;
   for(const r of sorted){
@@ -122,17 +123,32 @@ function render(){
     if(sup!==lastSup){ html+=`<tr class="group"><td colspan="7">${esc(sup)}</td></tr>`; lastSup=sup; }
     const cur=(PRICES[r.product_id]||[])[0];
     html+=`<tr id="row-${r.product_id}">${cells(r,cur)}
-      <td class="acts"><button onclick="editCost(${r.product_id},'${esc(r.offer_id)}')">✎</button><button onclick="hist(${r.product_id})">🕘</button><button onclick="setArchived(${r.product_id},true)">🗄</button></td></tr>`;
+      <td class="acts"><button onclick="hist(${r.product_id})">🕘</button><button onclick="setArchived(${r.product_id},true)">🗄</button></td></tr>`;
   }
   document.getElementById('tb').innerHTML=html;
 }
 async function setField(pid,field,val){
-  try{
-    const body={}; body[field]=val;
-    const r=await fetch(SUPABASE_URL+`/rest/v1/products?product_id=eq.${pid}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const row=ROWS.find(x=>x.product_id===pid); if(row) row[field]=val;
-  }catch(e){ alert('Не сохранилось: '+e.message); }
+  const body={}; body[field]=val;
+  const r=await fetch(SUPABASE_URL+`/rest/v1/products?product_id=eq.${pid}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const row=ROWS.find(x=>x.product_id===pid); if(row) row[field]=val;
+}
+async function saveMeta(pid,field,value){
+  const d0=new Date(); d0.setHours(0,0,0,0); const d1=new Date(d0); d1.setDate(d1.getDate()+1);
+  await fetch(SUPABASE_URL+`/rest/v1/product_meta_history?product_id=eq.${pid}&field=eq.${field}&created_at=gte.${d0.toISOString()}&created_at=lt.${d1.toISOString()}`,{method:'DELETE',headers:HD});
+  await fetch(SUPABASE_URL+'/rest/v1/product_meta_history',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,field,value,created_by:'закупщик',created_at:new Date().toISOString()}])});
+}
+async function editSup(pid){
+  const row=ROWS.find(x=>x.product_id===pid); if(!row)return;
+  const val=prompt(`Поставщик для ${row.offer_id} (текущий: ${row.supplier||'—'}):`, row.supplier||'');
+  if(val===null)return; const v=val.trim(); if(v===(row.supplier||''))return;
+  try{ await setField(pid,'supplier',v); await saveMeta(pid,'supplier',v); await load(); }catch(e){alert('Не сохранилось: '+e.message);}
+}
+async function editVat(pid){
+  const row=ROWS.find(x=>x.product_id===pid); if(!row)return;
+  const val=prompt(`НДС для ${row.offer_id} (текущий: ${row.vat||'—'}):`, row.vat||'');
+  if(val===null)return; const v=val.trim(); if(v===(row.vat||''))return;
+  try{ await setField(pid,'vat',v); await saveMeta(pid,'vat',v); await load(); }catch(e){alert('Не сохранилось: '+e.message);}
 }
 async function setArchived(pid,val){
   try{
@@ -141,9 +157,10 @@ async function setArchived(pid,val){
     await load();
   }catch(e){ alert('Не сохранилось: '+e.message); }
 }
-async function editCost(pid,offer){
+async function editCost(pid){
+  const row=ROWS.find(x=>x.product_id===pid); if(!row)return;
   const cur=(PRICES[pid]||[])[0];
-  const val=prompt(`Новая себестоимость для ${offer} (текущая: ${cur?cur.cost:'—'}):`, cur?cur.cost:'');
+  const val=prompt(`Новая цена для ${row.offer_id} (текущая: ${cur?cur.cost:'—'}):`, cur?cur.cost:'');
   if(val===null||val==='')return;
   const n=Number(String(val).replace(',','.').replace(/\s/g,''));
   if(!isFinite(n)||n<0){alert('Введите число');return;}
