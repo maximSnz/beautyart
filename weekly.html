@@ -17,7 +17,7 @@
  .hide{display:none}
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
- .stock{font-weight:700;color:#1C0D2E}
+ .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
  .zero{color:#E33D78}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input{flex:1;min-width:200px}
@@ -37,7 +37,7 @@
     <button onclick="load()">⟳ Обновить</button>
   </div>
   <table><thead><tr>
-    <th>Артикул</th><th>Название</th><th>Остаток FBO, шт</th>
+    <th>Артикул</th><th>Название</th><th>Остаток FBO, шт</th><th>Сумма, ₽</th>
   </tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
 </div>
 <script>
@@ -48,6 +48,7 @@ const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -60,12 +61,13 @@ async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
     try{
-      const r=await fetch(SUPABASE_URL+'/rest/v1/products?select=offer_id,name,stock,archived,updated_at&order=name.asc&limit=1000',{headers:HD});
+      const r=await fetch(SUPABASE_URL+'/rest/v1/products?select=offer_id,name,stock,price,archived,updated_at&order=name.asc&limit=1000',{headers:HD});
       if(!r.ok) throw new Error('HTTP '+r.status);
       ROWS=(await r.json()).filter(x=>!x.archived);
-      const totalAll=ROWS.reduce((s,x)=>s+(x.stock||0),0);
+      const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
+      const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(x.price||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${totalAll.toLocaleString('ru-RU')} шт • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ИТОГО сумма: ${fmt(tSum)} ₽ • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
@@ -73,11 +75,12 @@ async function load(){
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  const totalF=f.reduce((s,r)=>s+(r.stock||0),0);
+  const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
+  const tSum=f.reduce((s,r)=>s+(r.stock||0)*(r.price||0),0);
   document.getElementById('tb').innerHTML=f.map(r=>{
-    const s=r.stock||0;
-    return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="stock ${s===0?'zero':''}">${s.toLocaleString('ru-RU')}</td></tr>`;
+    const s=r.stock||0, sum=s*(r.price||0);
+    return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${s===0?'zero':''}">${fmt(s)}</td><td class="num ${s===0?'zero':''}">${fmt(sum)}</td></tr>`;
   }).join('');
-  document.getElementById('tf').innerHTML=`<tr><td colspan="2" style="text-align:right">Итого (показано):</td><td class="stock">${totalF.toLocaleString('ru-RU')}</td></tr>`;
+  document.getElementById('tf').innerHTML=`<tr><td colspan="2" style="text-align:right">Итого (показано):</td><td class="num">${fmt(tStock)}</td><td class="num">${fmt(tSum)} ₽</td></tr>`;
 }
 </script></body></html>
