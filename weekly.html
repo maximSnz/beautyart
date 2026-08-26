@@ -22,6 +22,8 @@
  .zero{color:#E33D78}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input{flex:1;min-width:200px}
+ tr.cluster td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:14px;border-bottom:2px solid rgba(84,66,115,.2)}
+ .cltot{float:right;color:#1C0D2E;font-size:.9em;white-space:nowrap}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -59,7 +61,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={};
+let ROWS=[],COST={},STOCKS={};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -75,13 +77,15 @@ async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
     try{
-      const [rp,rc]=await Promise.all([
+      const [rp,rc,rs]=await Promise.all([
         fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,stock,archived,updated_at&order=name.asc&limit=1000',{headers:HD}),
-        fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc&limit=10000',{headers:HD})
+        fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc&limit=10000',{headers:HD}),
+        fetch(SUPABASE_URL+'/rest/v1/product_stocks?select=product_id,warehouse_name,present&limit=10000',{headers:HD})
       ]);
-      if(!rp.ok||!rc.ok) throw new Error('HTTP '+rp.status);
+      if(!rp.ok||!rc.ok||!rs.ok) throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       COST={}; (await rc.json()).forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
+      STOCKS={}; (await rs.json()).forEach(s=>{ if(!STOCKS[s.product_id])STOCKS[s.product_id]=[]; STOCKS[s.product_id].push(s); });
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
@@ -93,12 +97,27 @@ async function load(){
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
+  // собираем все склады, которые встречаются у отфильтрованных товаров
+  const whSet=new Set();
+  f.forEach(r=>(STOCKS[r.product_id]||[]).forEach(s=>whSet.add(s.warehouse_name)));
+  const warehouses=[...whSet].sort((a,b)=>String(a).localeCompare(String(b),'ru'));
+  let html='';
+  warehouses.forEach(wh=>{
+    // позиции, у которых есть остаток на этом складе
+    const arr=f.filter(r=>(STOCKS[r.product_id]||[]).some(s=>s.warehouse_name===wh));
+    if(!arr.length)return;
+    const cs=arr.reduce((s,r)=>{ const st=(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh); return s+(st?st.present:0); },0);
+    const csum=arr.reduce((s,r)=>{ const st=(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh); return s+(st?st.present:0)*(COST[r.product_id]||0); },0);
+    html+=`<tr class="cluster"><td colspan="5">${esc(wh)}<span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></td></tr>`;
+    arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).forEach(r=>{
+      const st=(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh);
+      const s=st?st.present:0, cost=COST[r.product_id]||0, sum=s*cost;
+      html+=`<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${s===0?'zero':''}">${fmt(s)}</td><td class="num">${fmt(cost)}</td><td class="num ${s===0?'zero':''}">${fmt(sum)}</td></tr>`;
+    });
+  });
   const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
   const tSum=f.reduce((s,r)=>s+(r.stock||0)*(COST[r.product_id]||0),0);
-  document.getElementById('tb').innerHTML=f.map(r=>{
-    const s=r.stock||0, c=COST[r.product_id]||0, sum=s*c;
-    return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${s===0?'zero':''}">${fmt(s)}</td><td class="num">${fmt(c)}</td><td class="num ${s===0?'zero':''}">${fmt(sum)}</td></tr>`;
-  }).join('');
-  document.getElementById('tf').innerHTML=`<tr><td colspan="2" style="text-align:right">Итого (показано):</td><td class="num">${fmt(tStock)}</td><td class="num"></td><td class="num">${fmt(tSum)} ₽</td></tr>`;
+  document.getElementById('tb').innerHTML=html;
+  document.getElementById('tf').innerHTML=`<tr><td colspan="2" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tStock)}</td><td class="num"></td><td class="num">${fmt(tSum)} ₽</td></tr>`;
 }
 </script></body></html>
