@@ -22,12 +22,13 @@
  .g{color:#16a34a}.r{color:#E33D78}.o{color:#d97706}.n{color:#94a3b8}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
- .switch{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none}
+ .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none}
  .switch input{display:none}
  .knob{width:42px;height:22px;border-radius:22px;background:#cbd5e1;position:relative;transition:.2s;flex:0 0 auto}
  .knob::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
  .switch input:checked+.knob{background:#E33D78}
  .switch input:checked+.knob::after{left:22px}
+ .switch+.switch{margin-left:auto}
  .progress{margin:10px 0}
  .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
@@ -51,6 +52,7 @@
  details.wh[open]>summary::before{content:"▾ ";}
  .whname{flex:1;text-align:left}
  .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
+ tr.wh td{background:rgba(120,166,199,.12);font-weight:700;color:#33506b;padding-top:10px}
  .wact{padding:2px 7px;font-size:.95em;margin:0}
  .grand{margin-top:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(120,166,199,.2),rgba(227,61,120,.15));font-weight:700;color:#1C0D2E;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
  @media (max-width:640px){
@@ -58,7 +60,7 @@
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
-   .switch{margin-left:0}
+   .switch+.switch{margin-left:0}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.78em;min-width:900px}
    th,td{padding:5px 6px}
@@ -80,7 +82,8 @@
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>нецелевые остатки (вне 7–14 дн)</label>
+    <label class="switch"><input type="checkbox" id="byProd" onchange="render()"><span class="knob"></span>по товарам</label>
+    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>нецелевые (вне 7–14 дн)</label>
   </div>
   <div class="progress hide" id="progWrap">
     <div class="progtext" id="progText">Загрузка…</div>
@@ -212,54 +215,81 @@ function cmpCell(v,prev){
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const onlyBad=document.getElementById('onlyBad').checked;
+  const byProd=document.getElementById('byProd').checked;
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
   const d1=localISO(BASE);
   const d2=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-1));
   const d3=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-2));
   const d4=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-3));
   const lbl=x=>{const d=parseISO(x);return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');};
-  const whMap=new Map();
+  // плоский список строк (товар × склад)
+  const entries=[];
   for(const r of ROWS){ if(!match(r))continue; const o=r.offer_id;
-    for(const wh in (STOCK[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0,s4:0};w.map.set(o,row);} row.stock=STOCK[o][wh]||0; }
-    for(const wh in (SALES[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0,s4:0};w.map.set(o,row);} row.s1=SALES[o][wh][d1]||0; row.s2=SALES[o][wh][d2]||0; row.s3=SALES[o][wh][d3]||0; row.s4=SALES[o][wh][d4]||0; }
-  }
-  whMap.forEach(w=>{
-    const rowsArr=[];
-    w.map.forEach(row=>{
-      const p=ROWS.find(x=>x.offer_id===row.o); if(!p)return;
-      if(row.stock===0&&row.s1===0&&row.s2===0&&row.s3===0&&row.s4===0)return; // полностью неактивные нули скрываем (дают 0 в итогах)
-      const cost=COST[p.product_id]||0, sum=row.stock*cost;
-      const days=row.s1>0?row.stock/row.s1:null;
-      const target=(row.s1>0?(days>=7&&days<=14):row.stock===0);
+    const whs=new Set([...Object.keys(STOCK[o]||{}),...Object.keys(SALES[o]||{})]);
+    whs.forEach(wh=>{
+      const stock=STOCK[o]?.[wh]||0;
+      const s1=SALES[o]?.[wh]?.[d1]||0, s2=SALES[o]?.[wh]?.[d2]||0, s3=SALES[o]?.[wh]?.[d3]||0, s4=SALES[o]?.[wh]?.[d4]||0;
+      if(stock===0&&s1===0&&s2===0&&s3===0&&s4===0)return;
+      const cost=COST[r.product_id]||0, sum=stock*cost;
+      const days=s1>0?stock/s1:null;
+      const target=(s1>0?(days>=7&&days<=14):stock===0);
       if(onlyBad&&target)return;
-      rowsArr.push({...row,name:p.name,cost,sum,target});
+      entries.push({o,name:r.name,cost,stock,sum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh});
     });
-    rowsArr.sort((a,b)=>b.sum-a.sum);
-    w.disp=rowsArr;
-    w.total=rowsArr.reduce((s,x)=>s+x.stock,0);
-    w.sum=rowsArr.reduce((s,x)=>s+x.sum,0);
-  });
-  const mainC=new Map(), fireC=new Map();
-  whMap.forEach(w=>{ if(!w.disp.length)return; const t=FIRE.has(w.id)?fireC:mainC; if(!t.has(w.cluster))t.set(w.cluster,[]); t.get(w.cluster).push(w); });
-  const sortC=map=>[...map.entries()].map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0)})).sort((a,b)=>b.sum-a.sum);
-  const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d1)}</th><th>${lbl(d2)}</th><th>${lbl(d3)}</th></tr>`;
-  const whBlock=(w,inFire)=>{
-    const btn=inFire
-      ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
-      :`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-    const body=w.disp.length?w.disp.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s1,o.s2)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s3,o.s4)}</tr>`).join('')
-      :`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
-    return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
-      <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
-  };
-  const clusterBlock=(o,inFire)=>`<details class="cluster" ${inFire?'open':''}><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт • ${fmt(o.sum)} ₽</span></summary>`+
-    o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
+  }
   let html='';
-  const fireList=sortC(fireC), mainList=sortC(mainC);
-  if(fireList.length){ html+=`<details class="fire" open><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`; }
-  html+=mainList.map(o=>clusterBlock(o,false)).join('');
+  if(byProd){
+    // товар -> кластер -> склад
+    const prodMap=new Map();
+    entries.forEach(e=>{
+      if(!prodMap.has(e.o))prodMap.set(e.o,{o:e.o,name:e.name,clusters:new Map()});
+      const p=prodMap.get(e.o);
+      if(!p.clusters.has(e.cluster))p.clusters.set(e.cluster,[]);
+      p.clusters.get(e.cluster).push(e);
+    });
+    const prods=[...prodMap.values()].map(p=>{
+      let tS=0,tM=0; p.clusters.forEach(a=>a.forEach(e=>{tS+=e.stock;tM+=e.sum;}));
+      p.total=tS;p.sum=tM;return p;
+    }).sort((a,b)=>b.sum-a.sum);
+    prods.forEach(p=>{
+      html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.total)} шт • ${fmt(p.sum)} ₽</span></summary>
+        <div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d1)}</th><th>${lbl(d2)}</th><th>${lbl(d3)}</th></tr></thead><tbody>`;
+      [...p.clusters.entries()].map(([c,arr])=>({c,arr,sum:arr.reduce((s,e)=>s+e.sum,0)})).sort((a,b)=>b.sum-a.sum).forEach(g=>{
+        const cs=g.arr.reduce((s,e)=>s+e.stock,0);
+        html+=`<tr class="wh"><td colspan="7">${esc(g.c)}<span class="whtot">${fmt(cs)} шт • ${fmt(g.sum)} ₽</span></td></tr>`;
+        g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
+          html+=`<tr><td>${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s1,e.s2)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s3,e.s4)}</tr>`;
+        });
+      });
+      html+=`</tbody></table></div></details>`;
+    });
+  }else{
+    // кластер -> склад -> товар
+    const whMap=new Map();
+    entries.forEach(e=>{ if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,rows:[]}); whMap.get(e.wh).rows.push(e); });
+    whMap.forEach(w=>{ w.rows.sort((a,b)=>b.sum-a.sum); w.total=w.rows.reduce((s,x)=>s+x.stock,0); w.sum=w.rows.reduce((s,x)=>s+x.sum,0); });
+    const mainC=new Map(), fireC=new Map();
+    whMap.forEach(w=>{ const t=FIRE.has(w.id)?fireC:mainC; if(!t.has(w.cluster))t.set(w.cluster,[]); t.get(w.cluster).push(w); });
+    const sortC=map=>[...map.entries()].map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0)})).sort((a,b)=>b.sum-a.sum);
+    const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d1)}</th><th>${lbl(d2)}</th><th>${lbl(d3)}</th></tr>`;
+    const whBlock=(w,inFire)=>{
+      const btn=inFire
+        ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
+        :`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
+      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s1,o.s2)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s3,o.s4)}</tr>`).join('')
+        :`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
+      return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
+        <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
+    };
+    const clusterBlock=(o,inFire)=>`<details class="cluster" ${inFire?'open':''}><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт • ${fmt(o.sum)} ₽</span></summary>`+
+      o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
+    const fireList=sortC(fireC), mainList=sortC(mainC);
+    if(fireList.length){ html+=`<details class="fire" open><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`; }
+    html+=mainList.map(o=>clusterBlock(o,false)).join('');
+  }
   document.getElementById('clusters').innerHTML=html||'<div class="meta">Нет данных под фильтр.</div>';
-  let tStock=0,tSum=0; whMap.forEach(w=>{tStock+=w.total;tSum+=w.sum;});
+  const tStock=entries.reduce((s,e)=>s+e.stock,0);
+  const tSum=entries.reduce((s,e)=>s+e.sum,0);
   document.getElementById('grand').innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽</span>`;
 }
 </script></body></html>
