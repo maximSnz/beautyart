@@ -55,7 +55,6 @@ for(let i=0;i<items.length;i+=100){
   await sleep(300);
 }
 
-// остатки FBO: дочитываем страницы через last_id
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 const byProduct=new Map(); const unmapped={};
 for(let i=0;i<offersAll.length;i+=20){
@@ -114,8 +113,12 @@ for(let i=0;i<stockRows.length;i+=500){
   });
   if(!up.ok) throw new Error(`supabase stocks -> HTTP ${up.status}: ${await up.text()}`);
 }
-// проверка: сколько реально в БД
-const vr=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?select=present&limit=10000`,{headers:SR});
-const vrows=await vr.json();
-console.log('DB stocks rows:',vrows.length,'| DB sum present:',vrows.reduce((s,x)=>s+(x.present||0),0));
+// проверка постранично
+let vsum=0,vcount=0,voff=0;
+while(true){
+  const vr=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?select=present&limit=1000&offset=${voff}`,{headers:SR});
+  const j=await vr.json(); vcount+=j.length; vsum+=j.reduce((s,x)=>s+(x.present||0),0);
+  if(j.length<1000)break; voff+=1000;
+}
+console.log('DB stocks rows:',vcount,'| DB sum present:',vsum);
 console.log('synced products:',rows.length,'| stocks rows:',stockRows.length);
