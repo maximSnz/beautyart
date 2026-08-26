@@ -18,7 +18,6 @@
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
- .zero{color:#E33D78}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input{flex:1;min-width:200px}
  details.cluster{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 12px}
@@ -28,8 +27,14 @@
  details.cluster[open]>summary{border-bottom:2px solid rgba(84,66,115,.1)}
  .clname{flex:1;text-align:left}
  .cltot{color:#1C0D2E;font-size:.9em;white-space:nowrap;margin-left:auto}
- tr.wh td{background:rgba(120,166,199,.12);font-weight:700;color:#33506b;padding-top:10px}
- .whtot{float:right;color:#1C0D2E;font-size:.9em;white-space:nowrap}
+ details.wh{margin:8px 10px;border:1px solid rgba(84,66,115,.12);border-radius:8px;background:#fff}
+ details.wh>summary{cursor:pointer;padding:8px 10px;display:flex;align-items:center;gap:8px;font-weight:700;color:#33506b;list-style:none}
+ details.wh>summary::before{content:"▸ ";}
+ details.wh[open]>summary::before{content:"▾ ";}
+ .whname{flex:1;text-align:left}
+ .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
+ .wact{padding:2px 7px;font-size:.95em;margin:0}
+ .firehead{margin:4px 0 10px;font-family:'Forum';font-weight:700;color:#E33D78;font-size:1.1em}
  .grand{margin-top:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(120,166,199,.2),rgba(227,61,120,.15));font-weight:700;color:#1C0D2E;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
  @media (max-width:640px){
    body{padding:8px}
@@ -66,6 +71,7 @@ const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],COST={},STOCKS={};
+let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -76,6 +82,12 @@ async function go(){
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   load();
+}
+function toggleFire(id,ev){
+  ev.preventDefault(); ev.stopPropagation();
+  if(FIRE.has(id))FIRE.delete(id); else FIRE.add(id);
+  localStorage.setItem('fire_wh',JSON.stringify([...FIRE]));
+  render();
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -98,36 +110,47 @@ async function load(){
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
+function whBlock(w,inFire,PROD){
+  const rows=w.entries.filter(e=>e.present>0).sort((a,b)=>(PROD.get(a.pid)?.name||'').localeCompare(PROD.get(b.pid)?.name||'','ru'));
+  const btn=inFire
+    ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
+    :`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
+  const body=rows.length?rows.map(e=>{const r=PROD.get(e.pid);const cost=COST[e.pid]||0,sum=e.present*cost;
+    return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num">${fmt(e.present)}</td><td class="num">${fmt(cost)}</td><td class="num">${fmt(sum)}</td></tr>`;}).join('')
+    :`<tr><td colspan="5" style="color:#94a3b8">нет остатков</td></tr>`;
+  return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
+    <div class="tablewrap"><table><thead><tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${body}</tbody></table></div></details>`;
+}
+function clusterBlock(c,ws,inFire,PROD){
+  const cs=ws.reduce((s,w)=>s+w.total,0), csum=ws.reduce((s,w)=>s+w.sum,0);
+  return `<details class="cluster" ${inFire?'open':''}><summary><span class="clname">${esc(c)}</span><span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></summary>`+
+    ws.sort((a,b)=>a.name.localeCompare(b.name,'ru')).map(w=>whBlock(w,inFire,PROD)).join('')+`</details>`;
+}
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
-  const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  const byC=new Map();
-  f.forEach(r=>(STOCKS[r.product_id]||[]).forEach(s=>{
-    const c=s.cluster||'Прочее';
-    if(!byC.has(c))byC.set(c,new Map());
-    const wm=byC.get(c);
-    if(!wm.has(s.warehouse_id))wm.set(s.warehouse_id,{name:s.warehouse_name,rows:[]});
-    wm.get(s.warehouse_id).rows.push({r,present:s.present||0});
-  }));
-  let html='';
-  [...byC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,wm])=>{
-    let cs=0,csum=0;
-    wm.forEach(w=>w.rows.forEach(({r,present})=>{cs+=present;csum+=present*(COST[r.product_id]||0);}));
-    html+=`<details class="cluster"><summary><span class="clname">${esc(c)}</span><span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></summary>
-      <div class="tablewrap"><table><thead><tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>`;
-    [...wm.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name,'ru')).forEach(([wid,w])=>{
-      let ws=0,wsum=0; w.rows.forEach(({r,present})=>{ws+=present;wsum+=present*(COST[r.product_id]||0);});
-      html+=`<tr class="wh"><td colspan="5">${esc(w.name)}<span class="whtot">${fmt(ws)} шт • ${fmt(wsum)} ₽</span></td></tr>`;
-      w.rows.sort((a,b)=>(a.r.name||'').localeCompare(b.r.name||'','ru')).forEach(({r,present})=>{
-        const cost=COST[r.product_id]||0, sum=present*cost;
-        html+=`<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${present===0?'zero':''}">${fmt(present)}</td><td class="num">${fmt(cost)}</td><td class="num ${present===0?'zero':''}">${fmt(sum)}</td></tr>`;
-      });
+  const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
+  const PROD=new Map(ROWS.map(r=>[r.product_id,r]));
+  const whMap=new Map();
+  for(const r of ROWS){ if(!match(r))continue;
+    (STOCKS[r.product_id]||[]).forEach(s=>{
+      if(!whMap.has(s.warehouse_id))whMap.set(s.warehouse_id,{id:s.warehouse_id,name:s.warehouse_name,cluster:s.cluster||'Прочее',entries:[]});
+      whMap.get(s.warehouse_id).entries.push({pid:r.product_id,present:s.present||0});
     });
-    html+=`</tbody></table></div></details>`;
+  }
+  whMap.forEach(w=>{ w.total=w.entries.reduce((s,e)=>s+e.present,0); w.sum=w.entries.reduce((s,e)=>s+e.present*(COST[e.pid]||0),0); });
+  const mainC=new Map(), fireC=new Map();
+  whMap.forEach(w=>{
+    if(FIRE.has(w.id)){ if(!fireC.has(w.cluster))fireC.set(w.cluster,[]); fireC.get(w.cluster).push(w); }
+    else if(w.total>0){ if(!mainC.has(w.cluster))mainC.set(w.cluster,[]); mainC.get(w.cluster).push(w); }
   });
-  const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
-  const tSum=f.reduce((s,r)=>s+(r.stock||0)*(COST[r.product_id]||0),0);
+  let html='';
+  if(fireC.size){
+    html+=`<div class="firehead">🔥 Пожар</div>`;
+    [...fireC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,ws])=>{html+=clusterBlock(c,ws,true,PROD);});
+  }
+  [...mainC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,ws])=>{html+=clusterBlock(c,ws,false,PROD);});
   document.getElementById('clusters').innerHTML=html;
+  let tStock=0,tSum=0; whMap.forEach(w=>{tStock+=w.total;tSum+=w.sum;});
   document.getElementById('grand').innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽</span>`;
 }
 </script></body></html>
