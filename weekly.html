@@ -22,13 +22,12 @@
  .g{color:#16a34a}.r{color:#E33D78}.o{color:#d97706}.n{color:#94a3b8}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
- .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none}
+ .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none;margin-left:auto}
  .switch input{display:none}
  .knob{width:42px;height:22px;border-radius:22px;background:#cbd5e1;position:relative;transition:.2s;flex:0 0 auto}
  .knob::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
  .switch input:checked+.knob{background:#E33D78}
  .switch input:checked+.knob::after{left:22px}
- .switch+.switch{margin-left:auto}
  .progress{margin:10px 0}
  .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
@@ -52,7 +51,8 @@
  details.wh[open]>summary::before{content:"▾ ";}
  .whname{flex:1;text-align:left}
  .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
- tr.clrow td{background:rgba(120,166,199,.18);font-weight:700;color:#33506b;cursor:pointer}
+ tr.clrow td{background:rgba(120,166,199,.18);font-weight:700;cursor:pointer}
+ tr.clrow td:first-child{color:#33506b}
  .caret{display:inline-block;margin-right:8px;transition:transform .15s}
  .clbody.closed .caret{transform:rotate(-90deg)}
  .clbody.closed tr.whrow{display:none}
@@ -64,7 +64,7 @@
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
-   .switch+.switch{margin-left:0}
+   .switch{margin-left:0}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.78em;min-width:900px}
    th,td{padding:5px 6px}
@@ -87,7 +87,6 @@
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
     <label class="switch"><input type="checkbox" id="byProd" onchange="render()"><span class="knob"></span>по товарам</label>
-    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>нецелевые (вне 7–14 дн)</label>
   </div>
   <div class="progress hide" id="progWrap">
     <div class="progtext" id="progText">Загрузка…</div>
@@ -218,7 +217,6 @@ function cmpCell(v,prev){
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
-  const onlyBad=document.getElementById('onlyBad').checked;
   const byProd=document.getElementById('byProd').checked;
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
   const d1=localISO(BASE);
@@ -234,9 +232,6 @@ function render(){
       const s1=SALES[o]?.[wh]?.[d1]||0, s2=SALES[o]?.[wh]?.[d2]||0, s3=SALES[o]?.[wh]?.[d3]||0, s4=SALES[o]?.[wh]?.[d4]||0;
       if(stock===0&&s1===0&&s2===0&&s3===0&&s4===0)return;
       const cost=COST[r.product_id]||0, sum=stock*cost;
-      const days=s1>0?stock/s1:null;
-      const target=(s1>0?(days>=7&&days<=14):stock===0);
-      if(onlyBad&&target)return;
       entries.push({o,name:r.name,cost,stock,sum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh});
     });
   }
@@ -258,7 +253,7 @@ function render(){
         cs:arr.reduce((s,e)=>s+e.stock,0), csum:arr.reduce((s,e)=>s+e.sum,0),
         c1:arr.reduce((s,e)=>s+e.s1,0), c2:arr.reduce((s,e)=>s+e.s2,0), c3:arr.reduce((s,e)=>s+e.s3,0), c4:arr.reduce((s,e)=>s+e.s4,0)
       })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
-        html+=`<tbody class="clbody"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
+        html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
           <td><span class="caret">▾</span>${esc(g.c)}</td>
           <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c1,g.c2)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c3,g.c4)}</tr>`;
         g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
