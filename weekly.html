@@ -80,7 +80,7 @@
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>только нецелевая (&gt;&nbsp;7&nbsp;дн)</label>
+    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>только нецелевая (&lt;&nbsp;7 и &gt;&nbsp;14&nbsp;дн)</label>
   </div>
   <div class="progress hide" id="progWrap">
     <div class="progtext" id="progText">Загрузка…</div>
@@ -94,13 +94,14 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},REF=null,SALESCOUNT=0;
+let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 let importing=false;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
-const iso=d=>d.toISOString().slice(0,10);
+const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
@@ -130,7 +131,7 @@ async function importFile(file){
     for(const r of rows){
       if(/отмен/i.test((r[4]||'').trim())){skipped++;continue;}
       const dt=(r[2]||'').trim().slice(0,10);
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){skipped++;continue;} // шапка и служебные строки
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){skipped++;continue;}
       const offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
       if(!offer||!wh||!isFinite(qty)){skipped++;continue;}
       const k=dt+'|'+offer+'|'+wh;
@@ -179,25 +180,28 @@ async function load(){
         (STOCK[o]=STOCK[o]||{}); STOCK[o][s.warehouse_name]=(STOCK[o][s.warehouse_name]||0)+(s.present||0);
         if(!WHCLUSTER[s.warehouse_name])WHCLUSTER[s.warehouse_name]=s.cluster||'Прочее';
       });
-      SALES={}; let max=null;
+      SALES={}; DATES=new Set(); let max=null;
       rl.forEach(x=>{
+        DATES.add(x.sale_date);
         ((SALES[x.offer_id]=SALES[x.offer_id]||{})[x.warehouse_name]=SALES[x.offer_id][x.warehouse_name]||{});
         SALES[x.offer_id][x.warehouse_name][x.sale_date]=(SALES[x.offer_id][x.warehouse_name][x.sale_date]||0)+x.qty;
         if(!max||x.sale_date>max)max=x.sale_date;
       });
       SALESCOUNT=rl.length;
-      REF=max?new Date(max+'T00:00:00'):null;
+      const now=new Date();
+      const yest=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
+      BASE=(DATES.has(localISO(yest)))?yest:(max?parseISO(max):yest);
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${REF?REF.toLocaleDateString('ru-RU'):'—'} • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 function daysCell(stock,s1){
-  if(s1>0){const d=stock/s1;const cls=d<=7?'g':(d<=14?'o':'r');return `<td class="num ${cls}">${d.toLocaleString('ru-RU',{maximumFractionDigits:1})}</td>`;}
-  if(stock>0)return `<td class="num r">∞</td>`;
+  if(s1>0){const d=stock/s1;const cls=d<7?'r':(d<=14?'g':'o');return `<td class="num ${cls}">${d.toLocaleString('ru-RU',{maximumFractionDigits:1})}</td>`;}
+  if(stock>0)return `<td class="num o">∞</td>`;
   return `<td class="num n">0</td>`;
 }
 function cmpCell(v,ref){
@@ -209,8 +213,10 @@ function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const onlyBad=document.getElementById('onlyBad').checked;
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
-  const d1=REF?iso(REF):null, d2=REF?iso(new Date(REF.getTime()-864e5)):null, d3=REF?iso(new Date(REF.getTime()-2*864e5)):null;
-  const lbl=x=>{const d=new Date(x+'T00:00:00');return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');};
+  const d1=localISO(BASE);
+  const d2=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-1));
+  const d3=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-2));
+  const lbl=x=>{const d=parseISO(x);return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');};
   const whMap=new Map();
   for(const r of ROWS){ if(!match(r))continue; const o=r.offer_id;
     for(const wh in (STOCK[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0};w.map.set(o,row);} row.stock=STOCK[o][wh]||0; }
@@ -221,7 +227,8 @@ function render(){
     w.map.forEach(row=>{
       const p=ROWS.find(x=>x.offer_id===row.o); if(!p)return;
       const cost=COST[p.product_id]||0, sum=row.stock*cost;
-      const target=(row.s1>0?(row.stock/row.s1)<=7:row.stock===0);
+      const days=row.s1>0?row.stock/row.s1:null;
+      const target=(row.s1>0?(days>=7&&days<=14):row.stock===0);
       if(onlyBad&&target)return;
       rowsArr.push({...row,name:p.name,cost,sum,target});
     });
@@ -233,7 +240,7 @@ function render(){
   const mainC=new Map(), fireC=new Map();
   whMap.forEach(w=>{ if(!w.disp.length)return; const t=FIRE.has(w.id)?fireC:mainC; if(!t.has(w.cluster))t.set(w.cluster,[]); t.get(w.cluster).push(w); });
   const sortC=map=>[...map.entries()].map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0)})).sort((a,b)=>b.sum-a.sum);
-  const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${d1?lbl(d1):'—'}</th><th>${d2?lbl(d2):'—'}</th><th>${d3?lbl(d3):'—'}</th></tr>`;
+  const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d1)}</th><th>${lbl(d2)}</th><th>${lbl(d3)}</th></tr>`;
   const whBlock=(w,inFire)=>{
     const btn=inFire
       ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
