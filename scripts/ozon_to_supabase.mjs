@@ -12,7 +12,6 @@ async function ozon(path,body){
 }
 const asArr=r=>Array.isArray(r?.result)?r.result:(r?.result?.items||[]);
 
-// ID склада -> [кластер, название склада]
 const WH={
  '1020000115166000':['Москва','ЖУКОВСКИЙ_РФЦ'],'23843917228000':['Москва','ПУШКИНО_1_РФЦ'],'15431806189000':['Москва','ХОРУГВИНО_РФЦ'],'23902289166000':['Москва','ПУШКИНО_2_РФЦ'],'1020001853819000':['Москва','ПЕТРОВСКОЕ_РФЦ'],'1020000759116000':['Москва','НОГИНСК_РФЦ'],'1020001853757000':['Москва','ДОМОДЕДОВО_РФЦ'],'1020000435290000':['Москва','ГРИВНО_РФЦ'],'1020000241710000':['Москва','СОФЬИНО_РФЦ'],
  '1020002006967000':['Ярославль','ЯРОСЛАВЛЬ_РФЦ'],
@@ -56,18 +55,26 @@ for(let i=0;i<items.length;i+=100){
   await sleep(300);
 }
 
+// остатки FBO: дочитываем страницы через last_id
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 const byProduct=new Map(); const unmapped={};
 for(let i=0;i<offersAll.length;i+=20){
   const of=offersAll.slice(i,i+20);
-  const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,last_id:'',limit:1000});
-  (r.products||[]).forEach(it=>{
-    const pid=it.product_id; if(pid==null)return;
-    const id=String(it.warehouse_id), m=WH[id];
-    if(!m) unmapped[id]=(unmapped[id]||0)+(it.present||0);
-    if(!byProduct.has(pid))byProduct.set(pid,[]);
-    byProduct.get(pid).push({warehouse_id:id,warehouse_name:m?m[1]:('Склад '+id),cluster:m?m[0]:'Прочее',present:it.present||0});
-  });
+  let lastF='';
+  do{
+    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,last_id:lastF,limit:1000});
+    (r.products||[]).forEach(it=>{
+      const pid=it.product_id; if(pid==null)return;
+      const id=String(it.warehouse_id), m=WH[id];
+      if(!m) unmapped[id]=(unmapped[id]||0)+(it.present||0);
+      if(!byProduct.has(pid))byProduct.set(pid,new Map());
+      const wm=byProduct.get(pid);
+      const cur=wm.get(id)||{warehouse_id:id,warehouse_name:m?m[1]:('Склад '+id),cluster:m?m[0]:'Прочее',present:0};
+      cur.present+=it.present||0;
+      wm.set(id,cur);
+    });
+    lastF=r.last_id||'';
+  }while(lastF);
   await sleep(400);
 }
 if(Object.keys(unmapped).length)console.log('UNMAPPED WAREHOUSES:',Object.entries(unmapped).map(([id,t])=>`${id}:${t}`).join(', '));
@@ -79,8 +86,8 @@ for(const b of items){
 
 const rows=items.map(b=>{
   const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
-  const sumStock=(byProduct.get(b.product_id)||[]).reduce((s,x)=>s+x.present,0);
-  return { product_id:b.product_id, offer_id:a.offer_id??b.offer_id??'', name:a.name??'', price:Number(p.price??0), stock:sumStock, visibility:a.visibility??'', raw:a, updated_at:new Date().toISOString() };
+  let sum=0; (byProduct.get(b.product_id)||new Map()).forEach(v=>sum+=v.present);
+  return { product_id:b.product_id, offer_id:a.offer_id??b.offer_id??'', name:a.name??'', price:Number(p.price??0), stock:sum, visibility:a.visibility??'', raw:a, updated_at:new Date().toISOString() };
 });
 if(rows.length){
   const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/products?on_conflict=product_id`,{
@@ -97,7 +104,7 @@ for(let i=0;i<items.length;i+=100){
   await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?product_id=in.(${pids})`,{method:'DELETE',headers:SR});
 }
 const stockRows=[];
-byProduct.forEach((list,pid)=>list.forEach(v=>stockRows.push({product_id:pid,warehouse_id:v.warehouse_id,warehouse_name:v.warehouse_name,cluster:v.cluster,present:v.present,updated_at:new Date().toISOString()})));
+byProduct.forEach((wm,pid)=>wm.forEach(v=>stockRows.push({product_id:pid,warehouse_id:v.warehouse_id,warehouse_name:v.warehouse_name,cluster:v.cluster,present:v.present,updated_at:new Date().toISOString()})));
 for(let i=0;i<stockRows.length;i+=500){
   const part=stockRows.slice(i,i+500);
   const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?on_conflict=product_id,warehouse_id`,{
@@ -107,4 +114,8 @@ for(let i=0;i<stockRows.length;i+=500){
   });
   if(!up.ok) throw new Error(`supabase stocks -> HTTP ${up.status}: ${await up.text()}`);
 }
+// проверка: сколько реально в БД
+const vr=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?select=present&limit=10000`,{headers:SR});
+const vrows=await vr.json();
+console.log('DB stocks rows:',vrows.length,'| DB sum present:',vrows.reduce((s,x)=>s+(x.present||0),0));
 console.log('synced products:',rows.length,'| stocks rows:',stockRows.length);
