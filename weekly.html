@@ -74,7 +74,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCKS={},GT={stock:0,sum:0};
+let ROWS=[],COST={},STOCKS={};
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -106,11 +106,10 @@ async function load(){
       ROWS=(await rp.json()).filter(x=>!x.archived);
       COST={}; (await rc.json()).forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
       STOCKS={}; (await rs.json()).forEach(s=>{ (STOCKS[s.product_id]=STOCKS[s.product_id]||[]).push(s); });
-      GT={stock:0,sum:0};
-      const ids=new Set(ROWS.map(r=>r.product_id));
-      ids.forEach(pid=>(STOCKS[pid]||[]).forEach(s=>{GT.stock+=s.present||0;GT.sum+=(s.present||0)*(COST[pid]||0);}));
+      const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
+      const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(GT.stock)} шт • ИТОГО сумма: ${fmt(GT.sum)} ₽ • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ИТОГО сумма: ${fmt(tSum)} ₽ • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
@@ -156,7 +155,9 @@ function render(){
   }
   [...mainC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,ws])=>{html+=clusterBlock(c,ws,false,PROD);});
   document.getElementById('clusters').innerHTML=html;
-  let tStock=0,tSum=0; whMap.forEach(w=>{tStock+=w.total;tSum+=w.sum;});
+  const f=ROWS.filter(match);
+  const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
+  const tSum=f.reduce((s,r)=>s+(r.stock||0)*(COST[r.product_id]||0),0);
   document.getElementById('grand').innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽</span>`;
 }
 </script></body></html>
