@@ -80,7 +80,7 @@
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>только нецелевая (&lt;&nbsp;7 и &gt;&nbsp;14&nbsp;дн)</label>
+    <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>нецелевые остатки (вне 7–14 дн)</label>
   </div>
   <div class="progress hide" id="progWrap">
     <div class="progtext" id="progText">Загрузка…</div>
@@ -204,9 +204,9 @@ function daysCell(stock,s1){
   if(stock>0)return `<td class="num o">∞</td>`;
   return `<td class="num n">0</td>`;
 }
-function cmpCell(v,ref){
+function cmpCell(v,prev){
   let cls='n',ar='→';
-  if(v>ref){cls='g';ar='↑';}else if(v<ref){cls='r';ar='↓';}
+  if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
 function render(){
@@ -216,16 +216,18 @@ function render(){
   const d1=localISO(BASE);
   const d2=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-1));
   const d3=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-2));
+  const d4=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-3));
   const lbl=x=>{const d=parseISO(x);return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');};
   const whMap=new Map();
   for(const r of ROWS){ if(!match(r))continue; const o=r.offer_id;
-    for(const wh in (STOCK[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0};w.map.set(o,row);} row.stock=STOCK[o][wh]||0; }
-    for(const wh in (SALES[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0};w.map.set(o,row);} row.s1=SALES[o][wh][d1]||0; row.s2=SALES[o][wh][d2]||0; row.s3=SALES[o][wh][d3]||0; }
+    for(const wh in (STOCK[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0,s4:0};w.map.set(o,row);} row.stock=STOCK[o][wh]||0; }
+    for(const wh in (SALES[o]||{})){ let w=whMap.get(wh); if(!w){w={id:wh,name:wh,cluster:WHCLUSTER[wh]||'Прочее',map:new Map()};whMap.set(wh,w);} let row=w.map.get(o); if(!row){row={o,stock:0,s1:0,s2:0,s3:0,s4:0};w.map.set(o,row);} row.s1=SALES[o][wh][d1]||0; row.s2=SALES[o][wh][d2]||0; row.s3=SALES[o][wh][d3]||0; row.s4=SALES[o][wh][d4]||0; }
   }
   whMap.forEach(w=>{
     const rowsArr=[];
     w.map.forEach(row=>{
       const p=ROWS.find(x=>x.offer_id===row.o); if(!p)return;
+      if(row.stock===0&&row.s1===0&&row.s2===0&&row.s3===0&&row.s4===0)return; // полностью неактивные нули скрываем (дают 0 в итогах)
       const cost=COST[p.product_id]||0, sum=row.stock*cost;
       const days=row.s1>0?row.stock/row.s1:null;
       const target=(row.s1>0?(days>=7&&days<=14):row.stock===0);
@@ -245,7 +247,7 @@ function render(){
     const btn=inFire
       ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
       :`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-    const body=w.disp.length?w.disp.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}<td class="num">${fmt(o.s1)}</td>${cmpCell(o.s2,o.s1)}${cmpCell(o.s3,o.s1)}</tr>`).join('')
+    const body=w.disp.length?w.disp.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s1,o.s2)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s3,o.s4)}</tr>`).join('')
       :`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
     return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
       <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
