@@ -24,12 +24,9 @@
  .rec.r{color:#E33D78}.rec.g{color:#16a34a}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
- .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none;margin-left:auto}
- .switch input{display:none}
- .knob{width:42px;height:22px;border-radius:22px;background:#cbd5e1;position:relative;transition:.2s;flex:0 0 auto}
- .knob::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
- .switch input:checked+.knob{background:#E33D78}
- .switch input:checked+.knob::after{left:22px}
+ .mode{display:flex;border:2px solid rgba(84,66,115,.25);border-radius:10px;overflow:hidden;margin-left:auto;flex:0 0 auto}
+ .mode button{padding:7px 14px;border:none;background:#fff;color:#544273;font-family:'Forum';font-size:.85em;cursor:pointer;border-radius:0}
+ .mode button.on{background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff}
  .progress{margin:10px 0}
  .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
@@ -72,7 +69,7 @@
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
-   .switch{margin-left:0}
+   .mode{margin-left:0}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.78em;min-width:900px}
    th,td{padding:5px 6px}
@@ -94,7 +91,10 @@
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="byProd" onchange="render()"><span class="knob"></span>по товарам</label>
+    <div class="mode">
+      <button id="modeCl" class="on" onclick="setMode(false)">По кластерам</button>
+      <button id="modePr" onclick="setMode(true)">По товарам</button>
+    </div>
   </div>
   <div class="progress hide" id="progWrap">
     <div class="progtext" id="progText">Загрузка…</div>
@@ -110,7 +110,7 @@ const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
-let importing=false;
+let importing=false, BYPROD=false;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -118,6 +118,12 @@ const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
+function setMode(v){
+  BYPROD=v;
+  document.getElementById('modeCl').classList.toggle('on',!v);
+  document.getElementById('modePr').classList.toggle('on',v);
+  render();
+}
 async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
@@ -239,7 +245,7 @@ function recText(cs,c1,T){
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
-  const byProd=document.getElementById('byProd').checked;
+  const byProd=BYPROD;
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
   const now=new Date(); const T=DOW_TARGET[now.getDay()];
   const d1=localISO(BASE);
@@ -275,7 +281,7 @@ function render(){
     prods.forEach(p=>{ if(!supMap.has(p.supplier))supMap.set(p.supplier,[]); supMap.get(p.supplier).push(p); });
     const sups=[...supMap.entries()].map(([s,arr])=>({s,arr,stock:arr.reduce((a,p)=>a+p.total,0),sum:arr.reduce((a,p)=>a+p.sum,0)})).sort((a,b)=>b.sum-a.sum);
     sups.forEach(sp=>{
-      html+=`<details class="sup" open><summary><span class="clname">${esc(sp.s)}</span><span class="cltot">${fmt(sp.stock)} шт • ${fmt(sp.sum)} ₽</span></summary><div class="supbody">`;
+      html+=`<details class="sup"><summary><span class="clname">${esc(sp.s)}</span><span class="cltot">${fmt(sp.stock)} шт • ${fmt(sp.sum)} ₽</span></summary><div class="supbody">`;
       sp.arr.sort((a,b)=>b.sum-a.sum).forEach(p=>{
         html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.total)} шт • ${fmt(p.sum)} ₽</span></summary>
           <div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr></thead>`;
