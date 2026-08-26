@@ -22,11 +22,14 @@
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input{flex:1;min-width:200px}
  details.cluster{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 12px}
- details.cluster summary{cursor:pointer;padding:10px 14px;font-family:'Forum';font-weight:700;color:#544273;user-select:none;list-style:none;display:flex;justify-content:space-between;gap:10px}
- details.cluster summary::before{content:"▸ ";}
- details.cluster[open] summary::before{content:"▾ ";}
- details.cluster[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
- .cltot{color:#1C0D2E;font-size:.9em;white-space:nowrap}
+ details.cluster>summary{cursor:pointer;padding:10px 14px;font-family:'Forum';font-weight:700;color:#544273;user-select:none;list-style:none;display:flex;align-items:center;gap:10px}
+ details.cluster>summary::before{content:"▸ ";}
+ details.cluster[open]>summary::before{content:"▾ ";}
+ details.cluster[open]>summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ .clname{flex:1;text-align:left}
+ .cltot{color:#1C0D2E;font-size:.9em;white-space:nowrap;margin-left:auto}
+ tr.wh td{background:rgba(120,166,199,.12);font-weight:700;color:#33506b;padding-top:10px}
+ .whtot{float:right;color:#1C0D2E;font-size:.9em;white-space:nowrap}
  .grand{margin-top:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(120,166,199,.2),rgba(227,61,120,.15));font-weight:700;color:#1C0D2E;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
  @media (max-width:640px){
    body{padding:8px}
@@ -81,7 +84,7 @@ async function load(){
       const [rp,rc,rs]=await Promise.all([
         fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,stock,archived,updated_at&order=name.asc&limit=1000',{headers:HD}),
         fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc&limit=10000',{headers:HD}),
-        fetch(SUPABASE_URL+'/rest/v1/product_stocks?select=product_id,warehouse_name,present&limit=10000',{headers:HD})
+        fetch(SUPABASE_URL+'/rest/v1/product_stocks?select=product_id,warehouse_id,warehouse_name,cluster,present&limit=10000',{headers:HD})
       ]);
       if(!rp.ok||!rc.ok||!rs.ok) throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
@@ -98,23 +101,29 @@ async function load(){
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  const whSet=new Set();
-  f.forEach(r=>(STOCKS[r.product_id]||[]).forEach(s=>whSet.add(s.warehouse_name)));
-  const warehouses=[...whSet].sort((a,b)=>String(a).localeCompare(String(b),'ru'));
+  const byC=new Map();
+  f.forEach(r=>(STOCKS[r.product_id]||[]).forEach(s=>{
+    const c=s.cluster||'Прочее';
+    if(!byC.has(c))byC.set(c,new Map());
+    const wm=byC.get(c);
+    if(!wm.has(s.warehouse_id))wm.set(s.warehouse_id,{name:s.warehouse_name,rows:[]});
+    wm.get(s.warehouse_id).rows.push({r,present:s.present||0});
+  }));
   let html='';
-  warehouses.forEach(wh=>{
-    const arr=f.filter(r=>(STOCKS[r.product_id]||[]).some(s=>s.warehouse_name===wh));
-    if(!arr.length)return;
-    const get=r=>(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh);
-    const cs=arr.reduce((s,r)=>s+(get(r)?.present||0),0);
-    const csum=arr.reduce((s,r)=>s+(get(r)?.present||0)*(COST[r.product_id]||0),0);
-    html+=`<details class="cluster"><summary>${esc(wh)}<span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></summary>
-      <div class="tablewrap"><table><thead><tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>`+
-      arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(r=>{
-        const s=get(r)?.present||0, cost=COST[r.product_id]||0, sum=s*cost;
-        return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${s===0?'zero':''}">${fmt(s)}</td><td class="num">${fmt(cost)}</td><td class="num ${s===0?'zero':''}">${fmt(sum)}</td></tr>`;
-      }).join('')+
-      `</tbody></table></div></details>`;
+  [...byC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,wm])=>{
+    let cs=0,csum=0;
+    wm.forEach(w=>w.rows.forEach(({r,present})=>{cs+=present;csum+=present*(COST[r.product_id]||0);}));
+    html+=`<details class="cluster"><summary><span class="clname">${esc(c)}</span><span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></summary>
+      <div class="tablewrap"><table><thead><tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>`;
+    [...wm.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name,'ru')).forEach(([wid,w])=>{
+      let ws=0,wsum=0; w.rows.forEach(({r,present})=>{ws+=present;wsum+=present*(COST[r.product_id]||0);});
+      html+=`<tr class="wh"><td colspan="5">${esc(w.name)}<span class="whtot">${fmt(ws)} шт • ${fmt(wsum)} ₽</span></td></tr>`;
+      w.rows.sort((a,b)=>(a.r.name||'').localeCompare(b.r.name||'','ru')).forEach(({r,present})=>{
+        const cost=COST[r.product_id]||0, sum=present*cost;
+        html+=`<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${present===0?'zero':''}">${fmt(present)}</td><td class="num">${fmt(cost)}</td><td class="num ${present===0?'zero':''}">${fmt(sum)}</td></tr>`;
+      });
+    });
+    html+=`</tbody></table></div></details>`;
   });
   const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
   const tSum=f.reduce((s,r)=>s+(r.stock||0)*(COST[r.product_id]||0),0);
