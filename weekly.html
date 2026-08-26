@@ -14,7 +14,6 @@
  table{width:100%;border-collapse:collapse;font-size:.88em;min-width:640px}
  th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
  th{color:#666}
- tfoot td{border-top:2px solid rgba(84,66,115,.2);border-bottom:none;font-weight:700;color:#1C0D2E}
  .hide{display:none}
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
@@ -22,8 +21,13 @@
  .zero{color:#E33D78}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input{flex:1;min-width:200px}
- tr.cluster td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:14px;border-bottom:2px solid rgba(84,66,115,.2)}
- .cltot{float:right;color:#1C0D2E;font-size:.9em;white-space:nowrap}
+ details.cluster{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 12px}
+ details.cluster summary{cursor:pointer;padding:10px 14px;font-family:'Forum';font-weight:700;color:#544273;user-select:none;list-style:none;display:flex;justify-content:space-between;gap:10px}
+ details.cluster summary::before{content:"▸ ";}
+ details.cluster[open] summary::before{content:"▾ ";}
+ details.cluster[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ .cltot{color:#1C0D2E;font-size:.9em;white-space:nowrap}
+ .grand{margin-top:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(120,166,199,.2),rgba(227,61,120,.15));font-weight:700;color:#1C0D2E;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -50,11 +54,8 @@
     <input id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <button onclick="load()">⟳ Обновить</button>
   </div>
-  <div class="tablewrap">
-    <table><thead><tr>
-      <th>Артикул</th><th>Название</th><th>Остаток FBO, шт</th><th>Цена, ₽</th><th>Сумма, ₽</th>
-    </tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
-  </div>
+  <div id="clusters"></div>
+  <div class="grand" id="grand"></div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
@@ -85,7 +86,7 @@ async function load(){
       if(!rp.ok||!rc.ok||!rs.ok) throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       COST={}; (await rc.json()).forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
-      STOCKS={}; (await rs.json()).forEach(s=>{ if(!STOCKS[s.product_id])STOCKS[s.product_id]=[]; STOCKS[s.product_id].push(s); });
+      STOCKS={}; (await rs.json()).forEach(s=>{ (STOCKS[s.product_id]=STOCKS[s.product_id]||[]).push(s); });
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
@@ -97,27 +98,27 @@ async function load(){
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  // собираем все склады, которые встречаются у отфильтрованных товаров
   const whSet=new Set();
   f.forEach(r=>(STOCKS[r.product_id]||[]).forEach(s=>whSet.add(s.warehouse_name)));
   const warehouses=[...whSet].sort((a,b)=>String(a).localeCompare(String(b),'ru'));
   let html='';
   warehouses.forEach(wh=>{
-    // позиции, у которых есть остаток на этом складе
     const arr=f.filter(r=>(STOCKS[r.product_id]||[]).some(s=>s.warehouse_name===wh));
     if(!arr.length)return;
-    const cs=arr.reduce((s,r)=>{ const st=(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh); return s+(st?st.present:0); },0);
-    const csum=arr.reduce((s,r)=>{ const st=(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh); return s+(st?st.present:0)*(COST[r.product_id]||0); },0);
-    html+=`<tr class="cluster"><td colspan="5">${esc(wh)}<span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></td></tr>`;
-    arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).forEach(r=>{
-      const st=(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh);
-      const s=st?st.present:0, cost=COST[r.product_id]||0, sum=s*cost;
-      html+=`<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${s===0?'zero':''}">${fmt(s)}</td><td class="num">${fmt(cost)}</td><td class="num ${s===0?'zero':''}">${fmt(sum)}</td></tr>`;
-    });
+    const get=r=>(STOCKS[r.product_id]||[]).find(s=>s.warehouse_name===wh);
+    const cs=arr.reduce((s,r)=>s+(get(r)?.present||0),0);
+    const csum=arr.reduce((s,r)=>s+(get(r)?.present||0)*(COST[r.product_id]||0),0);
+    html+=`<details class="cluster"><summary>${esc(wh)}<span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></summary>
+      <div class="tablewrap"><table><thead><tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>`+
+      arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(r=>{
+        const s=get(r)?.present||0, cost=COST[r.product_id]||0, sum=s*cost;
+        return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num ${s===0?'zero':''}">${fmt(s)}</td><td class="num">${fmt(cost)}</td><td class="num ${s===0?'zero':''}">${fmt(sum)}</td></tr>`;
+      }).join('')+
+      `</tbody></table></div></details>`;
   });
   const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
   const tSum=f.reduce((s,r)=>s+(r.stock||0)*(COST[r.product_id]||0),0);
-  document.getElementById('tb').innerHTML=html;
-  document.getElementById('tf').innerHTML=`<tr><td colspan="2" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tStock)}</td><td class="num"></td><td class="num">${fmt(tSum)} ₽</td></tr>`;
+  document.getElementById('clusters').innerHTML=html;
+  document.getElementById('grand').innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽</span>`;
 }
 </script></body></html>
