@@ -129,10 +129,12 @@ async function importFile(file){
     const agg=new Map(); let skipped=0;
     for(const r of rows){
       if(/отмен/i.test((r[4]||'').trim())){skipped++;continue;}
-      const dt=(r[2]||'').slice(0,10), offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
-      if(!dt||!offer||!wh){skipped++;continue;}
+      const dt=(r[2]||'').trim().slice(0,10);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){skipped++;continue;} // шапка и служебные строки
+      const offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
+      if(!offer||!wh||!isFinite(qty)){skipped++;continue;}
       const k=dt+'|'+offer+'|'+wh;
-      agg.set(k,(agg.get(k)||0)+(isFinite(qty)?qty:0));
+      agg.set(k,(agg.get(k)||0)+qty);
     }
     const out=[...agg.entries()].map(([k,qty])=>{const [sale_date,offer_id,warehouse_name]=k.split('|');return {sale_date,offer_id,warehouse_name,qty};});
     if(!out.length){ setP(100,'В файле нет подходящих строк (все пропущены).',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
