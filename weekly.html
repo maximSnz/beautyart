@@ -10,7 +10,8 @@
  h2{font-family:'Forum';color:#1C0D2E}
  input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
- table{width:100%;border-collapse:collapse;font-size:.88em}
+ .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ table{width:100%;border-collapse:collapse;font-size:.88em;min-width:640px}
  th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
  th{color:#666}
  tfoot td{border-top:2px solid rgba(84,66,115,.2);border-bottom:none;font-weight:700;color:#1C0D2E}
@@ -21,6 +22,17 @@
  .zero{color:#E33D78}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input{flex:1;min-width:200px}
+ @media (max-width:640px){
+   body{padding:8px}
+   .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
+   h2{font-size:1.15em}
+   .toolbar{flex-direction:column;align-items:stretch}
+   .toolbar input{width:100%;min-width:0}
+   button{padding:10px 14px;font-size:1em}
+   table{font-size:.8em;min-width:560px}
+   th,td{padding:5px 6px}
+   .meta{font-size:.78em}
+ }
 </style></head>
 <body>
 <div class="login" id="login">
@@ -36,9 +48,11 @@
     <input id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <button onclick="load()">⟳ Обновить</button>
   </div>
-  <table><thead><tr>
-    <th>Артикул</th><th>Название</th><th>Остаток FBO, шт</th><th>Цена, ₽</th><th>Сумма, ₽</th>
-  </tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
+  <div class="tablewrap">
+    <table><thead><tr>
+      <th>Артикул</th><th>Название</th><th>Остаток FBO, шт</th><th>Цена, ₽</th><th>Сумма, ₽</th>
+    </tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
+  </div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
