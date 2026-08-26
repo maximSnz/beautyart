@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Art — Еженедельные заявки</title>
+<title>Beauty Art — Управление остатками</title>
 <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 <style>
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
@@ -19,7 +19,9 @@
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
- .g{color:#16a34a}.r{color:#E33D78}.o{color:#d97706}.n{color:#94a3b8}
+ .g{color:#16a34a}.r{color:#E33D78}.n{color:#94a3b8}
+ .rec{display:inline-block;margin-left:12px;font-size:.85em;font-weight:700;white-space:normal}
+ .rec.r{color:#E33D78}.rec.g{color:#16a34a}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none;margin-left:auto}
@@ -53,8 +55,6 @@
  .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
  tr.clrow td{background:rgba(120,166,199,.18);font-weight:700;cursor:pointer}
  tr.clrow td:first-child{color:#33506b}
- tr.recrow td{padding:5px 8px 8px 30px;font-size:.9em;font-weight:700;background:rgba(255,255,255,.6)}
- tr.recrow.g td{color:#16a34a} tr.recrow.r td{color:#E33D78} tr.recrow.o td{color:#d97706} tr.recrow.n td{color:#94a3b8}
  .caret{display:inline-block;margin-right:8px;transition:transform .15s}
  .clbody.closed .caret{transform:rotate(-90deg)}
  .clbody.closed tr.whrow{display:none}
@@ -80,7 +80,7 @@
   <button onclick="go()">Войти</button>
 </div>
 <div class="wrap hide" id="app">
-  <h2>📋 Еженедельные заявки</h2>
+  <h2>📦 Управление остатками</h2>
   <div class="meta" id="meta">загрузка…</div>
   <div class="err" id="err"></div>
   <div class="toolbar">
@@ -110,7 +110,6 @@ const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
-// целевая оборачиваемость по дню недели: пн13 вт12 ср11 чт10 пт9 сб8 вс7
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
 async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
@@ -222,14 +221,14 @@ function cmpCell(v,prev){
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
 function recText(cs,c1,T){
-  if(cs<=0)return {txt:'нет остатка — продажи не обеспечить',cls:'n',icon:'⛔'};
+  if(cs<=0)return null;
   const vr=cs/T;
-  if(c1<=0)return {txt:`увеличить продажи на ${fmt(Math.ceil(vr))} шт/день (продаж за последний день нет)`,cls:'r',icon:'📈'};
+  if(c1<=0)return {txt:`увеличить продажи на ${fmt(Math.ceil(vr))} шт/день`,cls:'r'};
   const delta=vr-c1;
-  if(Math.abs(delta)<=Math.max(0.5,0.05*c1))return {txt:'динамика в цели',cls:'g',icon:'✅'};
+  if(Math.abs(delta)<=Math.max(0.5,0.05*c1))return null;
   const pct=Math.round(Math.abs(delta)/c1*100);
-  if(delta>0)return {txt:`увеличить продажи на ${fmt(Math.max(1,Math.round(delta)))} шт (+${pct}%)`,cls:'r',icon:'📈'};
-  return {txt:`уменьшить продажи на ${fmt(Math.max(1,Math.round(-delta)))} шт (−${pct}%)`,cls:'o',icon:'📉'};
+  if(delta>0)return {txt:`увеличить продажи на ${fmt(Math.max(1,Math.round(delta)))} шт/день (+${pct}%)`,cls:'r'};
+  return {txt:`уменьшить продажи на ${fmt(Math.max(1,Math.round(-delta)))} шт/день (−${pct}%)`,cls:'g'};
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -272,9 +271,8 @@ function render(){
       })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
         const rec=recText(g.cs,g.c1,T);
         html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-          <td><span class="caret">▾</span>${esc(g.c)}</td>
-          <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c1,g.c2)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c3,g.c4)}</tr>
-          <tr class="recrow ${rec.cls}"><td colspan="7">${rec.icon} ${rec.txt} • цель на ${DOW_NAME[now.getDay()]}: ${T} дн</td></tr>`;
+          <td><span class="caret">▾</span>${esc(g.c)}${rec?`<span class="rec ${rec.cls}">${rec.txt}</span>`:''}</td>
+          <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c1,g.c2)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c3,g.c4)}</tr>`;
         g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
           html+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s1,e.s2)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s3,e.s4)}</tr>`;
         });
