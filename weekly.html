@@ -52,7 +52,11 @@
  details.wh[open]>summary::before{content:"▾ ";}
  .whname{flex:1;text-align:left}
  .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
- tr.wh td{background:rgba(120,166,199,.12);font-weight:700;color:#33506b;padding-top:10px}
+ tr.clrow td{background:rgba(120,166,199,.18);font-weight:700;color:#33506b;cursor:pointer}
+ .caret{display:inline-block;margin-right:8px;transition:transform .15s}
+ .clbody.closed .caret{transform:rotate(-90deg)}
+ .clbody.closed tr.whrow{display:none}
+ td.whcell{padding-left:30px;color:#544273}
  .wact{padding:2px 7px;font-size:.95em;margin:0}
  .grand{margin-top:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(120,166,199,.2),rgba(227,61,120,.15));font-weight:700;color:#1C0D2E;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
  @media (max-width:640px){
@@ -222,7 +226,6 @@ function render(){
   const d3=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-2));
   const d4=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-3));
   const lbl=x=>{const d=parseISO(x);return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');};
-  // плоский список строк (товар × склад)
   const entries=[];
   for(const r of ROWS){ if(!match(r))continue; const o=r.offer_id;
     const whs=new Set([...Object.keys(STOCK[o]||{}),...Object.keys(SALES[o]||{})]);
@@ -239,7 +242,6 @@ function render(){
   }
   let html='';
   if(byProd){
-    // товар -> кластер -> склад
     const prodMap=new Map();
     entries.forEach(e=>{
       if(!prodMap.has(e.o))prodMap.set(e.o,{o:e.o,name:e.name,clusters:new Map()});
@@ -247,24 +249,26 @@ function render(){
       if(!p.clusters.has(e.cluster))p.clusters.set(e.cluster,[]);
       p.clusters.get(e.cluster).push(e);
     });
-    const prods=[...prodMap.values()].map(p=>{
-      let tS=0,tM=0; p.clusters.forEach(a=>a.forEach(e=>{tS+=e.stock;tM+=e.sum;}));
-      p.total=tS;p.sum=tM;return p;
-    }).sort((a,b)=>b.sum-a.sum);
+    const prods=[...prodMap.values()].map(p=>{let tS=0,tM=0;p.clusters.forEach(a=>a.forEach(e=>{tS+=e.stock;tM+=e.sum;}));p.total=tS;p.sum=tM;return p;}).sort((a,b)=>b.sum-a.sum);
     prods.forEach(p=>{
       html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.total)} шт • ${fmt(p.sum)} ₽</span></summary>
-        <div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d1)}</th><th>${lbl(d2)}</th><th>${lbl(d3)}</th></tr></thead><tbody>`;
-      [...p.clusters.entries()].map(([c,arr])=>({c,arr,sum:arr.reduce((s,e)=>s+e.sum,0)})).sort((a,b)=>b.sum-a.sum).forEach(g=>{
-        const cs=g.arr.reduce((s,e)=>s+e.stock,0);
-        html+=`<tr class="wh"><td colspan="7">${esc(g.c)}<span class="whtot">${fmt(cs)} шт • ${fmt(g.sum)} ₽</span></td></tr>`;
+        <div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d1)}</th><th>${lbl(d2)}</th><th>${lbl(d3)}</th></tr></thead>`;
+      [...p.clusters.entries()].map(([c,arr])=>({
+        c,arr,
+        cs:arr.reduce((s,e)=>s+e.stock,0), csum:arr.reduce((s,e)=>s+e.sum,0),
+        c1:arr.reduce((s,e)=>s+e.s1,0), c2:arr.reduce((s,e)=>s+e.s2,0), c3:arr.reduce((s,e)=>s+e.s3,0), c4:arr.reduce((s,e)=>s+e.s4,0)
+      })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
+        html+=`<tbody class="clbody"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
+          <td><span class="caret">▾</span>${esc(g.c)}</td>
+          <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c1,g.c2)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c3,g.c4)}</tr>`;
         g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
-          html+=`<tr><td>${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s1,e.s2)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s3,e.s4)}</tr>`;
+          html+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s1,e.s2)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s3,e.s4)}</tr>`;
         });
+        html+=`</tbody>`;
       });
-      html+=`</tbody></table></div></details>`;
+      html+=`</table></div></details>`;
     });
   }else{
-    // кластер -> склад -> товар
     const whMap=new Map();
     entries.forEach(e=>{ if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,rows:[]}); whMap.get(e.wh).rows.push(e); });
     whMap.forEach(w=>{ w.rows.sort((a,b)=>b.sum-a.sum); w.total=w.rows.reduce((s,x)=>s+x.stock,0); w.sum=w.rows.reduce((s,x)=>s+x.sum,0); });
