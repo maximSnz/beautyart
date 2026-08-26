@@ -23,40 +23,46 @@ async function tryBatch(paths,chunk,fill){
   }
   return null;
 }
-
 for(let i=0;i<items.length;i+=100){
   const chunk=items.slice(i,i+100).map(x=>x.product_id);
   await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
   await sleep(300);
 }
 
-// остатки FBO по складам (product_id + warehouse)
+// справочник складов id->name
+const whMap={};
+for(const p of ['/v3/warehouse/list','/v2/warehouse/list','/v1/warehouse/list']){
+  try{
+    const r=await ozon(p,{});
+    const list=r.result||r.warehouses||[];
+    list.forEach(w=>{ if(w.warehouse_id!=null) whMap[w.warehouse_id]=w.name||w.title||null; });
+    if(Object.keys(whMap).length){ console.log('warehouse map src:',p,'size:',Object.keys(whMap).length); break; }
+  }catch(e){}
+  await sleep(200);
+}
+
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
-const byProduct=new Map(); // product_id -> [{warehouse_name, present}]
+const byProduct=new Map();
+let loggedFirst=false;
 for(let i=0;i<offersAll.length;i+=20){
   const of=offersAll.slice(i,i+20);
   const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,last_id:'',limit:1000});
-  (r.products||[]).forEach(it=>{
-    const pid=it.product_id;
-    const wh=it.warehouse_name||it.warehouse||('wh_'+(it.warehouse_id||it.sku||'unknown'));
-    const present=it.present||0;
-    if(pid==null)return;
+  const list=r.products||[];
+  if(!loggedFirst&&list.length){ console.log('FBO first item:',JSON.stringify(list[0])); loggedFirst=true; }
+  list.forEach(it=>{
+    const pid=it.product_id; if(pid==null)return;
+    const wh=it.warehouse_name||it.name||whMap[it.warehouse_id]||('wh_'+(it.warehouse_id||it.sku||'unknown'));
     if(!byProduct.has(pid))byProduct.set(pid,[]);
-    byProduct.get(pid).push({warehouse_name:String(wh),present});
+    byProduct.get(pid).push({warehouse_name:String(wh),present:it.present||0});
   });
   await sleep(400);
 }
 
-// цены поштучно
 for(const b of items){
-  try{
-    const r=await ozon('/v2/product/info',{product_id:b.product_id});
-    prices[b.product_id]=r.result||{};
-  }catch(e){}
+  try{ const r=await ozon('/v2/product/info',{product_id:b.product_id}); prices[b.product_id]=r.result||{}; }catch(e){}
   await sleep(150);
 }
 
-// записываем products
 const rows=items.map(b=>{
   const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
   const sumStock=(byProduct.get(b.product_id)||[]).reduce((s,x)=>s+x.present,0);
@@ -71,11 +77,8 @@ if(rows.length){
   if(!up.ok) throw new Error(`supabase products -> HTTP ${up.status}: ${await up.text()}`);
 }
 
-// записываем product_stocks (upsert по (product_id, warehouse_name))
 const stockRows=[];
-byProduct.forEach((list,pid)=>{
-  list.forEach(({warehouse_name,present})=>stockRows.push({product_id:pid,warehouse_name,present,updated_at:new Date().toISOString()}));
-});
+byProduct.forEach((list,pid)=>list.forEach(({warehouse_name,present})=>stockRows.push({product_id:pid,warehouse_name,present,updated_at:new Date().toISOString()})));
 if(stockRows.length){
   const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?on_conflict=product_id,warehouse_name`,{
     method:'POST',
@@ -83,11 +86,5 @@ if(stockRows.length){
     body:JSON.stringify(stockRows)
   });
   if(!up.ok) throw new Error(`supabase stocks -> HTTP ${up.status}: ${await up.text()}`);
-  // удаляем строки для товаров, которых больше нет
-  const allPids=items.map(x=>x.product_id);
-  for(let i=0;i<allPids.length;i+=100){
-    const pids=allPids.slice(i,i+100);
-    await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc`,{method:'POST',headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({})}).catch(()=>{});
-  }
 }
 console.log('synced products:',rows.length,'| stocks rows:',stockRows.length);
