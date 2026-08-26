@@ -56,6 +56,7 @@ for(let i=0;i<items.length;i+=100){
   await sleep(300);
 }
 
+// остатки FBO: агрегируем по (товар, склад)
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 const byProduct=new Map(); const unmapped={};
 for(let i=0;i<offersAll.length;i+=20){
@@ -68,17 +69,20 @@ for(let i=0;i<offersAll.length;i+=20){
     if(!byProduct.has(pid))byProduct.set(pid,new Map());
     const wm=byProduct.get(pid);
     const cur=wm.get(id)||{warehouse_id:id,warehouse_name:m?m[1]:('Склад '+id),cluster:m?m[0]:'Прочее',present:0};
-    cur.present+=it.present||0; wm.set(id,cur);
+    cur.present+=it.present||0;
+    wm.set(id,cur);
   });
   await sleep(400);
 }
 if(Object.keys(unmapped).length)console.log('UNMAPPED WAREHOUSES:',Object.entries(unmapped).map(([id,t])=>`${id}:${t}`).join(', '));
 
+// цены поштучно
 for(const b of items){
   try{ const r=await ozon('/v2/product/info',{product_id:b.product_id}); prices[b.product_id]=r.result||{}; }catch(e){}
   await sleep(150);
 }
 
+// товары
 const rows=items.map(b=>{
   const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
   let sum=0; (byProduct.get(b.product_id)||new Map()).forEach(v=>sum+=v.present);
@@ -93,10 +97,20 @@ if(rows.length){
   if(!up.ok) throw new Error(`supabase products -> HTTP ${up.status}: ${await up.text()}`);
 }
 
+// остатки по складам: чистим старые строки и пишем новые (product_id обязателен)
 const SR={ apikey:process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` };
 for(let i=0;i<items.length;i+=100){
   const pids=items.slice(i,i+100).map(x=>x.product_id).join(',');
   await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?product_id=in.(${pids})`,{method:'DELETE',headers:SR});
 }
 const stockRows=[];
-byProduct.forEach(wm=>wm.forEach(v=>stockRows.push({product_id:v.warehouse_id?undefined:undefined, ...v, updated_at:new Date().toISOString()})));
+byProduct.forEach((wm,pid)=>wm.forEach(v=>stockRows.push({product_id:pid,warehouse_id:v.warehouse_id,warehouse_name:v.warehouse_name,cluster:v.cluster,present:v.present,updated_at:new Date().toISOString()})));
+if(stockRows.length){
+  const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?on_conflict=product_id,warehouse_id`,{
+    method:'POST',
+    headers:{ ...SR, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' },
+    body:JSON.stringify(stockRows)
+  });
+  if(!up.ok) throw new Error(`supabase stocks -> HTTP ${up.status}: ${await up.text()}`);
+}
+console.log('synced products:',rows.length,'| stocks rows:',stockRows.length);
