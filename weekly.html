@@ -19,13 +19,13 @@
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
- .g{color:#16a34a}.r{color:#E33D78}.n{color:#94a3b8}
+ .g{color:#16a34a}.r{color:#E33D78}.o{color:#d97706}.n{color:#94a3b8}
  .rec{display:inline-block;margin-left:12px;font-size:.85em;font-weight:700;white-space:normal}
  .rec.r{color:#E33D78}.rec.g{color:#16a34a}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  .mode{display:flex;border:2px solid rgba(84,66,115,.25);border-radius:10px;overflow:hidden;margin-left:auto;flex:0 0 auto}
- .mode button{padding:7px 14px;border:none;background:#fff;color:#544273;font-family:'Forum';font-size:.85em;cursor:pointer;border-radius:0}
+ .mode button{padding:7px 12px;border:none;background:#fff;color:#544273;font-family:'Forum';font-size:.85em;cursor:pointer;border-radius:0}
  .mode button.on{background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff}
  .progress{margin:10px 0}
  .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
@@ -92,8 +92,9 @@
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
     <div class="mode">
-      <button id="modeCl" class="on" onclick="setMode(false)">По кластерам</button>
-      <button id="modePr" onclick="setMode(true)">По товарам</button>
+      <button id="modeCl" class="on" onclick="setMode('clusters')">По кластерам</button>
+      <button id="modePr" onclick="setMode('products')">По товарам</button>
+      <button id="modeDev" onclick="setMode('deviation')">По отклонению</button>
     </div>
   </div>
   <div class="progress hide" id="progWrap">
@@ -110,7 +111,7 @@ const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
-let importing=false, BYPROD=false;
+let importing=false, MODE='clusters';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -118,10 +119,11 @@ const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
-function setMode(v){
-  BYPROD=v;
-  document.getElementById('modeCl').classList.toggle('on',!v);
-  document.getElementById('modePr').classList.toggle('on',v);
+function setMode(m){
+  MODE=m;
+  document.getElementById('modeCl').classList.toggle('on',m==='clusters');
+  document.getElementById('modePr').classList.toggle('on',m==='products');
+  document.getElementById('modeDev').classList.toggle('on',m==='deviation');
   render();
 }
 async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
@@ -245,7 +247,6 @@ function recText(cs,c1,T){
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
-  const byProd=BYPROD;
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
   const now=new Date(); const T=DOW_TARGET[now.getDay()];
   const d1=localISO(BASE);
@@ -265,7 +266,24 @@ function render(){
     });
   }
   let html='';
-  if(byProd){
+  if(MODE==='deviation'){
+    const agg=new Map();
+    entries.forEach(e=>{
+      let p=agg.get(e.o);
+      if(!p){p={o:e.o,name:e.name,cost:e.cost,stock:0,s1:0,s2:0,s3:0,s4:0};agg.set(e.o,p);}
+      p.stock+=e.stock;p.s1+=e.s1;p.s2+=e.s2;p.s3+=e.s3;p.s4+=e.s4;
+    });
+    const prods=[...agg.values()].map(p=>{
+      p.sum=p.stock*p.cost; p.plan=p.s1*T*p.cost; p.delta=p.sum-p.plan; return p;
+    });
+    const deficit=prods.filter(p=>p.delta<0).sort((a,b)=>a.delta-b.delta);
+    const over=prods.filter(p=>p.delta>=0).sort((a,b)=>b.delta-a.delta);
+    const headDev=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Себестоимость</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th><th>План (${T} дн)</th><th>Δ план/факт</th></tr>`;
+    const rowDev=o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}<td class="num">${fmt(o.plan)}</td><td class="num ${o.delta<0?'r':'o'}">${o.delta>0?'+':''}${fmt(o.delta)}</td></tr>`;
+    const dSum=a=>a.reduce((s,p)=>s+p.delta,0);
+    html+=`<details class="sup" open><summary><span class="clname">⛔ Дефицит (аут-оф-сток) — ${deficit.length} поз.</span><span class="cltot">Δ ${fmt(dSum(deficit))} ₽</span></summary><div class="supbody"><div class="tablewrap"><table><thead>${headDev}</thead><tbody>${deficit.map(rowDev).join('')||'<tr><td colspan="10" style="color:#94a3b8">нет</td></tr>'}</tbody></table></div></div></details>`;
+    html+=`<details class="sup" open><summary><span class="clname">📦 Перетар — ${over.length} поз.</span><span class="cltot">Δ +${fmt(dSum(over))} ₽</span></summary><div class="supbody"><div class="tablewrap"><table><thead>${headDev}</thead><tbody>${over.map(rowDev).join('')||'<tr><td colspan="10" style="color:#94a3b8">нет</td></tr>'}</tbody></table></div></div></details>`;
+  }else if(MODE==='products'){
     const prodMap=new Map();
     entries.forEach(e=>{
       if(!prodMap.has(e.o))prodMap.set(e.o,{o:e.o,pid:e.pid,name:e.name,clusters:new Map()});
