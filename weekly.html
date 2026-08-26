@@ -79,6 +79,16 @@ let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
+async function fetchAll(path){
+  let out=[],off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json(); out=out.concat(j);
+    if(j.length<1000)break; off+=1000;
+  }
+  return out;
+}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -98,14 +108,13 @@ async function load(){
   for(let a=1;a<=3;a++){
     try{
       const [rp,rc,rs]=await Promise.all([
-        fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,stock,archived,updated_at&order=name.asc&limit=1000',{headers:HD}),
-        fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc&limit=10000',{headers:HD}),
-        fetch(SUPABASE_URL+'/rest/v1/product_stocks?select=product_id,warehouse_id,warehouse_name,cluster,present&limit=10000',{headers:HD})
+        fetchAll('/rest/v1/products?select=product_id,offer_id,name,stock,archived,updated_at&order=name.asc'),
+        fetchAll('/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc'),
+        fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_id,warehouse_name,cluster,present')
       ]);
-      if(!rp.ok||!rc.ok||!rs.ok) throw new Error('HTTP '+rp.status);
-      ROWS=(await rp.json()).filter(x=>!x.archived);
-      COST={}; (await rc.json()).forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
-      STOCKS={}; (await rs.json()).forEach(s=>{ (STOCKS[s.product_id]=STOCKS[s.product_id]||[]).push(s); });
+      ROWS=rp.filter(x=>!x.archived);
+      COST={}; rc.forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
+      STOCKS={}; rs.forEach(s=>{ (STOCKS[s.product_id]=STOCKS[s.product_id]||[]).push(s); });
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
