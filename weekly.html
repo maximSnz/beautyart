@@ -53,6 +53,8 @@
  .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
  tr.clrow td{background:rgba(120,166,199,.18);font-weight:700;cursor:pointer}
  tr.clrow td:first-child{color:#33506b}
+ tr.recrow td{padding:5px 8px 8px 30px;font-size:.9em;font-weight:700;background:rgba(255,255,255,.6)}
+ tr.recrow.g td{color:#16a34a} tr.recrow.r td{color:#E33D78} tr.recrow.o td{color:#d97706} tr.recrow.n td{color:#94a3b8}
  .caret{display:inline-block;margin-right:8px;transition:transform .15s}
  .clbody.closed .caret{transform:rotate(-90deg)}
  .clbody.closed tr.whrow{display:none}
@@ -108,6 +110,9 @@ const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+// целевая оборачиваемость по дню недели: пн13 вт12 ср11 чт10 пт9 сб8 вс7
+const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
+const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
 async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
@@ -200,14 +205,15 @@ async function load(){
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      const T=DOW_TARGET[now.getDay()];
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • цель сегодня (${DOW_NAME[now.getDay()]}): ${T} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 function daysCell(stock,s1){
-  if(s1>0){const d=stock/s1;const cls=d<7?'r':(d<=14?'g':'o');return `<td class="num ${cls}">${d.toLocaleString('ru-RU',{maximumFractionDigits:1})}</td>`;}
-  if(stock>0)return `<td class="num o">∞</td>`;
+  if(s1>0){const d=stock/s1;const cls=(d<7||d>13)?'r':'g';return `<td class="num ${cls}">${d.toLocaleString('ru-RU',{maximumFractionDigits:1})}</td>`;}
+  if(stock>0)return `<td class="num r">∞</td>`;
   return `<td class="num n">0</td>`;
 }
 function cmpCell(v,prev){
@@ -215,10 +221,21 @@ function cmpCell(v,prev){
   if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
+function recText(cs,c1,T){
+  if(cs<=0)return {txt:'нет остатка — продажи не обеспечить',cls:'n',icon:'⛔'};
+  const vr=cs/T;
+  if(c1<=0)return {txt:`увеличить продажи на ${fmt(Math.ceil(vr))} шт/день (продаж за последний день нет)`,cls:'r',icon:'📈'};
+  const delta=vr-c1;
+  if(Math.abs(delta)<=Math.max(0.5,0.05*c1))return {txt:'динамика в цели',cls:'g',icon:'✅'};
+  const pct=Math.round(Math.abs(delta)/c1*100);
+  if(delta>0)return {txt:`увеличить продажи на ${fmt(Math.max(1,Math.round(delta)))} шт (+${pct}%)`,cls:'r',icon:'📈'};
+  return {txt:`уменьшить продажи на ${fmt(Math.max(1,Math.round(-delta)))} шт (−${pct}%)`,cls:'o',icon:'📉'};
+}
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const byProd=document.getElementById('byProd').checked;
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
+  const now=new Date(); const T=DOW_TARGET[now.getDay()];
   const d1=localISO(BASE);
   const d2=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-1));
   const d3=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-2));
@@ -253,9 +270,11 @@ function render(){
         cs:arr.reduce((s,e)=>s+e.stock,0), csum:arr.reduce((s,e)=>s+e.sum,0),
         c1:arr.reduce((s,e)=>s+e.s1,0), c2:arr.reduce((s,e)=>s+e.s2,0), c3:arr.reduce((s,e)=>s+e.s3,0), c4:arr.reduce((s,e)=>s+e.s4,0)
       })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
+        const rec=recText(g.cs,g.c1,T);
         html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
           <td><span class="caret">▾</span>${esc(g.c)}</td>
-          <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c1,g.c2)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c3,g.c4)}</tr>`;
+          <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c1,g.c2)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c3,g.c4)}</tr>
+          <tr class="recrow ${rec.cls}"><td colspan="7">${rec.icon} ${rec.txt} • цель на ${DOW_NAME[now.getDay()]}: ${T} дн</td></tr>`;
         g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
           html+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s1,e.s2)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s3,e.s4)}</tr>`;
         });
