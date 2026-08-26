@@ -10,6 +10,7 @@
  h2{font-family:'Forum';color:#1C0D2E}
  input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ button:disabled{opacity:.5;cursor:not-allowed}
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
  table{width:100%;border-collapse:collapse;font-size:.85em;min-width:980px}
  th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
@@ -27,6 +28,11 @@
  .knob::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
  .switch input:checked+.knob{background:#E33D78}
  .switch input:checked+.knob::after{left:22px}
+ .progress{margin:10px 0}
+ .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
+ .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
+ .progfill{height:100%;width:0%;background:linear-gradient(90deg,#78A6C7,#E33D78);transition:width .2s}
+ .progfill.bad{background:#E33D78}
  details.fire{border:2px dashed rgba(227,61,120,.55);border-radius:10px;background:#fff5f8;margin:0 0 16px}
  details.fire>summary{cursor:pointer;padding:12px 14px;font-family:'Forum';font-weight:700;color:#E33D78;font-size:1.05em;list-style:none;display:flex;align-items:center;gap:8px}
  details.fire>summary::before{content:"▸ ";}
@@ -71,10 +77,14 @@
   <div class="err" id="err"></div>
   <div class="toolbar">
     <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
-    <button onclick="fileInput.click()">⬆ CSV продаж</button>
+    <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
     <label class="switch"><input type="checkbox" id="onlyBad" onchange="render()"><span class="knob"></span>только нецелевая (&gt;&nbsp;7&nbsp;дн)</label>
+  </div>
+  <div class="progress hide" id="progWrap">
+    <div class="progtext" id="progText">Загрузка…</div>
+    <div class="progbar"><div class="progfill" id="progFill"></div></div>
   </div>
   <div id="clusters"></div>
   <div class="grand" id="grand"></div>
@@ -84,8 +94,9 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},REF=null;
+let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},REF=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
+let importing=false;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -100,26 +111,46 @@ async function go(){
   load();
 }
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
+function setP(pct,txt,bad){
+  document.getElementById('progWrap').classList.remove('hide');
+  const f=document.getElementById('progFill');
+  f.style.width=pct+'%'; f.classList.toggle('bad',!!bad);
+  document.getElementById('progText').textContent=txt;
+}
 async function importFile(file){
-  if(!file)return;
-  const text=await file.text();
-  const rows=parseCSV(text);
-  const agg=new Map(); let skipped=0;
-  for(const r of rows){
-    if(/отмен/i.test((r[4]||'').trim())){skipped++;continue;}
-    const dt=(r[2]||'').slice(0,10), offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
-    if(!dt||!offer||!wh){skipped++;continue;}
-    const k=dt+'|'+offer+'|'+wh;
-    agg.set(k,(agg.get(k)||0)+(isFinite(qty)?qty:0));
+  if(!file||importing)return;
+  importing=true; document.getElementById('btnCsv').disabled=true;
+  document.getElementById('progFill').classList.remove('bad');
+  try{
+    setP(5,'Чтение файла…');
+    const text=await file.text();
+    setP(15,'Разбор строк…');
+    const rows=parseCSV(text);
+    const agg=new Map(); let skipped=0;
+    for(const r of rows){
+      if(/отмен/i.test((r[4]||'').trim())){skipped++;continue;}
+      const dt=(r[2]||'').slice(0,10), offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
+      if(!dt||!offer||!wh){skipped++;continue;}
+      const k=dt+'|'+offer+'|'+wh;
+      agg.set(k,(agg.get(k)||0)+(isFinite(qty)?qty:0));
+    }
+    const out=[...agg.entries()].map(([k,qty])=>{const [sale_date,offer_id,warehouse_name]=k.split('|');return {sale_date,offer_id,warehouse_name,qty};});
+    if(!out.length){ setP(100,'В файле нет подходящих строк (все пропущены).',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
+    for(let i=0;i<out.length;i+=500){
+      const part=out.slice(i,i+500);
+      setP(30+Math.round((i/out.length)*60),`Запись в базу: ${Math.min(i+500,out.length)} из ${out.length}…`);
+      const r=await fetch(SUPABASE_URL+'/rest/v1/product_sales?on_conflict=sale_date,offer_id,warehouse_name',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+    }
+    setP(100,`✔ Готово! Импортировано строк: ${out.length} (пропущено: ${skipped}). Данные обновляются…`);
+    await load();
+    setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000);
+  }catch(e){
+    setP(100,'Ошибка импорта: '+e.message,true);
+  }finally{
+    importing=false; document.getElementById('btnCsv').disabled=false;
+    document.getElementById('fileInput').value='';
   }
-  const out=[...agg.entries()].map(([k,qty])=>{const [sale_date,offer_id,warehouse_name]=k.split('|');return {sale_date,offer_id,warehouse_name,qty};});
-  for(let i=0;i<out.length;i+=500){
-    const r=await fetch(SUPABASE_URL+'/rest/v1/product_sales?on_conflict=sale_date,offer_id,warehouse_name',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(out.slice(i,i+500))});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-  }
-  document.getElementById('fileInput').value='';
-  alert(`Импортировано строк: ${out.length} (пропущено: ${skipped})`);
-  await load();
 }
 function toggleFire(id,ev){
   ev.preventDefault(); ev.stopPropagation();
@@ -152,11 +183,12 @@ async function load(){
         SALES[x.offer_id][x.warehouse_name][x.sale_date]=(SALES[x.offer_id][x.warehouse_name][x.sale_date]||0)+x.qty;
         if(!max||x.sale_date>max)max=x.sale_date;
       });
+      SALESCOUNT=rl.length;
       REF=max?new Date(max+'T00:00:00'):null;
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${REF?REF.toLocaleDateString('ru-RU'):'—'} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${REF?REF.toLocaleDateString('ru-RU'):'—'} • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
