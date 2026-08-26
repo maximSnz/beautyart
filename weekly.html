@@ -124,12 +124,13 @@ async function load(){
   }
 }
 function whBlock(w,inFire,PROD){
-  const rows=w.entries.filter(e=>e.present>0).sort((a,b)=>(PROD.get(a.pid)?.name||'').localeCompare(PROD.get(b.pid)?.name||'','ru'));
+  const rows=w.entries.filter(e=>e.present>0)
+    .map(e=>{const r=PROD.get(e.pid);const cost=COST[e.pid]||0;return {r,present:e.present,cost,sum:e.present*cost};})
+    .sort((a,b)=>b.sum-a.sum);
   const btn=inFire
     ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
     :`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-  const body=rows.length?rows.map(e=>{const r=PROD.get(e.pid);const cost=COST[e.pid]||0,sum=e.present*cost;
-    return `<tr><td>${esc(r.offer_id)}</td><td>${esc(r.name)}</td><td class="num">${fmt(e.present)}</td><td class="num">${fmt(cost)}</td><td class="num">${fmt(sum)}</td></tr>`;}).join('')
+  const body=rows.length?rows.map(o=>`<tr><td>${esc(o.r.offer_id)}</td><td>${esc(o.r.name)}</td><td class="num">${fmt(o.present)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td></tr>`).join('')
     :`<tr><td colspan="5" style="color:#94a3b8">нет остатков</td></tr>`;
   return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
     <div class="tablewrap"><table><thead><tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${body}</tbody></table></div></details>`;
@@ -137,7 +138,7 @@ function whBlock(w,inFire,PROD){
 function clusterBlock(c,ws,inFire,PROD){
   const cs=ws.reduce((s,w)=>s+w.total,0), csum=ws.reduce((s,w)=>s+w.sum,0);
   return `<details class="cluster" ${inFire?'open':''}><summary><span class="clname">${esc(c)}</span><span class="cltot">${fmt(cs)} шт • ${fmt(csum)} ₽</span></summary>`+
-    ws.sort((a,b)=>a.name.localeCompare(b.name,'ru')).map(w=>whBlock(w,inFire,PROD)).join('')+`</details>`;
+    ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire,PROD)).join('')+`</details>`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -156,13 +157,17 @@ function render(){
     if(FIRE.has(w.id)){ if(!fireC.has(w.cluster))fireC.set(w.cluster,[]); fireC.get(w.cluster).push(w); }
     else if(w.total>0){ if(!mainC.has(w.cluster))mainC.set(w.cluster,[]); mainC.get(w.cluster).push(w); }
   });
+  const sortC=map=>[...map.entries()]
+    .map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0)}))
+    .sort((a,b)=>b.sum-a.sum);
   let html='';
-  if(fireC.size){
+  const fireList=sortC(fireC), mainList=sortC(mainC);
+  if(fireList.length){
     let f='';
-    [...fireC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,ws])=>{f+=clusterBlock(c,ws,true,PROD);});
+    fireList.forEach(o=>{f+=clusterBlock(o.c,o.ws,true,PROD);});
     html+=`<details class="fire" open><summary>🔥 Пожар</summary><div class="firebody">${f}</div></details>`;
   }
-  [...mainC.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([c,ws])=>{html+=clusterBlock(c,ws,false,PROD);});
+  mainList.forEach(o=>{html+=clusterBlock(o.c,o.ws,false,PROD);});
   document.getElementById('clusters').innerHTML=html;
   const f=ROWS.filter(match);
   const tStock=f.reduce((s,r)=>s+(r.stock||0),0);
