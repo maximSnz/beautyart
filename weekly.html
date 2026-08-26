@@ -181,17 +181,16 @@ async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
     try{
-      const [rp,rc,rs,rl,rh]=await Promise.all([
-        fetchAll('/rest/v1/products?select=product_id,offer_id,name,stock,archived,updated_at'),
+      const [rp,rc,rs,rl]=await Promise.all([
+        fetchAll('/rest/v1/products?select=product_id,offer_id,name,stock,supplier,archived,updated_at'),
         fetchAll('/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc'),
         fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present'),
-        fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty'),
-        fetchAll('/rest/v1/product_meta_history?select=product_id,supplier,created_at&order=created_at.desc').catch(()=>[])
+        fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty')
       ]);
       ROWS=rp.filter(x=>!x.archived);
       const pidOffer={}; rp.forEach(p=>pidOffer[p.product_id]=p.offer_id);
       COST={}; rc.forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
-      SUPPLIER={}; rh.forEach(m=>{ if(SUPPLIER[m.product_id]==null) SUPPLIER[m.product_id]=(m.supplier||'').trim(); });
+      SUPPLIER={}; rp.forEach(p=>{ SUPPLIER[p.product_id]=(p.supplier||'').trim(); });
       STOCK={}; WHCLUSTER={};
       rs.forEach(s=>{
         const o=pidOffer[s.product_id]; if(!o)return;
