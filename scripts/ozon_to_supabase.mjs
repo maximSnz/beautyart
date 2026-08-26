@@ -12,6 +12,14 @@ async function ozon(path,body){
 }
 const asArr=r=>Array.isArray(r?.result)?r.result:(r?.result?.items||[]);
 
+// === МАППИНГ СКЛАДОВ (ID -> город). Дополняйте по мере сопоставления. ===
+const WH_NAMES={
+  '1020000115166000':'Москва',
+  '1020000241710000':'Ростов-на-Дону',
+  '1020000267736000':'Казань',
+};
+const whName=id=>WH_NAMES[String(id)]||('wh_'+id);
+
 let items=[],last_id='';
 do{ const r=await ozon('/v3/product/list',{filter:{},limit:1000,last_id}); items=items.concat(r.result?.items||[]); last_id=r.result?.last_id||''; }while(last_id);
 console.log('total products:',items.length);
@@ -29,34 +37,22 @@ for(let i=0;i<items.length;i+=100){
   await sleep(300);
 }
 
-// справочник складов id->name
-const whMap={};
-for(const p of ['/v3/warehouse/list','/v2/warehouse/list','/v1/warehouse/list']){
-  try{
-    const r=await ozon(p,{});
-    const list=r.result||r.warehouses||[];
-    list.forEach(w=>{ if(w.warehouse_id!=null) whMap[w.warehouse_id]=w.name||w.title||null; });
-    if(Object.keys(whMap).length){ console.log('warehouse map src:',p,'size:',Object.keys(whMap).length); break; }
-  }catch(e){}
-  await sleep(200);
-}
-
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 const byProduct=new Map();
-let loggedFirst=false;
+const whTotals={};
 for(let i=0;i<offersAll.length;i+=20){
   const of=offersAll.slice(i,i+20);
   const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,last_id:'',limit:1000});
-  const list=r.products||[];
-  if(!loggedFirst&&list.length){ console.log('FBO first item:',JSON.stringify(list[0])); loggedFirst=true; }
-  list.forEach(it=>{
+  (r.products||[]).forEach(it=>{
     const pid=it.product_id; if(pid==null)return;
-    const wh=it.warehouse_name||it.name||whMap[it.warehouse_id]||('wh_'+(it.warehouse_id||it.sku||'unknown'));
+    whTotals[it.warehouse_id]=(whTotals[it.warehouse_id]||0)+(it.present||0);
     if(!byProduct.has(pid))byProduct.set(pid,[]);
-    byProduct.get(pid).push({warehouse_name:String(wh),present:it.present||0});
+    byProduct.get(pid).push({warehouse_name:whName(it.warehouse_id),present:it.present||0});
   });
   await sleep(400);
 }
+// список всех складов с суммарным остатком (для сопоставления с городами)
+console.log('DISTINCT WAREHOUSES:',Object.entries(whTotals).sort((a,b)=>b[1]-a[1]).map(([id,t])=>`${id}:${t}`).join(', '));
 
 for(const b of items){
   try{ const r=await ozon('/v2/product/info',{product_id:b.product_id}); prices[b.product_id]=r.result||{}; }catch(e){}
