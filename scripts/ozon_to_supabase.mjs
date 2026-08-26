@@ -39,6 +39,7 @@ const WH={
  '1020001836200000':['Оренбург','ОРЕНБУРГ_РФЦ'],
 };
 
+// 1) весь список товаров
 let items=[],last_id='';
 do{ const r=await ozon('/v3/product/list',{filter:{},limit:1000,last_id}); items=items.concat(r.result?.items||[]); last_id=r.result?.last_id||''; }while(last_id);
 console.log('total products:',items.length);
@@ -50,13 +51,15 @@ async function tryBatch(paths,chunk,fill){
   }
   return null;
 }
+
+// 2) атрибуты пачками по 100
 for(let i=0;i<items.length;i+=100){
   const chunk=items.slice(i,i+100).map(x=>x.product_id);
   await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
   await sleep(300);
 }
 
-// остатки FBO: агрегируем по (товар, склад)
+// 3) остатки FBO пачками по 20 offer_id, агрегируем по (товар, склад)
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 const byProduct=new Map(); const unmapped={};
 for(let i=0;i<offersAll.length;i+=20){
@@ -76,13 +79,13 @@ for(let i=0;i<offersAll.length;i+=20){
 }
 if(Object.keys(unmapped).length)console.log('UNMAPPED WAREHOUSES:',Object.entries(unmapped).map(([id,t])=>`${id}:${t}`).join(', '));
 
-// цены поштучно
+// 4) цены поштучно
 for(const b of items){
   try{ const r=await ozon('/v2/product/info',{product_id:b.product_id}); prices[b.product_id]=r.result||{}; }catch(e){}
   await sleep(150);
 }
 
-// товары
+// 5) товары
 const rows=items.map(b=>{
   const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
   let sum=0; (byProduct.get(b.product_id)||new Map()).forEach(v=>sum+=v.present);
@@ -97,7 +100,7 @@ if(rows.length){
   if(!up.ok) throw new Error(`supabase products -> HTTP ${up.status}: ${await up.text()}`);
 }
 
-// остатки по складам: чистим старые строки и пишем новые (product_id обязателен)
+// 6) остатки по складам: чистим старые и пишем пачками по 500
 const SR={ apikey:process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` };
 for(let i=0;i<items.length;i+=100){
   const pids=items.slice(i,i+100).map(x=>x.product_id).join(',');
@@ -105,11 +108,12 @@ for(let i=0;i<items.length;i+=100){
 }
 const stockRows=[];
 byProduct.forEach((wm,pid)=>wm.forEach(v=>stockRows.push({product_id:pid,warehouse_id:v.warehouse_id,warehouse_name:v.warehouse_name,cluster:v.cluster,present:v.present,updated_at:new Date().toISOString()})));
-if(stockRows.length){
+for(let i=0;i<stockRows.length;i+=500){
+  const part=stockRows.slice(i,i+500);
   const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?on_conflict=product_id,warehouse_id`,{
     method:'POST',
     headers:{ ...SR, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' },
-    body:JSON.stringify(stockRows)
+    body:JSON.stringify(part)
   });
   if(!up.ok) throw new Error(`supabase stocks -> HTTP ${up.status}: ${await up.text()}`);
 }
