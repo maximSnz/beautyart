@@ -56,7 +56,7 @@
   <div class="tablewrap">
     <table>
       <thead><tr>
-        <th>Артикул</th><th>Название</th><th class="num-col">Цена, ₽</th><th class="num-col">План, шт</th><th class="num-col">План, ₽</th><th class="num-col">Маржин., %</th><th class="num-col">Маржа, ₽</th>
+        <th>Артикул</th><th>Название</th><th>Цена, ₽</th><th class="num-col">Продажи, шт</th><th class="num-col">Выручка, ₽</th><th class="num-col">Маржин., %</th><th class="num-col">Маржа, ₽</th>
       </tr></thead>
       <tbody id="tb"></tbody>
       <tfoot id="tf"></tfoot>
@@ -109,7 +109,7 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
 async function editField(pid,field){
   const p=BYID[pid]; if(!p)return;
   const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-  const labels={price:'Цена продажи, ₽',plan_qty:'План, шт',margin_pct:'План маржинальность, %'};
+  const labels={price:'Цена продажи, ₽',plan_qty:'Продажи, шт',margin_pct:'План маржинальность, %'};
   const val=prompt(labels[field]+':', pl[field]);
   if(val==null)return;
   const num=Number(String(val).replace(',','.'));
@@ -131,7 +131,7 @@ function render(){
     html+=`<tr>
       <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
       <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
-      <td class="num editable" title="Изменить план" onclick="editField(${p.product_id},'plan_qty')">${fmt(pl.plan_qty)}</td>
+      <td class="num editable" title="Изменить продажи" onclick="editField(${p.product_id},'plan_qty')">${fmt(pl.plan_qty)}</td>
       <td class="num calc">${fmt(planRub)}</td>
       <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>
       <td class="num calc">${fmt(marRub)}</td>
