@@ -8,7 +8,7 @@
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
  .login,.wrap{max-width:1500px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
  h2{font-family:'Forum';color:#1C0D2E}
- input,textarea{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ input,textarea,select{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
  table{width:100%;border-collapse:collapse;font-size:.78em;min-width:900px}
@@ -33,9 +33,23 @@
  td.pname:hover{color:#E33D78}
  tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
  tr.protorow td{background:#f8f9fb;padding:10px}
- .protorow textarea{width:100%;box-sizing:border-box}
- .protorow button{margin-top:6px}
- .protohead{font-size:.8em;color:#94a3b8;margin-bottom:4px}
+ .protohead{font-size:.85em;color:#94a3b8;margin-bottom:6px;font-weight:700}
+ .pitem{border:1px solid rgba(84,66,115,.15);border-radius:8px;background:#fff;padding:7px 10px;margin:0 0 6px}
+ .pitem .pdate{color:#94a3b8;margin-right:8px}
+ .pmetrics i{font-style:normal;background:rgba(120,166,199,.2);border-radius:5px;padding:1px 6px;margin-right:4px;color:#33506b;font-size:.85em}
+ .paction{color:#1C0D2E}
+ .psub{font-size:.85em;color:#544273;margin-top:4px}
+ .psub button{padding:2px 8px;font-size:.85em;margin-right:4px}
+ .badge{border-radius:5px;padding:1px 7px;font-size:.85em;font-weight:700}
+ .badge.g{background:rgba(22,163,74,.15);color:#16a34a}
+ .badge.r{background:rgba(227,61,120,.15);color:#E33D78}
+ .badge.n{background:rgba(148,163,184,.2);color:#64748b}
+ .pform{border:1px dashed rgba(84,66,115,.3);border-radius:8px;padding:8px 10px;margin-top:6px;background:#fff}
+ .pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+ .chk{display:flex;gap:4px;align-items:center;font-size:.85em;color:#544273}
+ .tgin{display:flex;gap:4px;align-items:center;font-size:.8em;color:#94a3b8}
+ .tgin input{width:70px;padding:3px 5px}
+ .pform input[type=text]{flex:1;min-width:200px}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
@@ -114,11 +128,12 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const MLBL={qty:'Продажи',rev:'Выручка',mar:'Маржа',price:'Цена',pct:'Марж.%'};
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
   {key:'rev',label:'Выручка, ₽',add:true},
@@ -177,6 +192,12 @@ async function loadPPM(){
   if(!r.ok)throw new Error('HTTP '+r.status);
   PPM={}; (await r.json()).forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol,work_date:x.work_date});
 }
+async function loadProto(){
+  const r=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=eq.${MONTH}&select=*&order=created_at.asc`,{headers:HD});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  PROTO={};
+  (await r.json()).forEach(x=>{(PROTO[x.product_id]=PROTO[x.product_id]||[]).push(x);});
+}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -187,14 +208,14 @@ async function load(){
       if(!rp.ok)throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM()]);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto()]);
       document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • недель: ${WEEKS.length}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -205,15 +226,7 @@ async function upsertPPM(pid,patch){
   PPM[pid]=next;
   await fetch(SUPABASE_URL+'/rest/v1/product_plan_meta?on_conflict=product_id,month',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,month:MONTH,weekday:next.weekday,protocol:next.protocol,work_date:next.work_date})});
 }
-async function setWorkDate(pid,val){
-  await upsertPPM(pid,{work_date:val||null});
-  render();
-}
-async function saveProto(pid){
-  const el=document.getElementById('proto-'+pid); if(!el)return;
-  await upsertPPM(pid,{protocol:el.value});
-  alert('Сохранено');
-}
+async function setWorkDate(pid,val){ await upsertPPM(pid,{work_date:val||null}); render(); }
 async function editField(pid,field){
   const p=BYID[pid]; if(!p)return;
   const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
@@ -237,6 +250,37 @@ async function editWeek(pid,week,metric){
   const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(Object.assign({product_id:pid,week,metric},payload))});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,payload);
+  render();
+}
+async function addProto(pid){
+  const mkeys=METRICS.map(m=>m.key).filter(k=>{const el=document.getElementById(`pm_${pid}_${k}`);return el&&el.checked;});
+  if(!mkeys.length){alert('Выберите хотя бы одну метрику');return;}
+  const action=(document.getElementById(`pa_${pid}`).value||'').trim();
+  if(!action){alert('Опишите действие');return;}
+  const targets={};
+  for(const k of mkeys){
+    const el=document.getElementById(`pt_${pid}_${k}`);
+    const v=Number((el.value||'').replace(',','.'));
+    if(!isFinite(v)){alert(`Укажите прогноз для «${MLBL[k]}»`);return;}
+    targets[k]=v;
+  }
+  const week=document.getElementById(`pw_${pid}`).value;
+  if(!week){alert('Выберите срок (неделю)');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,metrics:mkeys.join(','),action,targets:JSON.stringify(targets),week}])});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  await loadProto(); render();
+}
+function weekFact(pid,key,week){ const rec=(WD[pid]&&WD[pid][key]&&WD[pid][key][week])?WD[pid][key][week]:{fact:null}; return rec.fact; }
+async function evalProto(id,field,value){
+  let item=null;
+  for(const k in PROTO){ const f=PROTO[k].find(x=>x.id===id); if(f){item=f;break;} }
+  if(!item)return;
+  let facts=item.facts?JSON.parse(item.facts):null;
+  if(!facts){ facts={}; item.metrics.split(',').forEach(k=>{facts[k]=weekFact(item.product_id,k,item.week);}); }
+  item[field]=value; item.facts=JSON.stringify(facts); item.evaluated_at=new Date().toISOString();
+  const body={done:item.done,trend:item.trend,facts:item.facts,evaluated_at:item.evaluated_at};
+  const r=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   render();
 }
 function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:null,fact:null}; }
@@ -355,6 +399,41 @@ function mxCard(id,title,list){
       </div>
     </div></div></div>`;
 }
+function protoBlock(pid,offer){
+  const items=PROTO[pid]||[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  let h=`<div class="protohead">Протокол действий • ${esc(offer)}</div>`;
+  h+=items.map(it=>{
+    const mk=it.metrics.split(',');
+    const tg=JSON.parse(it.targets||'{}');
+    const past=weekEnd(parseW(it.week))<today;
+    const facts=it.facts?JSON.parse(it.facts):null;
+    let status;
+    if(!past) status=`<span class="badge n">в работе</span>`;
+    else if(it.done==null||it.trend==null) status=`
+      <button onclick="evalProto(${it.id},'done',true)">Выполнено</button>
+      <button onclick="evalProto(${it.id},'done',false)">Не выполнено</button>
+      <button onclick="evalProto(${it.id},'trend','better')">Лучше</button>
+      <button onclick="evalProto(${it.id},'trend','worse')">Хуже</button>`;
+    else status=`<span class="badge ${it.done?'g':'r'}">${it.done?'выполнено':'не выполнено'}</span> <span class="badge ${it.trend==='better'?'g':'r'}">${it.trend==='better'?'лучше':'хуже'}</span>`;
+    const tgt=mk.map(k=>`${MLBL[k]}: ${fmtFor(k,tg[k])}`).join(' • ');
+    const fct=facts?mk.map(k=>`${MLBL[k]}: ${facts[k]==null?'—':fmtFor(k,facts[k])}`).join(' • '):'';
+    return `<div class="pitem">
+      <div><span class="pdate">${new Date(it.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})}</span>
+      <span class="pmetrics">${mk.map(k=>`<i>${MLBL[k]}</i>`).join('')}</span>
+      <span class="paction">${esc(it.action)}</span></div>
+      <div class="psub">Цель: ${tgt} • Срок: ${wlabel(parseW(it.week))}${fct?` • Факт: ${fct}`:''} ${status}</div>
+    </div>`;
+  }).join('')||'<div class="psub">Пока нет пунктов</div>';
+  h+=`<div class="pform">
+    <div class="pfrow">${METRICS.map(m=>`<label class="chk"><input type="checkbox" id="pm_${pid}_${m.key}">${MLBL[m.key]}</label>`).join('')}</div>
+    <div class="pfrow">${METRICS.map(m=>`<label class="tgin">${MLBL[m.key]} <input id="pt_${pid}_${m.key}" placeholder="прогноз"></label>`).join('')}</div>
+    <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Действие (свободная форма)">
+      <select id="pw_${pid}">${WEEKISO.map(w=>`<option value="${w}">${wlabel(parseW(w))}</option>`).join('')}</select>
+      <button onclick="addProto(${pid})">Добавить</button></div>
+  </div>`;
+  return h;
+}
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
@@ -410,9 +489,7 @@ function render(){
     });
     h+=`</tr>`;
     if(openProto.has(pid)){
-      h+=`<tr class="protorow"><td colspan="${totalCols}"><div class="protohead">Протокол действий • ${esc(p.offer_id)}</div>
-        <textarea id="proto-${pid}" rows="3">${esc((PPM[pid]&&PPM[pid].protocol)||'')}</textarea>
-        <button onclick="saveProto(${pid})">Сохранить</button></td></tr>`;
+      h+=`<tr class="protorow"><td colspan="${totalCols}">${protoBlock(pid,p.offer_id)}</td></tr>`;
     }
     return h;
   };
