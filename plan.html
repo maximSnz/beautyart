@@ -154,7 +154,7 @@ function arcPath(cx,cy,rO,rI,a0,a1){
   const large=(a1-a0)>Math.PI?1:0;
   return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
 }
-function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtLeg){
+function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
   const svg=document.getElementById(ids.svg);
   const pcVal=document.getElementById(ids.val), pcCap=document.getElementById(ids.cap);
   const legend=document.getElementById(ids.legend), tip=document.getElementById('tip');
@@ -189,7 +189,7 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtLeg){
   };
   const showTip=(i,e)=>{ const b=buckets[i]; const v=get(b);
     const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0;
-    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmtLeg(b)} • ${b.cnt} поз.`;
+    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmtMain(b)} • ${fmtSide(b)}`;
     tip.style.opacity=1; moveTip(e); };
   const moveTip=e=>{ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px'; };
   const hideTip=()=>{ tip.style.opacity=0; };
@@ -202,7 +202,7 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtLeg){
   legend.innerHTML=buckets.map((b,i)=>{
     const v=get(b);
     const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0';
-    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${b.cnt} поз.</span><span class="lval">${share}% • ${fmtLeg(b)}</span></div>`;
+    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${fmtSide(b)}</span><span class="lval">${share}% • ${fmtMain(b)}</span></div>`;
   }).join('');
   legend.querySelectorAll('.lrow').forEach(r=>{
     const i=+r.dataset.i;
@@ -261,8 +261,8 @@ function render(){
       <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(tMar)}</div></div>
       <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
     </div>`;
-  drawPie({svg:'pieRev',legend:'legendRev',val:'pcValRev',cap:'pcCapRev'},buckets,tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽');
-  drawPie({svg:'piePos',legend:'legendPos',val:'pcValPos',cap:'pcCapPos'},buckets,tCnt,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmtM(b.rev)+' ₽');
+  drawPie({svg:'pieRev',legend:'legendRev',val:'pcValRev',cap:'pcCapRev'},buckets,tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
+  drawPie({svg:'piePos',legend:'legendPos',val:'pcValPos',cap:'pcCapPos'},buckets,tCnt,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   document.getElementById('tb').innerHTML=html||'<tr><td colspan="7" style="color:#94a3b8">нет данных</td></tr>';
   document.getElementById('tf').innerHTML=`<tr><td colspan="3" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tQty)}</td><td class="num">${fmt(tRub)}</td><td class="num"></td><td class="num">${fmt(tMar)}</td></tr>`;
 }
