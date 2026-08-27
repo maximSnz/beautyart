@@ -19,6 +19,8 @@
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
  .calc{color:#544273}
+ .g{color:#16a34a}.r{color:#E33D78}.n{color:#94a3b8}
+ .factcell{color:#94a3b8}
  .editable{cursor:pointer;white-space:nowrap}
  .editable::after{content:" ✎";opacity:.3;font-size:.8em}
  .editable:hover{color:#E33D78}
@@ -118,6 +120,7 @@ const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
+const fmtFor=(k,v)=>(k==='price'||k==='pct')?fmt2(v):fmt(v);
 const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function isoWeeksOfMonth(y,m){
@@ -192,15 +195,14 @@ async function editField(pid,field){
   render();
 }
 async function editWeek(pid,week,metric,field){
-  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week]:{plan:0,forecast:0};
-  const labels={plan:'План',forecast:'Прогноз'};
-  const val=prompt(`${labels[field]} на ${week}:`, rec[field]);
+  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week]:{forecast:0};
+  const val=prompt(`Прогноз на ${week}:`, rec.forecast);
   if(val==null)return;
   const num=Number(String(val).replace(',','.'));
   if(!isFinite(num)||num<0){alert('Некорректное значение');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,[field]:num})});
+  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,forecast:num})});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
-  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,{[field]:num});
+  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,{forecast:num});
   render();
 }
 function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:0,fact:null}; }
@@ -297,18 +299,18 @@ function render(){
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  // header (без дублирующих Цена/Маржин. — они внутри метрик)
+  // header: План | Прогноз/Факт | Отклонение | [недели: Пр | Ф]
   let totalCols=2;
-  METRICS.forEach(mt=>{ totalCols+=EXP[mt.key]?2+WEEKS.length*2:2; });
+  METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?WEEKS.length*2:0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
-    const span=exp?2+WEEKS.length*2:2;
+    const span=3+(exp?WEEKS.length*2:0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
-    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th>`;
+    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th><th rowspan="2" class="sub">Отклонение</th>`;
     if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="2" class="whead">${wlabel(w)}</th>`; });
-             WEEKS.forEach(w=>{ r3+=`<th class="wsub">П</th><th class="wsub">Пр</th>`; }); }
+             WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
   // body grouped by matrix
@@ -322,14 +324,19 @@ function render(){
       const zp=(pl.plan_qty||0)===0;
       html+=`<tr${zp?' class="zeroplan"':''}><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>`;
       METRICS.forEach(mt=>{
+        const planV=monthlyPlan(p,mt.key);
+        const ffV=collVal(p,mt.key);
+        const dev=ffV-planV;
+        const dcls=dev>0?'g':dev<0?'r':'n';
         const editKey=mt.edit;
-        html+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${p.product_id},'${editKey}')"`:''}>${fmt(monthlyPlan(p,mt.key))}</td>`;
-        html+=`<td class="num calc">${fmt(collVal(p,mt.key))}</td>`;
+        html+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${p.product_id},'${editKey}')"`:''}>${fmtFor(mt.key,planV)}</td>`;
+        html+=`<td class="num calc">${fmtFor(mt.key,ffV)}</td>`;
+        html+=`<td class="num ${dcls}">${(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
         if(EXP[mt.key]){
           WEEKISO.forEach(w=>{
             const rec=getRec(p.product_id,mt.key,w);
-            html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','plan')">${fmt(rec.plan)}</td>`;
-            html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','forecast')">${fmt(rec.forecast)}</td>`;
+            html+=`<td class="num editable wcell" title="Прогноз" onclick="editWeek(${p.product_id},'${w}','${mt.key}','forecast')">${fmtFor(mt.key,rec.forecast)}</td>`;
+            html+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
           });
         }
       });
