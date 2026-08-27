@@ -27,11 +27,21 @@
  .editable:hover::after{opacity:1}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
+ .summary{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
+ .piebox{display:flex;gap:14px;align-items:center}
+ .legend{font-size:.85em;color:#544273}
+ .lrow{display:flex;align-items:center;gap:6px;margin:3px 0;white-space:nowrap}
+ .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
+ .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto}
+ .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 16px;min-width:150px}
+ .klabel{font-size:.8em;color:#94a3b8}
+ .kval{font-size:1.15em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
+   .kpis{margin-left:0}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.8em;min-width:800px}
    th,td{padding:5px 6px}
@@ -53,6 +63,7 @@
     <input type="month" id="month" onchange="onMonth(this.value)">
     <button onclick="load()">⟳ Обновить</button>
   </div>
+  <div class="summary" id="summary"></div>
   <div class="tablewrap">
     <table>
       <thead><tr>
@@ -119,15 +130,38 @@ async function editField(pid,field){
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   render();
 }
+function drawPie(buckets,total){
+  const cv=document.getElementById('pie'); if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=Math.min(W,H)/2-4;
+  ctx.clearRect(0,0,W,H);
+  if(total<=0){ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fillStyle='#e2e8f0';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,R*0.55,0,Math.PI*2);ctx.fillStyle='#f8f9fb';ctx.fill();return;}
+  let a=-Math.PI/2;
+  buckets.forEach(b=>{
+    if(b.rev<=0)return;
+    const ang=b.rev/total*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a,a+ang);ctx.closePath();
+    ctx.fillStyle=b.color;ctx.fill();
+    a+=ang;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,R*0.55,0,Math.PI*2);ctx.fillStyle='#f8f9fb';ctx.fill();
+}
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
+  const buckets=[
+    {label:'до 5%',color:'#E33D78',rev:0},
+    {label:'5–10%',color:'#d97706',rev:0},
+    {label:'свыше 10%',color:'#16a34a',rev:0}
+  ];
   let tQty=0,tRub=0,tMar=0, html='';
   f.forEach(p=>{
     const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const planRub=pl.price*pl.plan_qty;
     const marRub=planRub*pl.margin_pct/100;
     tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
+    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]);
+    b.rev+=planRub;
     html+=`<tr>
       <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
       <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
@@ -137,6 +171,21 @@ function render(){
       <td class="num calc">${fmt(marRub)}</td>
     </tr>`;
   });
+  const wMar=tRub>0?tMar/tRub*100:0;
+  document.getElementById('summary').innerHTML=`
+    <div class="piebox">
+      <canvas id="pie" width="150" height="150"></canvas>
+      <div class="legend">`+buckets.map(b=>{
+        const share=tRub>0?b.rev/tRub*100:0;
+        return `<div class="lrow"><span class="dot" style="background:${b.color}"></span>${b.label}: <b>${share.toLocaleString('ru-RU',{maximumFractionDigits:1})}%</b> • ${fmt(b.rev)} ₽</div>`;
+      }).join('')+`</div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(tRub)}</div></div>
+      <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(tMar)}</div></div>
+      <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
+    </div>`;
+  drawPie(buckets,tRub);
   document.getElementById('tb').innerHTML=html||'<tr><td colspan="7" style="color:#94a3b8">нет данных</td></tr>';
   document.getElementById('tf').innerHTML=`<tr><td colspan="3" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tQty)}</td><td class="num">${fmt(tRub)}</td><td class="num"></td><td class="num">${fmt(tMar)}</td></tr>`;
 }
