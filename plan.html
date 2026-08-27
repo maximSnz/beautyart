@@ -28,10 +28,23 @@
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  .summary{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
- .piebox{display:flex;gap:14px;align-items:center}
+ .piebox{display:flex;gap:18px;align-items:center}
+ .pieWrap{position:relative;width:190px;height:190px;flex:0 0 auto}
+ #pie{width:100%;height:100%;display:block;animation:piein .5s ease}
+ @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
+ .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
+ .seg:hover,.seg.hl{transform:scale(1.06)}
+ #pie.dim .seg:not(:hover):not(.hl){opacity:.4}
+ .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 30px}
+ .pcVal{font-size:1.15em;font-weight:700;color:#1C0D2E;line-height:1.1}
+ .pcCap{font-size:.72em;color:#94a3b8;margin-top:2px}
+ .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
  .legend{font-size:.85em;color:#544273}
- .lrow{display:flex;align-items:center;gap:6px;margin:3px 0;white-space:nowrap}
+ .lrow{display:flex;align-items:center;gap:8px;margin:4px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
+ .lrow:hover,.lrow.hl{background:rgba(120,166,199,.18)}
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
+ .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
+ .lcnt{color:#94a3b8;font-size:.9em}
  .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto}
  .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 16px;min-width:150px}
  .klabel{font-size:.8em;color:#94a3b8}
@@ -73,6 +86,7 @@
       <tfoot id="tf"></tfoot>
     </table>
   </div>
+  <div class="tip" id="tip"></div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
@@ -86,6 +100,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
+const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -130,29 +145,75 @@ async function editField(pid,field){
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   render();
 }
+function polar(cx,cy,r,a){return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+function arcPath(cx,cy,rO,rI,a0,a1){
+  const [x0,y0]=polar(cx,cy,rO,a0),[x1,y1]=polar(cx,cy,rO,a1);
+  const [x2,y2]=polar(cx,cy,rI,a1),[x3,y3]=polar(cx,cy,rI,a0);
+  const large=(a1-a0)>Math.PI?1:0;
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
+}
 function drawPie(buckets,total){
-  const cv=document.getElementById('pie'); if(!cv)return;
-  const ctx=cv.getContext('2d');
-  const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=Math.min(W,H)/2-4;
-  ctx.clearRect(0,0,W,H);
-  if(total<=0){ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fillStyle='#e2e8f0';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,R*0.55,0,Math.PI*2);ctx.fillStyle='#f8f9fb';ctx.fill();return;}
-  let a=-Math.PI/2;
-  buckets.forEach(b=>{
-    if(b.rev<=0)return;
-    const ang=b.rev/total*Math.PI*2;
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a,a+ang);ctx.closePath();
-    ctx.fillStyle=b.color;ctx.fill();
-    a+=ang;
+  const svg=document.getElementById('pie');
+  const pcVal=document.getElementById('pcVal'), pcCap=document.getElementById('pcCap');
+  const legend=document.getElementById('legend'), tip=document.getElementById('tip');
+  if(!svg)return;
+  const CX=110,CY=110,RO=100,RI=62,PAD=0.02;
+  let html='';
+  const segs=[];
+  if(total<=0){
+    html=`<circle cx="${CX}" cy="${CY}" r="${(RO+RI)/2}" fill="none" stroke="#e2e8f0" stroke-width="${RO-RI}"/>`;
+  }else{
+    let a=-Math.PI/2;
+    buckets.forEach((b,i)=>{
+      if(b.rev<=0)return;
+      const ang=Math.min(b.rev/total*Math.PI*2,Math.PI*2-0.0001);
+      const a0=a+PAD/2, a1=a+ang-PAD/2;
+      if(a1>a0){ html+=`<path class="seg" data-i="${i}" d="${arcPath(CX,CY,RO,RI,a0,a1)}" fill="${b.color}"/>`; segs.push(i); }
+      a+=ang;
+    });
+  }
+  svg.innerHTML=html;
+  const setCenter=(i)=>{
+    if(i==null){ pcVal.textContent=fmtM(total)+' ₽'; pcCap.textContent='выручка плана'; }
+    else{ const b=buckets[i]; const share=total>0?Math.round(b.rev/total*100):0;
+      pcVal.textContent=share+'%'; pcCap.textContent=b.label+' • '+b.cnt+' поз.'; }
+  };
+  setCenter(null);
+  const paths=[...svg.querySelectorAll('.seg')];
+  const hl=(i,on)=>{
+    svg.classList.toggle('dim',on);
+    paths.forEach(p=>p.classList.toggle('hl',on&&+p.dataset.i===i));
+    legend.querySelectorAll('.lrow').forEach(r=>r.classList.toggle('hl',on&&+r.dataset.i===i));
+    setCenter(on?i:null);
+  };
+  const showTip=(i,e)=>{ const b=buckets[i]; const share=total>0?(b.rev/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0;
+    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmt(b.rev)} ₽ • ${b.cnt} поз.`;
+    tip.style.opacity=1; moveTip(e); };
+  const moveTip=e=>{ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px'; };
+  const hideTip=()=>{ tip.style.opacity=0; };
+  paths.forEach(p=>{
+    const i=+p.dataset.i;
+    p.addEventListener('mouseenter',e=>{hl(i,true);showTip(i,e);});
+    p.addEventListener('mousemove',moveTip);
+    p.addEventListener('mouseleave',()=>{hl(i,false);hideTip();});
   });
-  ctx.beginPath();ctx.arc(cx,cy,R*0.55,0,Math.PI*2);ctx.fillStyle='#f8f9fb';ctx.fill();
+  legend.innerHTML=buckets.map((b,i)=>{
+    const share=total>0?(b.rev/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0';
+    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${b.cnt} поз.</span><span class="lval">${share}% • ${fmtM(b.rev)} ₽</span></div>`;
+  }).join('');
+  legend.querySelectorAll('.lrow').forEach(r=>{
+    const i=+r.dataset.i;
+    r.addEventListener('mouseenter',()=>hl(i,true));
+    r.addEventListener('mouseleave',()=>hl(i,false));
+  });
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const buckets=[
-    {label:'до 5%',color:'#E33D78',rev:0},
-    {label:'5–10%',color:'#d97706',rev:0},
-    {label:'свыше 10%',color:'#16a34a',rev:0}
+    {label:'до 5%',color:'#E33D78',rev:0,cnt:0},
+    {label:'5–10%',color:'#d97706',rev:0,cnt:0},
+    {label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}
   ];
   let tQty=0,tRub=0,tMar=0, html='';
   f.forEach(p=>{
@@ -161,7 +222,7 @@ function render(){
     const marRub=planRub*pl.margin_pct/100;
     tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]);
-    b.rev+=planRub;
+    b.rev+=planRub; b.cnt+=1;
     html+=`<tr>
       <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
       <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
@@ -174,11 +235,11 @@ function render(){
   const wMar=tRub>0?tMar/tRub*100:0;
   document.getElementById('summary').innerHTML=`
     <div class="piebox">
-      <canvas id="pie" width="150" height="150"></canvas>
-      <div class="legend">`+buckets.map(b=>{
-        const share=tRub>0?b.rev/tRub*100:0;
-        return `<div class="lrow"><span class="dot" style="background:${b.color}"></span>${b.label}: <b>${share.toLocaleString('ru-RU',{maximumFractionDigits:1})}%</b> • ${fmt(b.rev)} ₽</div>`;
-      }).join('')+`</div>
+      <div class="pieWrap">
+        <svg id="pie" viewBox="0 0 220 220"></svg>
+        <div class="pieCenter"><div class="pcVal" id="pcVal"></div><div class="pcCap" id="pcCap"></div></div>
+      </div>
+      <div class="legend" id="legend"></div>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(tRub)}</div></div>
