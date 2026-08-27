@@ -14,6 +14,7 @@
  table{width:100%;border-collapse:collapse;font-size:.78em;min-width:900px}
  th,td{padding:5px 7px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
  th{color:#666;white-space:nowrap}
+ th.wrap2{white-space:normal;line-height:1.15}
  .hide{display:none}
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
@@ -103,7 +104,7 @@
     <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <input type="month" id="month" onchange="onMonth(this.value)">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="dayGroup" onchange="toggleDayGroup(this.checked)"><span class="knob"></span>по дням недели</label>
+    <label class="switch"><input type="checkbox" id="dateGroup" onchange="toggleDateGroup(this.checked)"><span class="knob"></span>по датам календаря</label>
   </div>
   <div id="summary"></div>
   <div class="tablewrap">
@@ -122,9 +123,8 @@ const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
-let dayGroup=false, openProto=new Set();
-const WDN=['—','Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-const FULL=['','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
+let dateGroup=false, openProto=new Set();
+const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
   {key:'rev',label:'Выручка, ₽',add:true},
@@ -135,12 +135,13 @@ const METRICS=[
 const now0=new Date();
 let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const pad=n=>String(n).padStart(2,'0');
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
 const fmtFor=(k,v)=>(k==='price'||k==='pct')?fmt2(v):fmt(v);
-const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function isoWeeksOfMonth(y,m){
   const out=[]; let d=new Date(y,m,1);
@@ -153,10 +154,15 @@ function isoWeeksOfMonth(y,m){
 const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${w.getDate()}.${w.getMonth()+1}–${e.getDate()}.${e.getMonth()+1}`;};
 const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
 function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
-function currentWeekISO(){
-  const t=new Date(); t.setHours(0,0,0,0);
-  for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; }
-  return null;
+function fmtDateISO(iso){const [y,m,d]=iso.split('-');return `${d}.${m}`;}
+function dateHead(iso){const d=parseW(iso);return `${DWN[d.getDay()]}, ${fmtDateISO(iso)}`;}
+function parseDateInput(v,monthISO){
+  v=(v||'').trim(); let m;
+  if(v==='')return null;
+  if(m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/))return v;
+  if(m=v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/)){let yy=+m[3];if(yy<100)yy+=2000;return `${yy}-${pad(+m[2])}-${pad(+m[1])}`;}
+  if(m=v.match(/^(\d{1,2})\.(\d{1,2})$/)){const [y,mm]=monthISO.split('-').map(Number);return `${y}-${pad(mm)}-${pad(+m[1])}`;}
+  return undefined;
 }
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
@@ -181,9 +187,9 @@ async function loadWeeks(){
   (await r.json()).forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:x.forecast==null?null:Number(x.forecast),fact:x.fact==null?null:Number(x.fact)}; });
 }
 async function loadPPM(){
-  const r=await fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol`,{headers:HD});
+  const r=await fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol,work_date`,{headers:HD});
   if(!r.ok)throw new Error('HTTP '+r.status);
-  PPM={}; (await r.json()).forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol});
+  PPM={}; (await r.json()).forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol,work_date:x.work_date});
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -206,21 +212,21 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
-function toggleDayGroup(v){ dayGroup=v; render(); }
+function toggleDateGroup(v){ dateGroup=v; render(); }
 function toggleProto(pid){ if(openProto.has(pid))openProto.delete(pid); else openProto.add(pid); render(); }
 async function upsertPPM(pid,patch){
-  const cur=PPM[pid]||{weekday:null,protocol:null};
+  const cur=PPM[pid]||{weekday:null,protocol:null,work_date:null};
   const next=Object.assign({},cur,patch);
   PPM[pid]=next;
-  await fetch(SUPABASE_URL+'/rest/v1/product_plan_meta?on_conflict=product_id,month',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,month:MONTH,weekday:next.weekday,protocol:next.protocol})});
+  await fetch(SUPABASE_URL+'/rest/v1/product_plan_meta?on_conflict=product_id,month',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,month:MONTH,weekday:next.weekday,protocol:next.protocol,work_date:next.work_date})});
 }
-async function setWeekday(pid){
-  const cur=(PPM[pid]&&PPM[pid].weekday)||0;
-  const val=prompt('День недели (0 — без дня, 1 — Пн … 7 — Вс):', cur);
+async function setWorkDate(pid){
+  const cur=(PPM[pid]&&PPM[pid].work_date)||'';
+  const val=prompt('Дата работы (ДД.ММ, ДД.ММ.ГГГГ или ГГГГ-ММ-ДД; пусто — без даты):', cur?fmtDateISO(cur):'');
   if(val==null)return;
-  const n=parseInt(val,10);
-  if(isNaN(n)||n<0||n>7){alert('Некорректное значение');return;}
-  await upsertPPM(pid,{weekday:n||null});
+  const parsed=parseDateInput(val,MONTH);
+  if(parsed===undefined){alert('Некорректная дата');return;}
+  await upsertPPM(pid,{work_date:parsed});
   render();
 }
 async function saveProto(pid){
@@ -283,17 +289,16 @@ function seriesFor(p,key){
 function collVal(p,key){
   const mt=METRICS.find(m=>m.key===key);
   if(mt.add) return seriesFor(p,key).reduce((a,x)=>a+x.forecast,0);
-  const cur=currentWeekISO();
+  const cur=(()=>{ const t=new Date();t.setHours(0,0,0,0);
+    for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; } return null; })();
   if(cur){ const rec=getRec(p.product_id,key,cur);
     const today=new Date(); today.setHours(0,0,0,0);
     const v=(weekEnd(parseW(cur))<today&&rec.fact!=null)?rec.fact:(rec.forecast!=null?rec.forecast:null);
     if(v!=null) return v; }
   return monthlyPlan(p,key);
 }
-// Прогнозное закрытие месяца: факты прошедших недель + экстраполяция факта последней недели на оставшиеся.
 function forecastClose(p,key){
   const mt=METRICS.find(m=>m.key===key);
-  const P=monthlyPlan(p,key);
   const series=seriesFor(p,key);
   let lastFact=null; series.forEach(s=>{ if(s.fact!=null) lastFact=s.fact; });
   if(!mt.add){ return lastFact!=null?lastFact:collVal(p,key); }
@@ -373,35 +378,36 @@ function render(){
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=3;
   METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?WEEKS.length*2:0); });
-  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">День</th>';
+  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">Дата</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
     const span=3+(exp?WEEKS.length*2:0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
-    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th><th rowspan="2" class="sub">Отклонение в динамике</th>`;
+    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th><th rowspan="2" class="sub wrap2">Отклонение<br>в динамике</th>`;
     if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="2" class="whead">${wlabel(w)}</th>`; });
              WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  const sv=p=>{ const w=(PPM[p.product_id]&&PPM[p.product_id].weekday)||0; return w===0?8:w; };
+  const sv=p=>(PPM[p.product_id]&&PPM[p.product_id].work_date)||'9999-99-99';
   let html='';
   const groups=[['m1','Матрица_1',m1],['m2','Матрица_2',m2]];
   groups.forEach(([gid,gname,list])=>{
     html+=`<tr class="mgroup"><td colspan="${totalCols}"><button onclick="toggleGM('${gid}')">${GM[gid]?'▾':'▸'}</button>${gname} • ${list.length} поз.</td></tr>`;
     if(!GM[gid])return;
     let seq=list;
-    if(dayGroup) seq=[...list].sort((a,b)=>sv(a)-sv(b));
-    let lastWd=null;
+    if(dateGroup) seq=[...list].sort((a,b)=>sv(a).localeCompare(sv(b)));
+    let lastKey=null;
     seq.forEach(p=>{
-      const wd=(PPM[p.product_id]&&PPM[p.product_id].weekday)||0;
-      if(dayGroup && wd!==lastWd){ html+=`<tr class="dgroup"><td colspan="${totalCols}">${wd===0?'Без дня':FULL[wd]}</td></tr>`; lastWd=wd; }
+      const key=sv(p);
+      if(dateGroup && key!==lastKey){ html+=`<tr class="dgroup"><td colspan="${totalCols}">${key==='9999-99-99'?'Без даты':dateHead(key)}</td></tr>`; lastKey=key; }
+      const wd=(PPM[p.product_id]&&PPM[p.product_id].work_date)||null;
       const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
       const zp=(pl.plan_qty||0)===0;
       html+=`<tr${zp?' class="zeroplan"':''}>
         <td>${esc(p.offer_id)}</td>
         <td class="pname" title="Протокол действий" onclick="toggleProto(${p.product_id})">${esc(p.name)}</td>
-        <td class="wd" title="Назначить день" onclick="setWeekday(${p.product_id})">${WDN[wd]}</td>`;
+        <td class="wd" title="Назначить дату" onclick="setWorkDate(${p.product_id})">${wd?fmtDateISO(wd):'—'}</td>`;
       METRICS.forEach(mt=>{
         const planV=monthlyPlan(p,mt.key);
         const ffV=collVal(p,mt.key);
