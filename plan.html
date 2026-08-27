@@ -6,16 +6,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 <style>
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
- .login,.wrap{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ .login,.wrap{max-width:1400px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
  h2{font-family:'Forum';color:#1C0D2E}
  input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
- table{width:100%;border-collapse:collapse;font-size:.88em;min-width:860px}
- th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
+ table{width:100%;border-collapse:collapse;font-size:.8em;min-width:900px}
+ th,td{padding:5px 7px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
  th{color:#666;white-space:nowrap}
- th.num-col{width:13%}
- tfoot td{border-top:2px solid rgba(84,66,115,.2);border-bottom:none;font-weight:700;color:#1C0D2E}
  .hide{display:none}
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
@@ -27,30 +25,36 @@
  .editable:hover::after{opacity:1}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
+ th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
+ th.sub{background:rgba(120,166,199,.1)}
+ th.whead{background:rgba(227,61,120,.08);color:#7D3673}
+ th.wsub{background:rgba(227,61,120,.05);font-size:.75em}
+ .mtoggle{padding:0 5px;margin-right:4px;background:none;border:1px solid rgba(84,66,115,.3);border-radius:5px;color:#544273;cursor:pointer;font-size:.8em}
+ td.wcell{background:rgba(227,61,120,.03)}
  .summary{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
  .piecard{display:flex;flex-direction:column}
  .ptitle{font-size:.85em;color:#544273;font-weight:700;margin-bottom:6px}
  .piebox{display:flex;gap:14px;align-items:center}
- .pieWrap{position:relative;width:160px;height:160px;flex:0 0 auto}
+ .pieWrap{position:relative;width:150px;height:150px;flex:0 0 auto}
  #pieRev,#piePos{width:100%;height:100%;display:block;animation:piein .5s ease}
  @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
  .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
  .seg:hover,.seg.hl{transform:scale(1.06)}
  svg.dim .seg:not(:hover):not(.hl){opacity:.4}
- .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 26px}
- .pcVal{font-size:1.05em;font-weight:700;color:#1C0D2E;line-height:1.1}
- .pcCap{font-size:.7em;color:#94a3b8;margin-top:2px}
+ .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 24px}
+ .pcVal{font-size:1em;font-weight:700;color:#1C0D2E;line-height:1.1}
+ .pcCap{font-size:.68em;color:#94a3b8;margin-top:2px}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
- .legend{font-size:.82em;color:#544273}
+ .legend{font-size:.8em;color:#544273}
  .lrow{display:flex;align-items:center;gap:8px;margin:4px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
  .lrow:hover,.lrow.hl{background:rgba(120,166,199,.18)}
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
  .kpis{display:flex;flex-direction:column;gap:10px;margin-left:auto}
- .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:8px 16px;min-width:190px}
+ .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:8px 16px;min-width:180px}
  .klabel{font-size:.78em;color:#94a3b8}
- .kval{font-size:1.1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
+ .kval{font-size:1.05em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -58,8 +62,8 @@
    .toolbar{flex-direction:column;align-items:stretch}
    .kpis{margin-left:0}
    button{padding:10px 14px;font-size:1em}
-   table{font-size:.8em;min-width:800px}
-   th,td{padding:5px 6px}
+   table{font-size:.75em;min-width:800px}
+   th,td{padding:4px 5px}
    .meta{font-size:.78em}
  }
 </style></head>
@@ -81,11 +85,8 @@
   <div class="summary" id="summary"></div>
   <div class="tablewrap">
     <table>
-      <thead><tr>
-        <th>Артикул</th><th>Название</th><th>Цена, ₽</th><th class="num-col">Продажи, шт</th><th class="num-col">Выручка, ₽</th><th class="num-col">Маржин., %</th><th class="num-col">Маржа, ₽</th>
-      </tr></thead>
+      <thead id="th"></thead>
       <tbody id="tb"></tbody>
-      <tfoot id="tf"></tfoot>
     </table>
   </div>
   <div class="tip" id="tip"></div>
@@ -95,7 +96,13 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[];
+let EXP={qty:false,rev:false,mar:false};
+const METRICS=[
+  {key:'qty',label:'Продажи, шт'},
+  {key:'rev',label:'Выручка, ₽'},
+  {key:'mar',label:'Маржа, ₽'}
+];
 const now0=new Date();
 let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -103,6 +110,20 @@ const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
+const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function isoWeeksOfMonth(y,m){
+  const out=[];
+  let d=new Date(y,m,1);
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  for(let i=0;i<6;i++){
+    const thu=new Date(d); thu.setDate(thu.getDate()+3);
+    if(thu.getFullYear()===y&&thu.getMonth()===m) out.push(new Date(d));
+    d.setDate(d.getDate()+7);
+  }
+  return out;
+}
+const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${w.getDate()}.${w.getMonth()+1}–${e.getDate()}.${e.getMonth()+1}`;};
+const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -117,27 +138,40 @@ async function loadPlans(){
   if(!r.ok)throw new Error('HTTP '+r.status);
   PLAN={}; (await r.json()).forEach(x=>PLAN[x.product_id]={price:Number(x.price||0),plan_qty:Number(x.plan_qty||0),margin_pct:Number(x.margin_pct||0)});
 }
+async function loadWeeks(){
+  if(!WEEKISO.length){WD={};return;}
+  const inList='('+WEEKISO.map(w=>`"${w}"`).join(',')+')';
+  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?week=in.${inList}&select=product_id,week,metric,plan,forecast,fact`,{headers:HD});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  WD={};
+  (await r.json()).forEach(x=>{
+    ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:Number(x.forecast||0),fact:x.fact==null?null:Number(x.fact)};
+  });
+}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
     try{
+      const [y,m]=MONTH.split('-').map(Number);
+      WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO);
       const rp=await fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,price,archived&order=name.asc&limit=1000',{headers:HD});
       if(!rp.ok)throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
-      await loadPlans();
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH}`;
+      await loadPlans(); await loadWeeks();
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • недель: ${WEEKS.length}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ await loadPlans(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await loadPlans(); await loadWeeks(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
+function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 async function editField(pid,field){
   const p=BYID[pid]; if(!p)return;
   const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-  const labels={price:'Цена продажи, ₽',plan_qty:'Продажи, шт',margin_pct:'План маржинальность, %'};
+  const labels={price:'Цена продажи, ₽',plan_qty:'План, шт',margin_pct:'План маржинальность, %'};
   const val=prompt(labels[field]+':', pl[field]);
   if(val==null)return;
   const num=Number(String(val).replace(',','.'));
@@ -147,13 +181,32 @@ async function editField(pid,field){
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   render();
 }
-function polar(cx,cy,r,a){return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
-function arcPath(cx,cy,rO,rI,a0,a1){
-  const [x0,y0]=polar(cx,cy,rO,a0),[x1,y1]=polar(cx,cy,rO,a1);
-  const [x2,y2]=polar(cx,cy,rI,a1),[x3,y3]=polar(cx,cy,rI,a0);
-  const large=(a1-a0)>Math.PI?1:0;
-  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
+async function editWeek(pid,week,metric,field){
+  const cur=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week][field]:0;
+  const labels={plan:'План',forecast:'Прогноз'};
+  const val=prompt(`${labels[field]} на ${week}:`, cur);
+  if(val==null)return;
+  const num=Number(String(val).replace(',','.'));
+  if(!isFinite(num)||num<0){alert('Некорректное значение');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,[field]:num})});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign((WD[pid][metric][week]||{plan:0,forecast:0,fact:null}),{[field]:num});
+  render();
 }
+function monthlyPlan(p,mt){
+  const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+  if(mt==='qty')return pl.plan_qty;
+  if(mt==='rev')return pl.plan_qty*pl.price;
+  return pl.plan_qty*pl.price*pl.margin_pct/100;
+}
+function weekVal(pid,metric,w){
+  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][w])?WD[pid][metric][w]:{plan:0,forecast:0,fact:null};
+  const today=new Date(); today.setHours(0,0,0,0);
+  const past=weekEnd(parseW(w))<today;
+  return (past&&rec.fact!=null)?rec.fact:rec.forecast;
+}
+function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function ffSum(pid,metric){ return WEEKISO.reduce((s,w)=>s+weekVal(pid,metric,w),0); }
 function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
   const svg=document.getElementById(ids.svg);
   const pcVal=document.getElementById(ids.val), pcCap=document.getElementById(ids.cap);
@@ -161,101 +214,51 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
   if(!svg)return;
   const CX=110,CY=110,RO=100,RI=62,PAD=0.02;
   let html='';
-  if(total<=0){
-    html=`<circle cx="${CX}" cy="${CY}" r="${(RO+RI)/2}" fill="none" stroke="#e2e8f0" stroke-width="${RO-RI}"/>`;
-  }else{
+  if(total<=0){ html=`<circle cx="${CX}" cy="${CY}" r="${(RO+RI)/2}" fill="none" stroke="#e2e8f0" stroke-width="${RO-RI}"/>`; }
+  else{
     let a=-Math.PI/2;
-    buckets.forEach((b,i)=>{
-      const v=get(b); if(v<=0)return;
+    buckets.forEach((b,i)=>{ const v=get(b); if(v<=0)return;
       const ang=Math.min(v/total*Math.PI*2,Math.PI*2-0.0001);
-      const a0=a+PAD/2, a1=a+ang-PAD/2;
+      const a0=a+PAD/2,a1=a+ang-PAD/2;
       if(a1>a0) html+=`<path class="seg" data-i="${i}" d="${arcPath(CX,CY,RO,RI,a0,a1)}" fill="${b.color}"/>`;
-      a+=ang;
-    });
+      a+=ang; });
   }
   svg.innerHTML=html;
-  const setCenter=i=>{
-    if(i==null){ pcVal.textContent=fmtTotal(total); pcCap.textContent=cap; }
-    else{ const b=buckets[i]; const share=total>0?Math.round(get(b)/total*100):0;
-      pcVal.textContent=share+'%'; pcCap.textContent=b.label+' • '+b.cnt+' поз.'; }
-  };
+  const setCenter=i=>{ if(i==null){pcVal.textContent=fmtTotal(total);pcCap.textContent=cap;} else{const b=buckets[i];const share=total>0?Math.round(get(b)/total*100):0;pcVal.textContent=share+'%';pcCap.textContent=b.label+' • '+b.cnt+' поз.';} };
   setCenter(null);
   const paths=[...svg.querySelectorAll('.seg')];
-  const hl=(i,on)=>{
-    svg.classList.toggle('dim',on);
-    paths.forEach(p=>p.classList.toggle('hl',on&&+p.dataset.i===i));
-    legend.querySelectorAll('.lrow').forEach(r=>r.classList.toggle('hl',on&&+r.dataset.i===i));
-    setCenter(on?i:null);
-  };
-  const showTip=(i,e)=>{ const b=buckets[i]; const v=get(b);
-    const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0;
-    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmtMain(b)} • ${fmtSide(b)}`;
-    tip.style.opacity=1; moveTip(e); };
+  const hl=(i,on)=>{ svg.classList.toggle('dim',on); paths.forEach(p=>p.classList.toggle('hl',on&&+p.dataset.i===i)); legend.querySelectorAll('.lrow').forEach(r=>r.classList.toggle('hl',on&&+r.dataset.i===i)); setCenter(on?i:null); };
+  const showTip=(i,e)=>{ const b=buckets[i];const v=get(b);const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0; tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmtMain(b)} • ${fmtSide(b)}`; tip.style.opacity=1; moveTip(e); };
   const moveTip=e=>{ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px'; };
   const hideTip=()=>{ tip.style.opacity=0; };
-  paths.forEach(p=>{
-    const i=+p.dataset.i;
-    p.addEventListener('mouseenter',e=>{hl(i,true);showTip(i,e);});
-    p.addEventListener('mousemove',moveTip);
-    p.addEventListener('mouseleave',()=>{hl(i,false);hideTip();});
-  });
-  legend.innerHTML=buckets.map((b,i)=>{
-    const v=get(b);
-    const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0';
-    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${fmtSide(b)}</span><span class="lval">${share}% • ${fmtMain(b)}</span></div>`;
-  }).join('');
-  legend.querySelectorAll('.lrow').forEach(r=>{
-    const i=+r.dataset.i;
-    r.addEventListener('mouseenter',()=>hl(i,true));
-    r.addEventListener('mouseleave',()=>hl(i,false));
-  });
+  paths.forEach(p=>{ const i=+p.dataset.i; p.addEventListener('mouseenter',e=>{hl(i,true);showTip(i,e);}); p.addEventListener('mousemove',moveTip); p.addEventListener('mouseleave',()=>{hl(i,false);hideTip();}); });
+  legend.innerHTML=buckets.map((b,i)=>{ const v=get(b);const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0'; return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${fmtSide(b)}</span><span class="lval">${share}% • ${fmtMain(b)}</span></div>`; }).join('');
+  legend.querySelectorAll('.lrow').forEach(r=>{ const i=+r.dataset.i; r.addEventListener('mouseenter',()=>hl(i,true)); r.addEventListener('mouseleave',()=>hl(i,false)); });
+}
+function arcPath(cx,cy,rO,rI,a0,a1){
+  const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
+  const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
+  const large=(a1-a0)>Math.PI?1:0;
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  const buckets=[
-    {label:'до 5%',color:'#E33D78',rev:0,cnt:0},
-    {label:'5–10%',color:'#d97706',rev:0,cnt:0},
-    {label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}
-  ];
-  let tQty=0,tRub=0,tMar=0, html='';
-  f.forEach(p=>{
-    const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-    const planRub=pl.price*pl.plan_qty;
-    const marRub=planRub*pl.margin_pct/100;
-    tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
-    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]);
-    b.rev+=planRub; b.cnt+=1;
-    html+=`<tr>
-      <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
-      <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
-      <td class="num editable" title="Изменить продажи" onclick="editField(${p.product_id},'plan_qty')">${fmt(pl.plan_qty)}</td>
-      <td class="num calc">${fmt(planRub)}</td>
-      <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>
-      <td class="num calc">${fmt(marRub)}</td>
-    </tr>`;
-  });
+  // --- summary pies (monthly) ---
+  const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
+  let tRub=0,tMar=0;
+  f.forEach(p=>{ const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+    const rev=pl.plan_qty*pl.price, mar=rev*pl.margin_pct/100; tRub+=rev; tMar+=mar;
+    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1; });
   const tCnt=buckets.reduce((s,b)=>s+b.cnt,0);
   const wMar=tRub>0?tMar/tRub*100:0;
   document.getElementById('summary').innerHTML=`
-    <div class="piecard">
-      <div class="ptitle">Выручка по маржинальности</div>
-      <div class="piebox">
-        <div class="pieWrap"><svg id="pieRev" viewBox="0 0 220 220"></svg>
-          <div class="pieCenter"><div class="pcVal" id="pcValRev"></div><div class="pcCap" id="pcCapRev"></div></div>
-        </div>
-        <div class="legend" id="legendRev"></div>
-      </div>
-    </div>
-    <div class="piecard">
-      <div class="ptitle">Позиции по маржинальности</div>
-      <div class="piebox">
-        <div class="pieWrap"><svg id="piePos" viewBox="0 0 220 220"></svg>
-          <div class="pieCenter"><div class="pcVal" id="pcValPos"></div><div class="pcCap" id="pcCapPos"></div></div>
-        </div>
-        <div class="legend" id="legendPos"></div>
-      </div>
-    </div>
+    <div class="piecard"><div class="ptitle">Выручка по маржинальности</div><div class="piebox">
+      <div class="pieWrap"><svg id="pieRev" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev"></div><div class="pcCap" id="pcCapRev"></div></div></div>
+      <div class="legend" id="legendRev"></div></div></div>
+    <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
+      <div class="pieWrap"><svg id="piePos" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos"></div><div class="pcCap" id="pcCapPos"></div></div></div>
+      <div class="legend" id="legendPos"></div></div></div>
     <div class="kpis">
       <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(tRub)}</div></div>
       <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(tMar)}</div></div>
@@ -263,7 +266,38 @@ function render(){
     </div>`;
   drawPie({svg:'pieRev',legend:'legendRev',val:'pcValRev',cap:'pcCapRev'},buckets,tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos',legend:'legendPos',val:'pcValPos',cap:'pcCapPos'},buckets,tCnt,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  document.getElementById('tb').innerHTML=html||'<tr><td colspan="7" style="color:#94a3b8">нет данных</td></tr>';
-  document.getElementById('tf').innerHTML=`<tr><td colspan="3" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tQty)}</td><td class="num">${fmt(tRub)}</td><td class="num"></td><td class="num">${fmt(tMar)}</td></tr>`;
+  // --- weekly table header ---
+  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">Цена, ₽</th><th rowspan="3">Маржин., %</th>';
+  let r2='', r3='';
+  METRICS.forEach(mt=>{
+    const exp=EXP[mt.key];
+    const span=exp?2+WEEKS.length*2:2;
+    r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
+    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th>`;
+    if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="2" class="whead">${wlabel(w)}</th>`; });
+             WEEKS.forEach(w=>{ r3+=`<th class="wsub">П</th><th class="wsub">Пр</th>`; }); }
+  });
+  document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
+  // --- body ---
+  let html='';
+  f.forEach(p=>{
+    const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+    html+=`<tr><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
+      <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
+      <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>`;
+    METRICS.forEach(mt=>{
+      html+=`<td class="num ${mt.key==='qty'?'editable':''}" ${mt.key==='qty'?`title="Изменить план" onclick="editField(${p.product_id},'plan_qty')"`:''}>${fmt(monthlyPlan(p,mt.key))}</td>`;
+      html+=`<td class="num calc">${fmt(ffSum(p.product_id,mt.key))}</td>`;
+      if(EXP[mt.key]){
+        WEEKISO.forEach(w=>{
+          const rec=(WD[p.product_id]&&WD[p.product_id][mt.key]&&WD[p.product_id][mt.key][w])?WD[p.product_id][mt.key][w]:{plan:0,forecast:0};
+          html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','plan')">${fmt(rec.plan)}</td>`;
+          html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','forecast')">${fmt(rec.forecast)}</td>`;
+        });
+      }
+    });
+    html+=`</tr>`;
+  });
+  document.getElementById('tb').innerHTML=html||'<tr><td colspan="8" style="color:#94a3b8">нет данных</td></tr>';
 }
 </script></body></html>
