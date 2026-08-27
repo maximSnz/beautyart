@@ -28,8 +28,7 @@
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
- td.wd{cursor:pointer;color:#544273;font-weight:700;white-space:nowrap}
- td.wd:hover{color:#E33D78}
+ .dateinp{padding:2px 4px;border:1px solid rgba(84,66,115,.25);border-radius:6px;font-size:.85em;color:#544273;background:#fff;width:120px}
  td.pname{cursor:pointer}
  td.pname:hover{color:#E33D78}
  tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
@@ -39,12 +38,6 @@
  .protohead{font-size:.8em;color:#94a3b8;margin-bottom:4px}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
- .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none}
- .switch input{display:none}
- .knob{width:42px;height:22px;border-radius:22px;background:#cbd5e1;position:relative;transition:.2s;flex:0 0 auto}
- .knob::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
- .switch input:checked+.knob{background:#E33D78}
- .switch input:checked+.knob::after{left:22px}
  th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
  th.sub{background:rgba(120,166,199,.1)}
  th.whead{background:rgba(227,61,120,.08);color:#7D3673}
@@ -75,9 +68,11 @@
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
- .kpis{display:flex;flex-direction:column;gap:8px;margin-left:auto}
- .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:7px 14px;min-width:170px}
- .klabel{font-size:.75em;color:#94a3b8}
+ .kpiswrap{display:flex;gap:14px;margin-left:auto;flex-wrap:wrap}
+ .kpis{display:flex;flex-direction:column;gap:6px}
+ .kgroup{font-size:.75em;color:#94a3b8;font-weight:700;margin-bottom:2px}
+ .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:6px 14px;min-width:170px}
+ .klabel{font-size:.72em;color:#94a3b8}
  .kval{font-size:1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  @media (max-width:640px){
    body{padding:8px}
@@ -104,7 +99,6 @@
     <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <input type="month" id="month" onchange="onMonth(this.value)">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="dateGroup" onchange="toggleDateGroup(this.checked)"><span class="knob"></span>по датам календаря</label>
   </div>
   <div id="summary"></div>
   <div class="tablewrap">
@@ -123,7 +117,7 @@ const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
-let dateGroup=false, openProto=new Set();
+let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
@@ -156,14 +150,6 @@ const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
 function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 function fmtDateISO(iso){const [y,m,d]=iso.split('-');return `${d}.${m}`;}
 function dateHead(iso){const d=parseW(iso);return `${DWN[d.getDay()]}, ${fmtDateISO(iso)}`;}
-function parseDateInput(v,monthISO){
-  v=(v||'').trim(); let m;
-  if(v==='')return null;
-  if(m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/))return v;
-  if(m=v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/)){let yy=+m[3];if(yy<100)yy+=2000;return `${yy}-${pad(+m[2])}-${pad(+m[1])}`;}
-  if(m=v.match(/^(\d{1,2})\.(\d{1,2})$/)){const [y,mm]=monthISO.split('-').map(Number);return `${y}-${pad(mm)}-${pad(+m[1])}`;}
-  return undefined;
-}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -212,7 +198,6 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
-function toggleDateGroup(v){ dateGroup=v; render(); }
 function toggleProto(pid){ if(openProto.has(pid))openProto.delete(pid); else openProto.add(pid); render(); }
 async function upsertPPM(pid,patch){
   const cur=PPM[pid]||{weekday:null,protocol:null,work_date:null};
@@ -220,13 +205,8 @@ async function upsertPPM(pid,patch){
   PPM[pid]=next;
   await fetch(SUPABASE_URL+'/rest/v1/product_plan_meta?on_conflict=product_id,month',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,month:MONTH,weekday:next.weekday,protocol:next.protocol,work_date:next.work_date})});
 }
-async function setWorkDate(pid){
-  const cur=(PPM[pid]&&PPM[pid].work_date)||'';
-  const val=prompt('Дата работы (ДД.ММ, ДД.ММ.ГГГГ или ГГГГ-ММ-ДД; пусто — без даты):', cur?fmtDateISO(cur):'');
-  if(val==null)return;
-  const parsed=parseDateInput(val,MONTH);
-  if(parsed===undefined){alert('Некорректная дата');return;}
-  await upsertPPM(pid,{work_date:parsed});
+async function setWorkDate(pid,val){
+  await upsertPPM(pid,{work_date:val||null});
   render();
 }
 async function saveProto(pid){
@@ -344,15 +324,17 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
 }
 function matrixStats(list){
   const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
-  let tRub=0,tMar=0;
+  let tRub=0,tMar=0,tFRev=0,tFMar=0;
   list.forEach(p=>{ const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const rev=pl.plan_qty*pl.price, mar=rev*pl.margin_pct/100; tRub+=rev; tMar+=mar;
+    tFRev+=forecastClose(p,'rev'); tFMar+=forecastClose(p,'mar');
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1; });
-  return {buckets,tRub,tMar};
+  return {buckets,tRub,tMar,tFRev,tFMar};
 }
 function mxCard(id,title,list){
   const s=matrixStats(list);
   const wMar=s.tRub>0?s.tMar/s.tRub*100:0;
+  const wFMar=s.tFRev>0?s.tFMar/s.tFRev*100:0;
   return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.</div><div class="mxbody">
     <div class="piecard"><div class="ptitle">Выручка по маржинальности</div><div class="piebox">
       <div class="pieWrap"><svg class="pie" id="pieRev${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev${id}"></div><div class="pcCap" id="pcCapRev${id}"></div></div></div>
@@ -360,10 +342,17 @@ function mxCard(id,title,list){
     <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
       <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
       <div class="legend" id="legendPos${id}"></div></div></div>
-    <div class="kpis">
-      <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
-      <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tMar)}</div></div>
-      <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
+    <div class="kpiswrap">
+      <div class="kpis"><div class="kgroup">План</div>
+        <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
+        <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tMar)}</div></div>
+        <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
+      </div>
+      <div class="kpis"><div class="kgroup">Прогноз в динамике</div>
+        <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tFRev)}</div></div>
+        <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tFMar)}</div></div>
+        <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wFMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
+      </div>
     </div></div></div>`;
 }
 function render(){
@@ -371,7 +360,7 @@ function render(){
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
-  document.getElementById('summary').innerHTML=mxCard('1','Матрица_1 (шапочки, перчатки, уплотнитель)',m1)+mxCard('2','Матрица_2 (остальное)',m2);
+  document.getElementById('summary').innerHTML=mxCard('1','Матрица_1',m1)+mxCard('2','Матрица_2',m2);
   drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},matrixStats(m1).buckets,matrixStats(m1).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
@@ -389,52 +378,65 @@ function render(){
              WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  const sv=p=>(PPM[p.product_id]&&PPM[p.product_id].work_date)||'9999-99-99';
+  const devOf=p=>devFor(p,'mar');
+  const prodRow=p=>{
+    const pid=p.product_id;
+    const wd=(PPM[pid]&&PPM[pid].work_date)||'';
+    const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+    const zp=(pl.plan_qty||0)===0;
+    let h=`<tr${zp?' class="zeroplan"':''}>
+      <td>${esc(p.offer_id)}</td>
+      <td class="pname" title="Протокол действий" onclick="toggleProto(${pid})">${esc(p.name)}</td>
+      <td><input type="date" class="dateinp" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
+    METRICS.forEach(mt=>{
+      const planV=monthlyPlan(p,mt.key);
+      const ffV=collVal(p,mt.key);
+      const dev=devFor(p,mt.key);
+      const dcls=dev>0?'g':dev<0?'r':'n';
+      const editKey=mt.edit;
+      h+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${pid},'${editKey}')"`:''}>${fmtFor(mt.key,planV)}</td>`;
+      h+=`<td class="num calc">${fmtFor(mt.key,ffV)}</td>`;
+      h+=`<td class="num ${dcls}">${(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
+      if(EXP[mt.key]){
+        const series=mt.add?seriesFor(p,mt.key):null;
+        WEEKISO.forEach((w,i)=>{
+          const rec=getRec(pid,mt.key,w);
+          let fc=mt.add?series[i].forecast:(rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key));
+          const auto=mt.add&&!series[i].manual&&rec.fact==null;
+          h+=`<td class="num editable wcell ${auto?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
+          h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
+        });
+      }
+    });
+    h+=`</tr>`;
+    if(openProto.has(pid)){
+      h+=`<tr class="protorow"><td colspan="${totalCols}"><div class="protohead">Протокол действий • ${esc(p.offer_id)}</div>
+        <textarea id="proto-${pid}" rows="3">${esc((PPM[pid]&&PPM[pid].protocol)||'')}</textarea>
+        <button onclick="saveProto(${pid})">Сохранить</button></td></tr>`;
+    }
+    return h;
+  };
   let html='';
   const groups=[['m1','Матрица_1',m1],['m2','Матрица_2',m2]];
   groups.forEach(([gid,gname,list])=>{
     html+=`<tr class="mgroup"><td colspan="${totalCols}"><button onclick="toggleGM('${gid}')">${GM[gid]?'▾':'▸'}</button>${gname} • ${list.length} поз.</td></tr>`;
     if(!GM[gid])return;
-    let seq=list;
-    if(dateGroup) seq=[...list].sort((a,b)=>sv(a).localeCompare(sv(b)));
-    let lastKey=null;
-    seq.forEach(p=>{
-      const key=sv(p);
-      if(dateGroup && key!==lastKey){ html+=`<tr class="dgroup"><td colspan="${totalCols}">${key==='9999-99-99'?'Без даты':dateHead(key)}</td></tr>`; lastKey=key; }
-      const wd=(PPM[p.product_id]&&PPM[p.product_id].work_date)||null;
-      const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-      const zp=(pl.plan_qty||0)===0;
-      html+=`<tr${zp?' class="zeroplan"':''}>
-        <td>${esc(p.offer_id)}</td>
-        <td class="pname" title="Протокол действий" onclick="toggleProto(${p.product_id})">${esc(p.name)}</td>
-        <td class="wd" title="Назначить дату" onclick="setWorkDate(${p.product_id})">${wd?fmtDateISO(wd):'—'}</td>`;
-      METRICS.forEach(mt=>{
-        const planV=monthlyPlan(p,mt.key);
-        const ffV=collVal(p,mt.key);
-        const dev=devFor(p,mt.key);
-        const dcls=dev>0?'g':dev<0?'r':'n';
-        const editKey=mt.edit;
-        html+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${p.product_id},'${editKey}')"`:''}>${fmtFor(mt.key,planV)}</td>`;
-        html+=`<td class="num calc">${fmtFor(mt.key,ffV)}</td>`;
-        html+=`<td class="num ${dcls}">${(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
-        if(EXP[mt.key]){
-          const series=mt.add?seriesFor(p,mt.key):null;
-          WEEKISO.forEach((w,i)=>{
-            const rec=getRec(p.product_id,mt.key,w);
-            let fc=mt.add?series[i].forecast:(rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key));
-            const auto=mt.add&&!series[i].manual&&rec.fact==null;
-            html+=`<td class="num editable wcell ${auto?'autocell':''}" title="Прогноз" onclick="editWeek(${p.product_id},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
-            html+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
-          });
-        }
+    const hasDate=list.some(p=>(PPM[p.product_id]&&PPM[p.product_id].work_date));
+    if(hasDate){
+      const byDate=new Map();
+      list.forEach(p=>{ const d=(PPM[p.product_id]&&PPM[p.product_id].work_date)||null; if(!byDate.has(d))byDate.set(d,[]); byDate.get(d).push(p); });
+      const dates=[...byDate.keys()].filter(x=>x).sort();
+      dates.forEach(d=>{
+        html+=`<tr class="dgroup"><td colspan="${totalCols}">${dateHead(d)}</td></tr>`;
+        html+=byDate.get(d).sort((a,b)=>devOf(a)-devOf(b)).map(prodRow).join('');
       });
-      html+=`</tr>`;
-      if(openProto.has(p.product_id)){
-        html+=`<tr class="protorow"><td colspan="${totalCols}"><div class="protohead">Протокол действий • ${esc(p.offer_id)}</div>
-          <textarea id="proto-${p.product_id}" rows="3">${esc((PPM[p.product_id]&&PPM[p.product_id].protocol)||'')}</textarea>
-          <button onclick="saveProto(${p.product_id})">Сохранить</button></td></tr>`;
+      if(byDate.has(null)){
+        html+=`<tr class="dgroup"><td colspan="${totalCols}">Без даты</td></tr>`;
+        html+=byDate.get(null).sort((a,b)=>devOf(a)-devOf(b)).map(prodRow).join('');
       }
-    });
+    }else{
+      html+=[...list].sort((a,b)=>devOf(a)-devOf(b)).map(prodRow).join('');
+    }
   });
   document.getElementById('tb').innerHTML=html||`<tr><td colspan="${totalCols}" style="color:#94a3b8">нет данных</td></tr>`;
 }
