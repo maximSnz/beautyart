@@ -32,15 +32,20 @@
  td.pname{cursor:pointer}
  td.pname:hover{color:#E33D78}
  tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
- tr.protorow td{background:#f8f9fb;padding:10px}
- .protohead{font-size:.85em;color:#94a3b8;margin-bottom:6px;font-weight:700}
+ tr.protorow td{background:#f8f9fb;padding:12px}
+ .protohead{font-size:.9em;color:#1C0D2E;margin-bottom:10px;font-weight:700;border-bottom:1px solid rgba(84,66,115,.1);padding-bottom:6px}
+ .psection{border:1px solid rgba(84,66,115,.1);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#fff}
+ .psectitle{font-weight:700;color:#544273;font-size:.85em;margin-bottom:8px}
+ .prec{font-size:.85em;color:#544273;padding:4px 0;border-bottom:1px dashed rgba(84,66,115,.08)}
+ .prec:last-child{border-bottom:none}
+ .prec b{color:#1C0D2E;display:inline-block;min-width:70px}
  .pitem{border:1px solid rgba(84,66,115,.15);border-radius:8px;background:#fff;padding:7px 10px;margin:0 0 6px}
  .pitem .pdate{color:#94a3b8;margin-right:8px}
  .pmetrics i{font-style:normal;background:rgba(120,166,199,.2);border-radius:5px;padding:1px 6px;margin-right:4px;color:#33506b;font-size:.85em}
  .paction{color:#1C0D2E}
  .psub{font-size:.85em;color:#544273;margin-top:4px}
  .psub button{padding:2px 8px;font-size:.85em;margin-right:4px}
- .badge{border-radius:5px;padding:1px 7px;font-size:.85em;font-weight:700}
+ .badge{border-radius:5px;padding:1px 7px;font-size:.85em;font-weight:700;display:inline-block}
  .badge.g{background:rgba(22,163,74,.15);color:#16a34a}
  .badge.r{background:rgba(227,61,120,.15);color:#E33D78}
  .badge.n{background:rgba(148,163,184,.2);color:#64748b}
@@ -48,8 +53,12 @@
  .pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
  .chk{display:flex;gap:4px;align-items:center;font-size:.85em;color:#544273}
  .tgin{display:flex;gap:4px;align-items:center;font-size:.8em;color:#94a3b8}
- .tgin input{width:70px;padding:3px 5px}
+ .tgin input{width:80px;padding:3px 5px}
  .pform input[type=text]{flex:1;min-width:200px}
+ .pnote{border:1px solid rgba(84,66,115,.1);border-radius:6px;padding:6px 10px;margin-bottom:5px;background:#fefefe}
+ .pnote .pdate{color:#94a3b8;font-size:.8em;display:block;margin-bottom:3px}
+ .pnote .ntxt{color:#1C0D2E;font-size:.88em;white-space:pre-wrap}
+ .pnote button{padding:1px 6px;font-size:.75em;margin-top:4px}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
@@ -128,7 +137,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
@@ -165,6 +174,11 @@ const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
 function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 function fmtDateISO(iso){const [y,m,d]=iso.split('-');return `${d}.${m}`;}
 function dateHead(iso){const d=parseW(iso);return `${DWN[d.getDay()]}, ${fmtDateISO(iso)}`;}
+function currentWeekISO(){
+  const t=new Date(); t.setHours(0,0,0,0);
+  for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; }
+  return null;
+}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -193,10 +207,14 @@ async function loadPPM(){
   PPM={}; (await r.json()).forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol,work_date:x.work_date});
 }
 async function loadProto(){
-  const r=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=eq.${MONTH}&select=*&order=created_at.asc`,{headers:HD});
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  PROTO={};
-  (await r.json()).forEach(x=>{(PROTO[x.product_id]=PROTO[x.product_id]||[]).push(x);});
+  const [r1,r2]=await Promise.all([
+    fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=eq.${MONTH}&select=*&order=created_at.asc`,{headers:HD}),
+    fetch(SUPABASE_URL+`/rest/v1/product_protocol_notes?month=eq.${MONTH}&select=*&order=created_at.desc`,{headers:HD})
+  ]);
+  if(!r1.ok||!r2.ok)throw new Error('HTTP '+(r1.status||r2.status));
+  PROTO={}; NOTES={};
+  (await r1.json()).forEach(x=>{(PROTO[x.product_id]=PROTO[x.product_id]||[]).push(x);});
+  (await r2.json()).forEach(x=>{(NOTES[x.product_id]=NOTES[x.product_id]||[]).push(x);});
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -220,6 +238,11 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
 function toggleProto(pid){ if(openProto.has(pid))openProto.delete(pid); else openProto.add(pid); render(); }
+function toggleMetricCheck(pid,key){
+  const ch=document.getElementById(`pm_${pid}_${key}`);
+  const row=document.getElementById(`pwt_${pid}_${key}`);
+  if(row) row.style.display=ch&&ch.checked?'':'none';
+}
 async function upsertPPM(pid,patch){
   const cur=PPM[pid]||{weekday:null,protocol:null,work_date:null};
   const next=Object.assign({},cur,patch);
@@ -252,37 +275,6 @@ async function editWeek(pid,week,metric){
   ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,payload);
   render();
 }
-async function addProto(pid){
-  const mkeys=METRICS.map(m=>m.key).filter(k=>{const el=document.getElementById(`pm_${pid}_${k}`);return el&&el.checked;});
-  if(!mkeys.length){alert('Выберите хотя бы одну метрику');return;}
-  const action=(document.getElementById(`pa_${pid}`).value||'').trim();
-  if(!action){alert('Опишите действие');return;}
-  const targets={};
-  for(const k of mkeys){
-    const el=document.getElementById(`pt_${pid}_${k}`);
-    const v=Number((el.value||'').replace(',','.'));
-    if(!isFinite(v)){alert(`Укажите прогноз для «${MLBL[k]}»`);return;}
-    targets[k]=v;
-  }
-  const week=document.getElementById(`pw_${pid}`).value;
-  if(!week){alert('Выберите срок (неделю)');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,metrics:mkeys.join(','),action,targets:JSON.stringify(targets),week}])});
-  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
-  await loadProto(); render();
-}
-function weekFact(pid,key,week){ const rec=(WD[pid]&&WD[pid][key]&&WD[pid][key][week])?WD[pid][key][week]:{fact:null}; return rec.fact; }
-async function evalProto(id,field,value){
-  let item=null;
-  for(const k in PROTO){ const f=PROTO[k].find(x=>x.id===id); if(f){item=f;break;} }
-  if(!item)return;
-  let facts=item.facts?JSON.parse(item.facts):null;
-  if(!facts){ facts={}; item.metrics.split(',').forEach(k=>{facts[k]=weekFact(item.product_id,k,item.week);}); }
-  item[field]=value; item.facts=JSON.stringify(facts); item.evaluated_at=new Date().toISOString();
-  const body={done:item.done,trend:item.trend,facts:item.facts,evaluated_at:item.evaluated_at};
-  const r=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
-  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
-  render();
-}
 function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:null,fact:null}; }
 function monthlyPlan(p,key){
   const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
@@ -313,8 +305,7 @@ function seriesFor(p,key){
 function collVal(p,key){
   const mt=METRICS.find(m=>m.key===key);
   if(mt.add) return seriesFor(p,key).reduce((a,x)=>a+x.forecast,0);
-  const cur=(()=>{ const t=new Date();t.setHours(0,0,0,0);
-    for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; } return null; })();
+  const cur=currentWeekISO();
   if(cur){ const rec=getRec(p.product_id,key,cur);
     const today=new Date(); today.setHours(0,0,0,0);
     const v=(weekEnd(parseW(cur))<today&&rec.fact!=null)?rec.fact:(rec.forecast!=null?rec.forecast:null);
@@ -332,6 +323,146 @@ function forecastClose(p,key){
   return sumFact + lastFact*noFact;
 }
 function devFor(p,key){ return forecastClose(p,key)-monthlyPlan(p,key); }
+// Текущее значение для метрики: факт текущей недели, иначе прогноз, иначе месячный план
+function currentFact(pid,key){
+  const cw=currentWeekISO();
+  if(!cw) return monthlyPlan({product_id:pid},key);
+  const rec=getRec(pid,key,cw);
+  if(rec.fact!=null) return rec.fact;
+  if(rec.forecast!=null) return rec.forecast;
+  return monthlyPlan({product_id:pid},key);
+}
+// Рекомендация: факт/прогноз текущей vs прогноз следующей
+function recFor(pid,key){
+  const cw=currentWeekISO();
+  if(!cw) return null;
+  const cwIdx=WEEKISO.indexOf(cw);
+  const nw=WEEKISO[cwIdx+1];
+  if(!nw) return null;
+  const rC=getRec(pid,key,cw), rN=getRec(pid,key,nw);
+  const curV=rC.fact!=null?rC.fact:(rC.forecast!=null?rC.forecast:null);
+  const nxtV=rN.forecast!=null?rN.forecast:(rN.fact!=null?rN.fact:null);
+  if(curV==null||nxtV==null) return null;
+  const d=nxtV-curV;
+  const pct=curV!==0?(d/Math.abs(curV)*100):0;
+  return {cw,nw,curV,nxtV,d,pct};
+}
+function recText(r){
+  if(!r) return {text:'—',cls:'n'};
+  const abs=Math.abs(r.d);
+  const absF=(r.d<0?'−':'+')+fmt(abs);
+  const pctF=(r.pct<0?'−':'+')+Math.round(Math.abs(r.pct))+'%';
+  if(r.d>0.0001) return {text:`увеличить на ${fmt(abs)} (${pctF})`,cls:'g'};
+  if(r.d<-0.0001) return {text:`уменьшить на ${fmt(abs)} (${pctF})`,cls:'r'};
+  return {text:'без изменений',cls:'n'};
+}
+async function addProto(pid){
+  const mkeys=METRICS.map(m=>m.key).filter(k=>{const el=document.getElementById(`pm_${pid}_${k}`);return el&&el.checked;});
+  if(!mkeys.length){alert('Выберите хотя бы одну метрику');return;}
+  const action=(document.getElementById(`pa_${pid}`).value||'').trim();
+  if(!action){alert('Опишите действие');return;}
+  const targets={}, baseline={};
+  for(const k of mkeys){
+    const el=document.getElementById(`pt_${pid}_${k}`);
+    const v=Number((el.value||'').replace(',','.'));
+    if(!isFinite(v)){alert(`Укажите прогноз для «${MLBL[k]}»`);return;}
+    targets[k]=v;
+    baseline[k]=currentFact(pid,k);
+  }
+  const week=document.getElementById(`pw_${pid}`).value;
+  if(!week){alert('Выберите срок (неделю)');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,metrics:mkeys.join(','),action,targets:JSON.stringify(targets),baseline:JSON.stringify(baseline),week}])});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  await loadProto(); render();
+}
+async function addNote(pid){
+  const el=document.getElementById(`pn_${pid}`); if(!el)return;
+  const txt=(el.value||'').trim();
+  if(!txt){alert('Напишите заметку');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol_notes',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,note:txt}])});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  await loadProto(); render();
+}
+async function deleteNote(id){
+  if(!confirm('Удалить заметку?'))return;
+  await fetch(SUPABASE_URL+`/rest/v1/product_protocol_notes?id=eq.${id}`,{method:'DELETE',headers:HD});
+  await loadProto(); render();
+}
+async function evalProto(id,field,value){
+  let item=null;
+  for(const k in PROTO){ const f=PROTO[k].find(x=>x.id===id); if(f){item=f;break;} }
+  if(!item)return;
+  let facts=item.facts?JSON.parse(item.facts):null;
+  if(!facts){ facts={}; item.metrics.split(',').forEach(k=>{const w=item.week;const rec=(WD[item.product_id]&&WD[item.product_id][k]&&WD[item.product_id][k][w])?WD[item.product_id][k][w]:{fact:null};facts[k]=rec.fact;}); }
+  item[field]=value; item.facts=JSON.stringify(facts); item.evaluated_at=new Date().toISOString();
+  const body={done:item.done,trend:item.trend,facts:item.facts,evaluated_at:item.evaluated_at};
+  const r=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  await loadProto(); render();
+}
+function weekFact(pid,key,week){ const rec=(WD[pid]&&WD[pid][key]&&WD[pid][key][week])?WD[pid][key][week]:{fact:null}; return rec.fact; }
+function renderItem(it){
+  const mk=it.metrics.split(',');
+  const tg=JSON.parse(it.targets||'{}');
+  const base=it.baseline?JSON.parse(it.baseline):null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const past=weekEnd(parseW(it.week))<today;
+  const facts=it.facts?JSON.parse(it.facts):null;
+  let status;
+  if(!past) status=`<span class="badge n">в работе</span>`;
+  else if(it.done==null||it.trend==null) status=`
+    <button onclick="evalProto(${it.id},'done',true)">Выполнено</button>
+    <button onclick="evalProto(${it.id},'done',false)">Не выполнено</button>
+    <button onclick="evalProto(${it.id},'trend','better')">Лучше</button>
+    <button onclick="evalProto(${it.id},'trend','worse')">Хуже</button>`;
+  else status=`<span class="badge ${it.done?'g':'r'}">${it.done?'выполнено':'не выполнено'}</span> <span class="badge ${it.trend==='better'?'g':'r'}">${it.trend==='better'?'лучше':'хуже'}</span>`;
+  const tgt=mk.map(k=>`${MLBL[k]}: ${fmtFor(k,tg[k])}`).join(' • ');
+  const baseStr=base?mk.map(k=>`${MLBL[k]}: ${base[k]==null?'—':fmtFor(k,base[k])}`).join(' • '):'';
+  const fct=facts?mk.map(k=>`${MLBL[k]}: ${facts[k]==null?'—':fmtFor(k,facts[k])}`).join(' • '):'';
+  return `<div class="pitem">
+    <div><span class="pdate">${new Date(it.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
+    <span class="pmetrics">${mk.map(k=>`<i>${MLBL[k]}</i>`).join('')}</span>
+    <span class="paction">${esc(it.action)}</span></div>
+    <div class="psub">На момент внесения: ${baseStr||'—'}</div>
+    <div class="psub">Цель на ${wlabel(parseW(it.week))}: ${tgt}</div>
+    ${fct?`<div class="psub">Факт: ${fct}</div>`:''}
+    <div class="psub">${status}</div>
+  </div>`;
+}
+function renderSmartForm(pid){
+  return `<div class="pform">
+    <div class="pfrow">${METRICS.map(m=>`<label class="chk"><input type="checkbox" id="pm_${pid}_${m.key}" onchange="toggleMetricCheck(${pid},'${m.key}')">${MLBL[m.key]}</label>`).join('')}</div>
+    <div class="pfrow">${METRICS.map(m=>`<label class="tgin" id="pwt_${pid}_${m.key}" style="display:none">${MLBL[m.key]} → <input id="pt_${pid}_${m.key}" placeholder="прогноз"></label>`).join('')}</div>
+    <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Действие (что сделать)">
+      <select id="pw_${pid}">${WEEKISO.map(w=>`<option value="${w}">${wlabel(parseW(w))}</option>`).join('')}</select>
+      <button onclick="addProto(${pid})">Добавить</button></div>
+  </div>`;
+}
+function renderRecs(pid){
+  let h='';
+  METRICS.forEach(m=>{
+    const r=recFor(pid,m.key);
+    const rec=recText(r);
+    if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}</b> <span class="n">нет данных</span></div>`; return; }
+    h+=`<div class="prec"><b>${MLBL[m.key]}</b> факт ${wlabel(parseW(r.cw))} = ${fmtFor(m.key,r.curV)} → прогноз ${wlabel(parseW(r.nw))} = ${fmtFor(m.key,r.nxtV)} • <span class="${rec.cls}">${rec.text}</span></div>`;
+  });
+  return h||'<div class="psub">нет данных</div>';
+}
+function renderNotes(pid){
+  const items=NOTES[pid]||[];
+  const list=items.map(n=>`<div class="pnote">
+    <span class="pdate">${new Date(n.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+    <div class="ntxt">${esc(n.note)}</div>
+    <button onclick="deleteNote(${n.id})">удалить</button>
+  </div>`).join('')||'<div class="psub">пока нет заметок</div>';
+  return list+`<div class="pfrow"><textarea id="pn_${pid}" rows="2" placeholder="Новая заметка..." style="flex:1;min-width:200px"></textarea><button onclick="addNote(${pid})">Добавить</button></div>`;
+}
+function protoBlock(pid,offer){
+  return `<div class="protohead">Протокол действий • ${esc(offer)}</div>
+    <div class="psection"><div class="psectitle">📈 Рекомендации на следующую неделю</div>${renderRecs(pid)}</div>
+    <div class="psection"><div class="psectitle">🎯 SMART-протокол</div>${(PROTO[pid]||[]).map(renderItem).join('')||'<div class="psub">пока нет пунктов</div>'}${renderSmartForm(pid)}</div>
+    <div class="psection"><div class="psectitle">📝 Заметки менеджера</div>${renderNotes(pid)}</div>`;
+}
 function arcPath(cx,cy,rO,rI,a0,a1){
   const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
   const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
@@ -398,41 +529,6 @@ function mxCard(id,title,list){
         <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wFMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
       </div>
     </div></div></div>`;
-}
-function protoBlock(pid,offer){
-  const items=PROTO[pid]||[];
-  const today=new Date(); today.setHours(0,0,0,0);
-  let h=`<div class="protohead">Протокол действий • ${esc(offer)}</div>`;
-  h+=items.map(it=>{
-    const mk=it.metrics.split(',');
-    const tg=JSON.parse(it.targets||'{}');
-    const past=weekEnd(parseW(it.week))<today;
-    const facts=it.facts?JSON.parse(it.facts):null;
-    let status;
-    if(!past) status=`<span class="badge n">в работе</span>`;
-    else if(it.done==null||it.trend==null) status=`
-      <button onclick="evalProto(${it.id},'done',true)">Выполнено</button>
-      <button onclick="evalProto(${it.id},'done',false)">Не выполнено</button>
-      <button onclick="evalProto(${it.id},'trend','better')">Лучше</button>
-      <button onclick="evalProto(${it.id},'trend','worse')">Хуже</button>`;
-    else status=`<span class="badge ${it.done?'g':'r'}">${it.done?'выполнено':'не выполнено'}</span> <span class="badge ${it.trend==='better'?'g':'r'}">${it.trend==='better'?'лучше':'хуже'}</span>`;
-    const tgt=mk.map(k=>`${MLBL[k]}: ${fmtFor(k,tg[k])}`).join(' • ');
-    const fct=facts?mk.map(k=>`${MLBL[k]}: ${facts[k]==null?'—':fmtFor(k,facts[k])}`).join(' • '):'';
-    return `<div class="pitem">
-      <div><span class="pdate">${new Date(it.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})}</span>
-      <span class="pmetrics">${mk.map(k=>`<i>${MLBL[k]}</i>`).join('')}</span>
-      <span class="paction">${esc(it.action)}</span></div>
-      <div class="psub">Цель: ${tgt} • Срок: ${wlabel(parseW(it.week))}${fct?` • Факт: ${fct}`:''} ${status}</div>
-    </div>`;
-  }).join('')||'<div class="psub">Пока нет пунктов</div>';
-  h+=`<div class="pform">
-    <div class="pfrow">${METRICS.map(m=>`<label class="chk"><input type="checkbox" id="pm_${pid}_${m.key}">${MLBL[m.key]}</label>`).join('')}</div>
-    <div class="pfrow">${METRICS.map(m=>`<label class="tgin">${MLBL[m.key]} <input id="pt_${pid}_${m.key}" placeholder="прогноз"></label>`).join('')}</div>
-    <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Действие (свободная форма)">
-      <select id="pw_${pid}">${WEEKISO.map(w=>`<option value="${w}">${wlabel(parseW(w))}</option>`).join('')}</select>
-      <button onclick="addProto(${pid})">Добавить</button></div>
-  </div>`;
-  return h;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
