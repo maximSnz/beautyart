@@ -21,6 +21,7 @@
  .calc{color:#544273}
  .g{color:#16a34a}.r{color:#E33D78}.n{color:#94a3b8}
  .factcell{color:#94a3b8}
+ .autocell{color:#544273}
  .editable{cursor:pointer;white-space:nowrap}
  .editable::after{content:" ✎";opacity:.3;font-size:.8em}
  .editable:hover{color:#E33D78}
@@ -133,11 +134,7 @@ function isoWeeksOfMonth(y,m){
 }
 const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${w.getDate()}.${w.getMonth()+1}–${e.getDate()}.${e.getMonth()+1}`;};
 const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
-function currentWeekISO(){
-  const t=new Date(); t.setHours(0,0,0,0);
-  for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; }
-  return null;
-}
+function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -158,7 +155,7 @@ async function loadWeeks(){
   const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?week=in.${inList}&select=product_id,week,metric,plan,forecast,fact`,{headers:HD});
   if(!r.ok)throw new Error('HTTP '+r.status);
   WD={};
-  (await r.json()).forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:Number(x.forecast||0),fact:x.fact==null?null:Number(x.fact)}; });
+  (await r.json()).forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:x.forecast==null?null:Number(x.forecast),fact:x.fact==null?null:Number(x.fact)}; });
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -194,18 +191,19 @@ async function editField(pid,field){
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   render();
 }
-async function editWeek(pid,week,metric,field){
-  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week]:{forecast:0};
-  const val=prompt(`Прогноз на ${week}:`, rec.forecast);
+async function editWeek(pid,week,metric){
+  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week]:{forecast:null};
+  const val=prompt(`Прогноз на ${week} (пусто = авторасчёт):`, rec.forecast==null?'':rec.forecast);
   if(val==null)return;
-  const num=Number(String(val).replace(',','.'));
-  if(!isFinite(num)||num<0){alert('Некорректное значение');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,forecast:num})});
+  let payload;
+  if(String(val).trim()===''){ payload={forecast:null}; }
+  else{ const num=Number(String(val).replace(',','.')); if(!isFinite(num)||num<0){alert('Некорректное значение');return;} payload={forecast:num}; }
+  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(Object.assign({product_id:pid,week,metric},payload))});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
-  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,{forecast:num});
+  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,payload);
   render();
 }
-function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:0,fact:null}; }
+function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:null,fact:null}; }
 function monthlyPlan(p,key){
   const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
   if(key==='qty')return pl.plan_qty;
@@ -214,21 +212,37 @@ function monthlyPlan(p,key){
   if(key==='price')return pl.price;
   return pl.margin_pct;
 }
-function weekVal(pid,key,w){
-  const rec=getRec(pid,key,w);
+// Авторасчёт прогноза: план поровну на недели; факт/ручные значения фиксированы,
+// остаток плана распределяется по свободным неделям (компенсация дельты).
+function seriesFor(p,key){
+  const P=monthlyPlan(p,key);
   const today=new Date(); today.setHours(0,0,0,0);
-  const past=weekEnd(parseW(w))<today;
-  return (past&&rec.fact!=null)?rec.fact:rec.forecast;
+  const recs=WEEKISO.map(w=>getRec(p.product_id,key,w));
+  const past=WEEKISO.map(w=>weekEnd(parseW(w))<today);
+  let fixedSum=0;
+  const kind=WEEKISO.map((w,i)=>{
+    if(past[i]&&recs[i].fact!=null){ fixedSum+=recs[i].fact; return 'fact'; }
+    if(recs[i].forecast!=null){ fixedSum+=recs[i].forecast; return 'manual'; }
+    return null;
+  });
+  const free=kind.filter(x=>!x).length;
+  const share=free>0?(P-fixedSum)/free:0;
+  return WEEKISO.map((w,i)=>({
+    past:past[i],
+    fact:recs[i].fact,
+    manual:kind[i]==='manual',
+    forecast: kind[i]==='fact'?recs[i].fact : kind[i]==='manual'?recs[i].forecast : share
+  }));
 }
-function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 function collVal(p,key){
   const mt=METRICS.find(m=>m.key===key);
-  if(mt.add) return WEEKISO.reduce((s,w)=>s+weekVal(p.product_id,key,w),0);
-  const cur=currentWeekISO();
+  if(mt.add){ return seriesFor(p,key).reduce((a,x)=>a+x.forecast,0); }
+  const cur=(()=>{ const t=new Date();t.setHours(0,0,0,0);
+    for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; } return null; })();
   if(cur){ const rec=getRec(p.product_id,key,cur);
     const today=new Date(); today.setHours(0,0,0,0);
-    const v=(weekEnd(parseW(cur))<today&&rec.fact!=null)?rec.fact:rec.forecast;
-    if(v) return v; }
+    const v=(weekEnd(parseW(cur))<today&&rec.fact!=null)?rec.fact:(rec.forecast!=null?rec.forecast:null);
+    if(v!=null) return v; }
   return monthlyPlan(p,key);
 }
 function arcPath(cx,cy,rO,rI,a0,a1){
@@ -281,7 +295,7 @@ function mxCard(id,title,list){
       <div class="pieWrap"><svg class="pie" id="pieRev${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev${id}"></div><div class="pcCap" id="pcCapRev${id}"></div></div></div>
       <div class="legend" id="legendRev${id}"></div></div></div>
     <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
-      <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
+      <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcValPos${id}x" style="display:none"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
       <div class="legend" id="legendPos${id}"></div></div></div>
     <div class="kpis">
       <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
@@ -299,7 +313,6 @@ function render(){
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  // header: План | Прогноз/Факт | Отклонение | [недели: Пр | Ф]
   let totalCols=2;
   METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?WEEKS.length*2:0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th>';
@@ -313,7 +326,6 @@ function render(){
              WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  // body grouped by matrix
   let html='';
   const groups=[['m1','Матрица_1',m1],['m2','Матрица_2',m2]];
   groups.forEach(([gid,gname,list])=>{
@@ -333,9 +345,14 @@ function render(){
         html+=`<td class="num calc">${fmtFor(mt.key,ffV)}</td>`;
         html+=`<td class="num ${dcls}">${(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
         if(EXP[mt.key]){
-          WEEKISO.forEach(w=>{
+          const series=mt.add?seriesFor(p,mt.key):null;
+          WEEKISO.forEach((w,i)=>{
             const rec=getRec(p.product_id,mt.key,w);
-            html+=`<td class="num editable wcell" title="Прогноз" onclick="editWeek(${p.product_id},'${w}','${mt.key}','forecast')">${fmtFor(mt.key,rec.forecast)}</td>`;
+            let fc;
+            if(mt.add){ fc=series[i].forecast; }
+            else{ fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key); }
+            const auto=mt.add&&!series[i].manual&&series[i].forecast!=null&&rec.fact==null;
+            html+=`<td class="num editable wcell ${auto?'autocell':''}" title="${auto?'Прогноз (авторасчёт)':'Прогноз (вручную)'}" onclick="editWeek(${p.product_id},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
             html+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
           });
         }
