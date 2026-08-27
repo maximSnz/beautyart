@@ -19,9 +19,9 @@
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
- .editable{cursor:pointer;white-space:nowrap}
- .editable::after{content:"✎";margin-left:6px;color:#94a3b8;font-size:.85em}
- .editable:hover{background:rgba(120,166,199,.18)}
+ .editable{cursor:pointer;white-space:nowrap;color:#544273;font-weight:700}
+ .editable::after{content:"✎";margin-left:6px;color:#94a3b8;font-size:.85em;font-weight:400}
+ .editable:hover{color:#E33D78}
  .calc{color:#544273}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
@@ -96,7 +96,7 @@ async function load(){
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       await loadPlans();
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • клик по цене / плану / марже — редактировать`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
