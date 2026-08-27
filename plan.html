@@ -27,12 +27,12 @@
  .editable:hover::after{opacity:1}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
- .summary{display:flex;gap:20px;align-items:stretch;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
+ .summary{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
  .piecard{display:flex;flex-direction:column}
  .ptitle{font-size:.85em;color:#544273;font-weight:700;margin-bottom:6px}
  .piebox{display:flex;gap:14px;align-items:center}
- .pieWrap{position:relative;width:170px;height:170px;flex:0 0 auto}
- #pieRev,#pieQty{width:100%;height:100%;display:block;animation:piein .5s ease}
+ .pieWrap{position:relative;width:160px;height:160px;flex:0 0 auto}
+ #pieRev,#piePos{width:100%;height:100%;display:block;animation:piein .5s ease}
  @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
  .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
  .seg:hover,.seg.hl{transform:scale(1.06)}
@@ -47,10 +47,10 @@
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
- .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto;align-content:center}
- .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 16px;min-width:150px}
- .klabel{font-size:.8em;color:#94a3b8}
- .kval{font-size:1.15em;font-weight:700;color:#1C0D2E;white-space:nowrap}
+ .kpis{display:flex;flex-direction:column;gap:10px;margin-left:auto}
+ .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:8px 16px;min-width:190px}
+ .klabel{font-size:.78em;color:#94a3b8}
+ .kval{font-size:1.1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -214,9 +214,9 @@ function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const buckets=[
-    {label:'до 5%',color:'#E33D78',rev:0,qty:0,cnt:0},
-    {label:'5–10%',color:'#d97706',rev:0,qty:0,cnt:0},
-    {label:'свыше 10%',color:'#16a34a',rev:0,qty:0,cnt:0}
+    {label:'до 5%',color:'#E33D78',rev:0,cnt:0},
+    {label:'5–10%',color:'#d97706',rev:0,cnt:0},
+    {label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}
   ];
   let tQty=0,tRub=0,tMar=0, html='';
   f.forEach(p=>{
@@ -225,7 +225,7 @@ function render(){
     const marRub=planRub*pl.margin_pct/100;
     tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]);
-    b.rev+=planRub; b.qty+=pl.plan_qty; b.cnt+=1;
+    b.rev+=planRub; b.cnt+=1;
     html+=`<tr>
       <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
       <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
@@ -235,6 +235,7 @@ function render(){
       <td class="num calc">${fmt(marRub)}</td>
     </tr>`;
   });
+  const tCnt=buckets.reduce((s,b)=>s+b.cnt,0);
   const wMar=tRub>0?tMar/tRub*100:0;
   document.getElementById('summary').innerHTML=`
     <div class="piecard">
@@ -247,12 +248,12 @@ function render(){
       </div>
     </div>
     <div class="piecard">
-      <div class="ptitle">Продажи, шт по маржинальности</div>
+      <div class="ptitle">Позиции по маржинальности</div>
       <div class="piebox">
-        <div class="pieWrap"><svg id="pieQty" viewBox="0 0 220 220"></svg>
-          <div class="pieCenter"><div class="pcVal" id="pcValQty"></div><div class="pcCap" id="pcCapQty"></div></div>
+        <div class="pieWrap"><svg id="piePos" viewBox="0 0 220 220"></svg>
+          <div class="pieCenter"><div class="pcVal" id="pcValPos"></div><div class="pcCap" id="pcCapPos"></div></div>
         </div>
-        <div class="legend" id="legendQty"></div>
+        <div class="legend" id="legendPos"></div>
       </div>
     </div>
     <div class="kpis">
@@ -261,7 +262,7 @@ function render(){
       <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
     </div>`;
   drawPie({svg:'pieRev',legend:'legendRev',val:'pcValRev',cap:'pcCapRev'},buckets,tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана');
-  drawPie({svg:'pieQty',legend:'legendQty',val:'pcValQty',cap:'pcCapQty'},buckets,tQty,b=>b.qty,v=>fmt(v)+' шт','продажи, шт');
+  drawPie({svg:'piePos',legend:'legendPos',val:'pcValPos',cap:'pcCapPos'},buckets,tCnt,b=>b.cnt,v=>fmt(v)+' поз.','позиции');
   document.getElementById('tb').innerHTML=html||'<tr><td colspan="7" style="color:#94a3b8">нет данных</td></tr>';
   document.getElementById('tf').innerHTML=`<tr><td colspan="3" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tQty)}</td><td class="num">${fmt(tRub)}</td><td class="num"></td><td class="num">${fmt(tMar)}</td></tr>`;
 }
