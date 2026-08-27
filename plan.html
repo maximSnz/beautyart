@@ -27,25 +27,27 @@
  .editable:hover::after{opacity:1}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
- .summary{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
- .piebox{display:flex;gap:18px;align-items:center}
- .pieWrap{position:relative;width:190px;height:190px;flex:0 0 auto}
- #pie{width:100%;height:100%;display:block;animation:piein .5s ease}
+ .summary{display:flex;gap:20px;align-items:stretch;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
+ .piecard{display:flex;flex-direction:column}
+ .ptitle{font-size:.85em;color:#544273;font-weight:700;margin-bottom:6px}
+ .piebox{display:flex;gap:14px;align-items:center}
+ .pieWrap{position:relative;width:170px;height:170px;flex:0 0 auto}
+ #pieRev,#pieQty{width:100%;height:100%;display:block;animation:piein .5s ease}
  @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
  .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
  .seg:hover,.seg.hl{transform:scale(1.06)}
- #pie.dim .seg:not(:hover):not(.hl){opacity:.4}
- .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 30px}
- .pcVal{font-size:1.15em;font-weight:700;color:#1C0D2E;line-height:1.1}
- .pcCap{font-size:.72em;color:#94a3b8;margin-top:2px}
+ svg.dim .seg:not(:hover):not(.hl){opacity:.4}
+ .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 26px}
+ .pcVal{font-size:1.05em;font-weight:700;color:#1C0D2E;line-height:1.1}
+ .pcCap{font-size:.7em;color:#94a3b8;margin-top:2px}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
- .legend{font-size:.85em;color:#544273}
+ .legend{font-size:.82em;color:#544273}
  .lrow{display:flex;align-items:center;gap:8px;margin:4px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
  .lrow:hover,.lrow.hl{background:rgba(120,166,199,.18)}
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
- .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto}
+ .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto;align-content:center}
  .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 16px;min-width:150px}
  .klabel{font-size:.8em;color:#94a3b8}
  .kval{font-size:1.15em;font-weight:700;color:#1C0D2E;white-space:nowrap}
@@ -152,30 +154,29 @@ function arcPath(cx,cy,rO,rI,a0,a1){
   const large=(a1-a0)>Math.PI?1:0;
   return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
 }
-function drawPie(buckets,total){
-  const svg=document.getElementById('pie');
-  const pcVal=document.getElementById('pcVal'), pcCap=document.getElementById('pcCap');
-  const legend=document.getElementById('legend'), tip=document.getElementById('tip');
+function drawPie(ids,buckets,total,get,fmtV,cap){
+  const svg=document.getElementById(ids.svg);
+  const pcVal=document.getElementById(ids.val), pcCap=document.getElementById(ids.cap);
+  const legend=document.getElementById(ids.legend), tip=document.getElementById('tip');
   if(!svg)return;
   const CX=110,CY=110,RO=100,RI=62,PAD=0.02;
   let html='';
-  const segs=[];
   if(total<=0){
     html=`<circle cx="${CX}" cy="${CY}" r="${(RO+RI)/2}" fill="none" stroke="#e2e8f0" stroke-width="${RO-RI}"/>`;
   }else{
     let a=-Math.PI/2;
     buckets.forEach((b,i)=>{
-      if(b.rev<=0)return;
-      const ang=Math.min(b.rev/total*Math.PI*2,Math.PI*2-0.0001);
+      const v=get(b); if(v<=0)return;
+      const ang=Math.min(v/total*Math.PI*2,Math.PI*2-0.0001);
       const a0=a+PAD/2, a1=a+ang-PAD/2;
-      if(a1>a0){ html+=`<path class="seg" data-i="${i}" d="${arcPath(CX,CY,RO,RI,a0,a1)}" fill="${b.color}"/>`; segs.push(i); }
+      if(a1>a0) html+=`<path class="seg" data-i="${i}" d="${arcPath(CX,CY,RO,RI,a0,a1)}" fill="${b.color}"/>`;
       a+=ang;
     });
   }
   svg.innerHTML=html;
-  const setCenter=(i)=>{
-    if(i==null){ pcVal.textContent=fmtM(total)+' ₽'; pcCap.textContent='выручка плана'; }
-    else{ const b=buckets[i]; const share=total>0?Math.round(b.rev/total*100):0;
+  const setCenter=i=>{
+    if(i==null){ pcVal.textContent=fmtV(total); pcCap.textContent=cap; }
+    else{ const b=buckets[i]; const share=total>0?Math.round(get(b)/total*100):0;
       pcVal.textContent=share+'%'; pcCap.textContent=b.label+' • '+b.cnt+' поз.'; }
   };
   setCenter(null);
@@ -186,8 +187,9 @@ function drawPie(buckets,total){
     legend.querySelectorAll('.lrow').forEach(r=>r.classList.toggle('hl',on&&+r.dataset.i===i));
     setCenter(on?i:null);
   };
-  const showTip=(i,e)=>{ const b=buckets[i]; const share=total>0?(b.rev/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0;
-    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmt(b.rev)} ₽ • ${b.cnt} поз.`;
+  const showTip=(i,e)=>{ const b=buckets[i]; const v=get(b);
+    const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0;
+    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${fmtV(v)} • ${b.cnt} поз.`;
     tip.style.opacity=1; moveTip(e); };
   const moveTip=e=>{ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px'; };
   const hideTip=()=>{ tip.style.opacity=0; };
@@ -198,8 +200,9 @@ function drawPie(buckets,total){
     p.addEventListener('mouseleave',()=>{hl(i,false);hideTip();});
   });
   legend.innerHTML=buckets.map((b,i)=>{
-    const share=total>0?(b.rev/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0';
-    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${b.cnt} поз.</span><span class="lval">${share}% • ${fmtM(b.rev)} ₽</span></div>`;
+    const v=get(b);
+    const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0';
+    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${b.cnt} поз.</span><span class="lval">${share}% • ${fmtV(v)}</span></div>`;
   }).join('');
   legend.querySelectorAll('.lrow').forEach(r=>{
     const i=+r.dataset.i;
@@ -211,9 +214,9 @@ function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const buckets=[
-    {label:'до 5%',color:'#E33D78',rev:0,cnt:0},
-    {label:'5–10%',color:'#d97706',rev:0,cnt:0},
-    {label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}
+    {label:'до 5%',color:'#E33D78',rev:0,qty:0,cnt:0},
+    {label:'5–10%',color:'#d97706',rev:0,qty:0,cnt:0},
+    {label:'свыше 10%',color:'#16a34a',rev:0,qty:0,cnt:0}
   ];
   let tQty=0,tRub=0,tMar=0, html='';
   f.forEach(p=>{
@@ -222,7 +225,7 @@ function render(){
     const marRub=planRub*pl.margin_pct/100;
     tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]);
-    b.rev+=planRub; b.cnt+=1;
+    b.rev+=planRub; b.qty+=pl.plan_qty; b.cnt+=1;
     html+=`<tr>
       <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
       <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
@@ -234,19 +237,31 @@ function render(){
   });
   const wMar=tRub>0?tMar/tRub*100:0;
   document.getElementById('summary').innerHTML=`
-    <div class="piebox">
-      <div class="pieWrap">
-        <svg id="pie" viewBox="0 0 220 220"></svg>
-        <div class="pieCenter"><div class="pcVal" id="pcVal"></div><div class="pcCap" id="pcCap"></div></div>
+    <div class="piecard">
+      <div class="ptitle">Выручка по маржинальности</div>
+      <div class="piebox">
+        <div class="pieWrap"><svg id="pieRev" viewBox="0 0 220 220"></svg>
+          <div class="pieCenter"><div class="pcVal" id="pcValRev"></div><div class="pcCap" id="pcCapRev"></div></div>
+        </div>
+        <div class="legend" id="legendRev"></div>
       </div>
-      <div class="legend" id="legend"></div>
+    </div>
+    <div class="piecard">
+      <div class="ptitle">Продажи, шт по маржинальности</div>
+      <div class="piebox">
+        <div class="pieWrap"><svg id="pieQty" viewBox="0 0 220 220"></svg>
+          <div class="pieCenter"><div class="pcVal" id="pcValQty"></div><div class="pcCap" id="pcCapQty"></div></div>
+        </div>
+        <div class="legend" id="legendQty"></div>
+      </div>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(tRub)}</div></div>
       <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(tMar)}</div></div>
       <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
     </div>`;
-  drawPie(buckets,tRub);
+  drawPie({svg:'pieRev',legend:'legendRev',val:'pcValRev',cap:'pcCapRev'},buckets,tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана');
+  drawPie({svg:'pieQty',legend:'legendQty',val:'pcValQty',cap:'pcCapQty'},buckets,tQty,b=>b.qty,v=>fmt(v)+' шт','продажи, шт');
   document.getElementById('tb').innerHTML=html||'<tr><td colspan="7" style="color:#94a3b8">нет данных</td></tr>';
   document.getElementById('tf').innerHTML=`<tr><td colspan="3" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tQty)}</td><td class="num">${fmt(tRub)}</td><td class="num"></td><td class="num">${fmt(tMar)}</td></tr>`;
 }
