@@ -13,7 +13,8 @@
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
  table{width:100%;border-collapse:collapse;font-size:.88em;min-width:860px}
  th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
- th{color:#666}
+ th{color:#666;white-space:nowrap}
+ th.num-col{width:13%}
  tfoot td{border-top:2px solid rgba(84,66,115,.2);border-bottom:none;font-weight:700;color:#1C0D2E}
  .hide{display:none}
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
@@ -55,7 +56,7 @@
   <div class="tablewrap">
     <table>
       <thead><tr>
-        <th>Артикул</th><th>Название</th><th>Цена, ₽</th><th>План, шт</th><th>План, ₽</th><th>Маржин., %</th><th>Маржа, ₽</th>
+        <th>Артикул</th><th>Название</th><th class="num-col">Цена, ₽</th><th class="num-col">План, шт</th><th class="num-col">План, ₽</th><th class="num-col">Маржин., %</th><th class="num-col">Маржа, ₽</th>
       </tr></thead>
       <tbody id="tb"></tbody>
       <tfoot id="tf"></tfoot>
