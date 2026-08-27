@@ -23,6 +23,7 @@
  .editable::after{content:" ✎";opacity:.3;font-size:.8em}
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
+ tr.zeroplan td{background:rgba(227,61,120,.12)}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
@@ -296,10 +297,10 @@ function render(){
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  // header
-  let totalCols=4;
+  // header (без дублирующих Цена/Маржин. — они внутри метрик)
+  let totalCols=2;
   METRICS.forEach(mt=>{ totalCols+=EXP[mt.key]?2+WEEKS.length*2:2; });
-  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">Цена, ₽</th><th rowspan="3">Маржин., %</th>';
+  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
@@ -318,9 +319,8 @@ function render(){
     if(!GM[gid])return;
     list.forEach(p=>{
       const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-      html+=`<tr><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
-        <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
-        <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>`;
+      const zp=(pl.plan_qty||0)===0;
+      html+=`<tr${zp?' class="zeroplan"':''}><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>`;
       METRICS.forEach(mt=>{
         const editKey=mt.edit;
         html+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${p.product_id},'${editKey}')"`:''}>${fmt(monthlyPlan(p,mt.key))}</td>`;
