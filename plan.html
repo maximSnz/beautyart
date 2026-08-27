@@ -8,7 +8,7 @@
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
  .login,.wrap{max-width:1500px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
  h2{font-family:'Forum';color:#1C0D2E}
- input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ input,textarea{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
  table{width:100%;border-collapse:collapse;font-size:.78em;min-width:900px}
@@ -27,8 +27,23 @@
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
+ td.wd{cursor:pointer;color:#544273;font-weight:700;white-space:nowrap}
+ td.wd:hover{color:#E33D78}
+ td.pname{cursor:pointer}
+ td.pname:hover{color:#E33D78}
+ tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
+ tr.protorow td{background:#f8f9fb;padding:10px}
+ .protorow textarea{width:100%;box-sizing:border-box}
+ .protorow button{margin-top:6px}
+ .protohead{font-size:.8em;color:#94a3b8;margin-bottom:4px}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
+ .switch{display:flex;align-items:center;gap:8px;font-size:.85em;color:#544273;white-space:nowrap;cursor:pointer;user-select:none}
+ .switch input{display:none}
+ .knob{width:42px;height:22px;border-radius:22px;background:#cbd5e1;position:relative;transition:.2s;flex:0 0 auto}
+ .knob::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+ .switch input:checked+.knob{background:#E33D78}
+ .switch input:checked+.knob::after{left:22px}
  th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
  th.sub{background:rgba(120,166,199,.1)}
  th.whead{background:rgba(227,61,120,.08);color:#7D3673}
@@ -68,7 +83,6 @@
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
-   .kpis{margin-left:0}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.72em;min-width:800px}
    th,td{padding:4px 5px}
@@ -89,6 +103,7 @@
     <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
     <input type="month" id="month" onchange="onMonth(this.value)">
     <button onclick="load()">⟳ Обновить</button>
+    <label class="switch"><input type="checkbox" id="dayGroup" onchange="toggleDayGroup(this.checked)"><span class="knob"></span>по дням недели</label>
   </div>
   <div id="summary"></div>
   <div class="tablewrap">
@@ -104,9 +119,12 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[];
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
-let GM={m1:true,m2:true};
+let GM={m1:false,m2:false};
+let dayGroup=false, openProto=new Set();
+const WDN=['—','Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const FULL=['','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
   {key:'rev',label:'Выручка, ₽',add:true},
@@ -135,6 +153,11 @@ function isoWeeksOfMonth(y,m){
 const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${w.getDate()}.${w.getMonth()+1}–${e.getDate()}.${e.getMonth()+1}`;};
 const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
 function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function currentWeekISO(){
+  const t=new Date(); t.setHours(0,0,0,0);
+  for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; }
+  return null;
+}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -157,6 +180,11 @@ async function loadWeeks(){
   WD={};
   (await r.json()).forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:x.forecast==null?null:Number(x.forecast),fact:x.fact==null?null:Number(x.fact)}; });
 }
+async function loadPPM(){
+  const r=await fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol`,{headers:HD});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  PPM={}; (await r.json()).forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol});
+}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -167,17 +195,39 @@ async function load(){
       if(!rp.ok)throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
-      await loadPlans(); await loadWeeks();
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM()]);
       document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • недель: ${WEEKS.length}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await loadPlans(); await loadWeeks(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
+function toggleDayGroup(v){ dayGroup=v; render(); }
+function toggleProto(pid){ if(openProto.has(pid))openProto.delete(pid); else openProto.add(pid); render(); }
+async function upsertPPM(pid,patch){
+  const cur=PPM[pid]||{weekday:null,protocol:null};
+  const next=Object.assign({},cur,patch);
+  PPM[pid]=next;
+  await fetch(SUPABASE_URL+'/rest/v1/product_plan_meta?on_conflict=product_id,month',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,month:MONTH,weekday:next.weekday,protocol:next.protocol})});
+}
+async function setWeekday(pid){
+  const cur=(PPM[pid]&&PPM[pid].weekday)||0;
+  const val=prompt('День недели (0 — без дня, 1 — Пн … 7 — Вс):', cur);
+  if(val==null)return;
+  const n=parseInt(val,10);
+  if(isNaN(n)||n<0||n>7){alert('Некорректное значение');return;}
+  await upsertPPM(pid,{weekday:n||null});
+  render();
+}
+async function saveProto(pid){
+  const el=document.getElementById('proto-'+pid); if(!el)return;
+  await upsertPPM(pid,{protocol:el.value});
+  alert('Сохранено');
+}
 async function editField(pid,field){
   const p=BYID[pid]; if(!p)return;
   const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
@@ -212,8 +262,6 @@ function monthlyPlan(p,key){
   if(key==='price')return pl.price;
   return pl.margin_pct;
 }
-// Авторасчёт прогноза: план поровну на недели; факт/ручные значения фиксированы,
-// остаток плана распределяется по свободным неделям (компенсация дельты).
 function seriesFor(p,key){
   const P=monthlyPlan(p,key);
   const today=new Date(); today.setHours(0,0,0,0);
@@ -228,23 +276,33 @@ function seriesFor(p,key){
   const free=kind.filter(x=>!x).length;
   const share=free>0?(P-fixedSum)/free:0;
   return WEEKISO.map((w,i)=>({
-    past:past[i],
-    fact:recs[i].fact,
-    manual:kind[i]==='manual',
+    past:past[i], fact:recs[i].fact, manual:kind[i]==='manual',
     forecast: kind[i]==='fact'?recs[i].fact : kind[i]==='manual'?recs[i].forecast : share
   }));
 }
 function collVal(p,key){
   const mt=METRICS.find(m=>m.key===key);
-  if(mt.add){ return seriesFor(p,key).reduce((a,x)=>a+x.forecast,0); }
-  const cur=(()=>{ const t=new Date();t.setHours(0,0,0,0);
-    for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; } return null; })();
+  if(mt.add) return seriesFor(p,key).reduce((a,x)=>a+x.forecast,0);
+  const cur=currentWeekISO();
   if(cur){ const rec=getRec(p.product_id,key,cur);
     const today=new Date(); today.setHours(0,0,0,0);
     const v=(weekEnd(parseW(cur))<today&&rec.fact!=null)?rec.fact:(rec.forecast!=null?rec.forecast:null);
     if(v!=null) return v; }
   return monthlyPlan(p,key);
 }
+// Прогнозное закрытие месяца: факты прошедших недель + экстраполяция факта последней недели на оставшиеся.
+function forecastClose(p,key){
+  const mt=METRICS.find(m=>m.key===key);
+  const P=monthlyPlan(p,key);
+  const series=seriesFor(p,key);
+  let lastFact=null; series.forEach(s=>{ if(s.fact!=null) lastFact=s.fact; });
+  if(!mt.add){ return lastFact!=null?lastFact:collVal(p,key); }
+  if(lastFact==null){ return series.reduce((a,s)=>a+s.forecast,0); }
+  let sumFact=0,noFact=0;
+  series.forEach(s=>{ if(s.fact!=null) sumFact+=s.fact; else noFact++; });
+  return sumFact + lastFact*noFact;
+}
+function devFor(p,key){ return forecastClose(p,key)-monthlyPlan(p,key); }
 function arcPath(cx,cy,rO,rI,a0,a1){
   const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
   const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
@@ -295,7 +353,7 @@ function mxCard(id,title,list){
       <div class="pieWrap"><svg class="pie" id="pieRev${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev${id}"></div><div class="pcCap" id="pcCapRev${id}"></div></div></div>
       <div class="legend" id="legendRev${id}"></div></div></div>
     <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
-      <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcValPos${id}x" style="display:none"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
+      <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
       <div class="legend" id="legendPos${id}"></div></div></div>
     <div class="kpis">
       <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
@@ -313,32 +371,41 @@ function render(){
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  let totalCols=2;
+  let totalCols=3;
   METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?WEEKS.length*2:0); });
-  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th>';
+  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">День</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
     const span=3+(exp?WEEKS.length*2:0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
-    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th><th rowspan="2" class="sub">Отклонение</th>`;
+    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Прогноз/Факт</th><th rowspan="2" class="sub">Отклонение в динамике</th>`;
     if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="2" class="whead">${wlabel(w)}</th>`; });
              WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
+  const sv=p=>{ const w=(PPM[p.product_id]&&PPM[p.product_id].weekday)||0; return w===0?8:w; };
   let html='';
   const groups=[['m1','Матрица_1',m1],['m2','Матрица_2',m2]];
   groups.forEach(([gid,gname,list])=>{
     html+=`<tr class="mgroup"><td colspan="${totalCols}"><button onclick="toggleGM('${gid}')">${GM[gid]?'▾':'▸'}</button>${gname} • ${list.length} поз.</td></tr>`;
     if(!GM[gid])return;
-    list.forEach(p=>{
+    let seq=list;
+    if(dayGroup) seq=[...list].sort((a,b)=>sv(a)-sv(b));
+    let lastWd=null;
+    seq.forEach(p=>{
+      const wd=(PPM[p.product_id]&&PPM[p.product_id].weekday)||0;
+      if(dayGroup && wd!==lastWd){ html+=`<tr class="dgroup"><td colspan="${totalCols}">${wd===0?'Без дня':FULL[wd]}</td></tr>`; lastWd=wd; }
       const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
       const zp=(pl.plan_qty||0)===0;
-      html+=`<tr${zp?' class="zeroplan"':''}><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>`;
+      html+=`<tr${zp?' class="zeroplan"':''}>
+        <td>${esc(p.offer_id)}</td>
+        <td class="pname" title="Протокол действий" onclick="toggleProto(${p.product_id})">${esc(p.name)}</td>
+        <td class="wd" title="Назначить день" onclick="setWeekday(${p.product_id})">${WDN[wd]}</td>`;
       METRICS.forEach(mt=>{
         const planV=monthlyPlan(p,mt.key);
         const ffV=collVal(p,mt.key);
-        const dev=ffV-planV;
+        const dev=devFor(p,mt.key);
         const dcls=dev>0?'g':dev<0?'r':'n';
         const editKey=mt.edit;
         html+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${p.product_id},'${editKey}')"`:''}>${fmtFor(mt.key,planV)}</td>`;
@@ -348,16 +415,19 @@ function render(){
           const series=mt.add?seriesFor(p,mt.key):null;
           WEEKISO.forEach((w,i)=>{
             const rec=getRec(p.product_id,mt.key,w);
-            let fc;
-            if(mt.add){ fc=series[i].forecast; }
-            else{ fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key); }
-            const auto=mt.add&&!series[i].manual&&series[i].forecast!=null&&rec.fact==null;
-            html+=`<td class="num editable wcell ${auto?'autocell':''}" title="${auto?'Прогноз (авторасчёт)':'Прогноз (вручную)'}" onclick="editWeek(${p.product_id},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
+            let fc=mt.add?series[i].forecast:(rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key));
+            const auto=mt.add&&!series[i].manual&&rec.fact==null;
+            html+=`<td class="num editable wcell ${auto?'autocell':''}" title="Прогноз" onclick="editWeek(${p.product_id},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
             html+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
           });
         }
       });
       html+=`</tr>`;
+      if(openProto.has(p.product_id)){
+        html+=`<tr class="protorow"><td colspan="${totalCols}"><div class="protohead">Протокол действий • ${esc(p.offer_id)}</div>
+          <textarea id="proto-${p.product_id}" rows="3">${esc((PPM[p.product_id]&&PPM[p.product_id].protocol)||'')}</textarea>
+          <button onclick="saveProto(${p.product_id})">Сохранить</button></td></tr>`;
+      }
     });
   });
   document.getElementById('tb').innerHTML=html||`<tr><td colspan="${totalCols}" style="color:#94a3b8">нет данных</td></tr>`;
