@@ -19,10 +19,11 @@
  .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
  .err{color:#E33D78;font-size:.9em;margin:8px 0}
  .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
- .editable{cursor:pointer;white-space:nowrap;color:#544273;font-weight:700}
- .editable::after{content:"✎";margin-left:6px;color:#94a3b8;font-size:.85em;font-weight:400}
- .editable:hover{color:#E33D78}
  .calc{color:#544273}
+ .editable{cursor:pointer;white-space:nowrap}
+ .editable::after{content:" ✎";opacity:.3;font-size:.8em}
+ .editable:hover{color:#E33D78}
+ .editable:hover::after{opacity:1}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
  @media (max-width:640px){
@@ -128,10 +129,10 @@ function render(){
     tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
     html+=`<tr>
       <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
-      <td class="editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
-      <td class="editable" title="Изменить план" onclick="editField(${p.product_id},'plan_qty')">${fmt(pl.plan_qty)}</td>
+      <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
+      <td class="num editable" title="Изменить план" onclick="editField(${p.product_id},'plan_qty')">${fmt(pl.plan_qty)}</td>
       <td class="num calc">${fmt(planRub)}</td>
-      <td class="editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>
+      <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>
       <td class="num calc">${fmt(marRub)}</td>
     </tr>`;
   });
