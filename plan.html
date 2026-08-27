@@ -6,12 +6,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 <style>
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
- .login,.wrap{max-width:1400px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ .login,.wrap{max-width:1500px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
  h2{font-family:'Forum';color:#1C0D2E}
  input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
- table{width:100%;border-collapse:collapse;font-size:.8em;min-width:900px}
+ table{width:100%;border-collapse:collapse;font-size:.78em;min-width:900px}
  th,td{padding:5px 7px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
  th{color:#666;white-space:nowrap}
  .hide{display:none}
@@ -31,30 +31,34 @@
  th.wsub{background:rgba(227,61,120,.05);font-size:.75em}
  .mtoggle{padding:0 5px;margin-right:4px;background:none;border:1px solid rgba(84,66,115,.3);border-radius:5px;color:#544273;cursor:pointer;font-size:.8em}
  td.wcell{background:rgba(227,61,120,.03)}
- .summary{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#f8f9fb}
+ tr.mgroup td{background:linear-gradient(90deg,rgba(125,54,115,.18),transparent);font-weight:700;color:#7D3673;padding-top:12px;border-bottom:2px solid rgba(125,54,115,.25)}
+ tr.mgroup button{background:none;border:1px solid rgba(125,54,115,.4);border-radius:5px;color:#7D3673;cursor:pointer;padding:0 6px;margin-right:6px}
+ .mxcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
+ .mxtitle{font-family:'Forum';font-weight:700;color:#544273;font-size:1em;margin-bottom:8px}
+ .mxbody{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
  .piecard{display:flex;flex-direction:column}
- .ptitle{font-size:.85em;color:#544273;font-weight:700;margin-bottom:6px}
- .piebox{display:flex;gap:14px;align-items:center}
- .pieWrap{position:relative;width:150px;height:150px;flex:0 0 auto}
- #pieRev,#piePos{width:100%;height:100%;display:block;animation:piein .5s ease}
+ .ptitle{font-size:.82em;color:#544273;font-weight:700;margin-bottom:5px}
+ .piebox{display:flex;gap:12px;align-items:center}
+ .pieWrap{position:relative;width:140px;height:140px;flex:0 0 auto}
+ svg.pie{width:100%;height:100%;display:block;animation:piein .5s ease}
  @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
  .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
  .seg:hover,.seg.hl{transform:scale(1.06)}
  svg.dim .seg:not(:hover):not(.hl){opacity:.4}
- .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 24px}
- .pcVal{font-size:1em;font-weight:700;color:#1C0D2E;line-height:1.1}
- .pcCap{font-size:.68em;color:#94a3b8;margin-top:2px}
+ .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 22px}
+ .pcVal{font-size:.95em;font-weight:700;color:#1C0D2E;line-height:1.1}
+ .pcCap{font-size:.66em;color:#94a3b8;margin-top:2px}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
- .legend{font-size:.8em;color:#544273}
+ .legend{font-size:.78em;color:#544273}
  .lrow{display:flex;align-items:center;gap:8px;margin:4px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
  .lrow:hover,.lrow.hl{background:rgba(120,166,199,.18)}
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
- .kpis{display:flex;flex-direction:column;gap:10px;margin-left:auto}
- .kpi{background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:8px 16px;min-width:180px}
- .klabel{font-size:.78em;color:#94a3b8}
- .kval{font-size:1.05em;font-weight:700;color:#1C0D2E;white-space:nowrap}
+ .kpis{display:flex;flex-direction:column;gap:8px;margin-left:auto}
+ .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:7px 14px;min-width:170px}
+ .klabel{font-size:.75em;color:#94a3b8}
+ .kval{font-size:1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -62,7 +66,7 @@
    .toolbar{flex-direction:column;align-items:stretch}
    .kpis{margin-left:0}
    button{padding:10px 14px;font-size:1em}
-   table{font-size:.75em;min-width:800px}
+   table{font-size:.72em;min-width:800px}
    th,td{padding:4px 5px}
    .meta{font-size:.78em}
  }
@@ -82,7 +86,7 @@
     <input type="month" id="month" onchange="onMonth(this.value)">
     <button onclick="load()">⟳ Обновить</button>
   </div>
-  <div class="summary" id="summary"></div>
+  <div id="summary"></div>
   <div class="tablewrap">
     <table>
       <thead id="th"></thead>
@@ -97,11 +101,14 @@ const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[];
-let EXP={qty:false,rev:false,mar:false};
+let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
+let GM={m1:true,m2:true};
 const METRICS=[
-  {key:'qty',label:'Продажи, шт'},
-  {key:'rev',label:'Выручка, ₽'},
-  {key:'mar',label:'Маржа, ₽'}
+  {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
+  {key:'rev',label:'Выручка, ₽',add:true},
+  {key:'mar',label:'Маржа, ₽',add:true},
+  {key:'price',label:'Цена, ₽',add:false,edit:'price'},
+  {key:'pct',label:'Маржин., %',add:false,edit:'margin_pct'}
 ];
 const now0=new Date();
 let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
@@ -111,19 +118,22 @@ const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
 const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function isoWeeksOfMonth(y,m){
-  const out=[];
-  let d=new Date(y,m,1);
+  const out=[]; let d=new Date(y,m,1);
   d.setDate(d.getDate()-((d.getDay()+6)%7));
-  for(let i=0;i<6;i++){
-    const thu=new Date(d); thu.setDate(thu.getDate()+3);
+  for(let i=0;i<6;i++){ const thu=new Date(d); thu.setDate(thu.getDate()+3);
     if(thu.getFullYear()===y&&thu.getMonth()===m) out.push(new Date(d));
-    d.setDate(d.getDate()+7);
-  }
+    d.setDate(d.getDate()+7); }
   return out;
 }
 const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${w.getDate()}.${w.getMonth()+1}–${e.getDate()}.${e.getMonth()+1}`;};
 const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
+function currentWeekISO(){
+  const t=new Date(); t.setHours(0,0,0,0);
+  for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; }
+  return null;
+}
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
   const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -144,9 +154,7 @@ async function loadWeeks(){
   const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?week=in.${inList}&select=product_id,week,metric,plan,forecast,fact`,{headers:HD});
   if(!r.ok)throw new Error('HTTP '+r.status);
   WD={};
-  (await r.json()).forEach(x=>{
-    ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:Number(x.forecast||0),fact:x.fact==null?null:Number(x.fact)};
-  });
+  (await r.json()).forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:Number(x.forecast||0),fact:x.fact==null?null:Number(x.fact)}; });
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -168,6 +176,7 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
   try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await loadPlans(); await loadWeeks(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
+function toggleGM(k){ GM[k]=!GM[k]; render(); }
 async function editField(pid,field){
   const p=BYID[pid]; if(!p)return;
   const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
@@ -182,31 +191,49 @@ async function editField(pid,field){
   render();
 }
 async function editWeek(pid,week,metric,field){
-  const cur=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week][field]:0;
+  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week])?WD[pid][metric][week]:{plan:0,forecast:0};
   const labels={plan:'План',forecast:'Прогноз'};
-  const val=prompt(`${labels[field]} на ${week}:`, cur);
+  const val=prompt(`${labels[field]} на ${week}:`, rec[field]);
   if(val==null)return;
   const num=Number(String(val).replace(',','.'));
   if(!isFinite(num)||num<0){alert('Некорректное значение');return;}
   const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,[field]:num})});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
-  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign((WD[pid][metric][week]||{plan:0,forecast:0,fact:null}),{[field]:num});
+  ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,{[field]:num});
   render();
 }
-function monthlyPlan(p,mt){
+function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:0,fact:null}; }
+function monthlyPlan(p,key){
   const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-  if(mt==='qty')return pl.plan_qty;
-  if(mt==='rev')return pl.plan_qty*pl.price;
-  return pl.plan_qty*pl.price*pl.margin_pct/100;
+  if(key==='qty')return pl.plan_qty;
+  if(key==='rev')return pl.plan_qty*pl.price;
+  if(key==='mar')return pl.plan_qty*pl.price*pl.margin_pct/100;
+  if(key==='price')return pl.price;
+  return pl.margin_pct;
 }
-function weekVal(pid,metric,w){
-  const rec=(WD[pid]&&WD[pid][metric]&&WD[pid][metric][w])?WD[pid][metric][w]:{plan:0,forecast:0,fact:null};
+function weekVal(pid,key,w){
+  const rec=getRec(pid,key,w);
   const today=new Date(); today.setHours(0,0,0,0);
   const past=weekEnd(parseW(w))<today;
   return (past&&rec.fact!=null)?rec.fact:rec.forecast;
 }
 function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
-function ffSum(pid,metric){ return WEEKISO.reduce((s,w)=>s+weekVal(pid,metric,w),0); }
+function collVal(p,key){
+  const mt=METRICS.find(m=>m.key===key);
+  if(mt.add) return WEEKISO.reduce((s,w)=>s+weekVal(p.product_id,key,w),0);
+  const cur=currentWeekISO();
+  if(cur){ const rec=getRec(p.product_id,key,cur);
+    const today=new Date(); today.setHours(0,0,0,0);
+    const v=(weekEnd(parseW(cur))<today&&rec.fact!=null)?rec.fact:rec.forecast;
+    if(v) return v; }
+  return monthlyPlan(p,key);
+}
+function arcPath(cx,cy,rO,rI,a0,a1){
+  const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
+  const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
+  const large=(a1-a0)>Math.PI?1:0;
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
+}
 function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
   const svg=document.getElementById(ids.svg);
   const pcVal=document.getElementById(ids.val), pcCap=document.getElementById(ids.cap);
@@ -235,38 +262,43 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
   legend.innerHTML=buckets.map((b,i)=>{ const v=get(b);const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0'; return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${fmtSide(b)}</span><span class="lval">${share}% • ${fmtMain(b)}</span></div>`; }).join('');
   legend.querySelectorAll('.lrow').forEach(r=>{ const i=+r.dataset.i; r.addEventListener('mouseenter',()=>hl(i,true)); r.addEventListener('mouseleave',()=>hl(i,false)); });
 }
-function arcPath(cx,cy,rO,rI,a0,a1){
-  const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
-  const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
-  const large=(a1-a0)>Math.PI?1:0;
-  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
+function matrixStats(list){
+  const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
+  let tRub=0,tMar=0;
+  list.forEach(p=>{ const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+    const rev=pl.plan_qty*pl.price, mar=rev*pl.margin_pct/100; tRub+=rev; tMar+=mar;
+    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1; });
+  return {buckets,tRub,tMar};
+}
+function mxCard(id,title,list){
+  const s=matrixStats(list);
+  const wMar=s.tRub>0?s.tMar/s.tRub*100:0;
+  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.</div><div class="mxbody">
+    <div class="piecard"><div class="ptitle">Выручка по маржинальности</div><div class="piebox">
+      <div class="pieWrap"><svg class="pie" id="pieRev${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev${id}"></div><div class="pcCap" id="pcCapRev${id}"></div></div></div>
+      <div class="legend" id="legendRev${id}"></div></div></div>
+    <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
+      <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
+      <div class="legend" id="legendPos${id}"></div></div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
+      <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tMar)}</div></div>
+      <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
+    </div></div></div>`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
-  // --- summary pies (monthly) ---
-  const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
-  let tRub=0,tMar=0;
-  f.forEach(p=>{ const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-    const rev=pl.plan_qty*pl.price, mar=rev*pl.margin_pct/100; tRub+=rev; tMar+=mar;
-    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1; });
-  const tCnt=buckets.reduce((s,b)=>s+b.cnt,0);
-  const wMar=tRub>0?tMar/tRub*100:0;
-  document.getElementById('summary').innerHTML=`
-    <div class="piecard"><div class="ptitle">Выручка по маржинальности</div><div class="piebox">
-      <div class="pieWrap"><svg id="pieRev" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev"></div><div class="pcCap" id="pcCapRev"></div></div></div>
-      <div class="legend" id="legendRev"></div></div></div>
-    <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
-      <div class="pieWrap"><svg id="piePos" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos"></div><div class="pcCap" id="pcCapPos"></div></div></div>
-      <div class="legend" id="legendPos"></div></div></div>
-    <div class="kpis">
-      <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(tRub)}</div></div>
-      <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(tMar)}</div></div>
-      <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
-    </div>`;
-  drawPie({svg:'pieRev',legend:'legendRev',val:'pcValRev',cap:'pcCapRev'},buckets,tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
-  drawPie({svg:'piePos',legend:'legendPos',val:'pcValPos',cap:'pcCapPos'},buckets,tCnt,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  // --- weekly table header ---
+  const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
+  const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
+  document.getElementById('summary').innerHTML=mxCard('1','Матрица_1 (шапочки, перчатки, уплотнитель)',m1)+mxCard('2','Матрица_2 (остальное)',m2);
+  drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},matrixStats(m1).buckets,matrixStats(m1).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
+  drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
+  drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  // header
+  let totalCols=4;
+  METRICS.forEach(mt=>{ totalCols+=EXP[mt.key]?2+WEEKS.length*2:2; });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">Цена, ₽</th><th rowspan="3">Маржин., %</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
@@ -278,26 +310,32 @@ function render(){
              WEEKS.forEach(w=>{ r3+=`<th class="wsub">П</th><th class="wsub">Пр</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  // --- body ---
+  // body grouped by matrix
   let html='';
-  f.forEach(p=>{
-    const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-    html+=`<tr><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
-      <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
-      <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>`;
-    METRICS.forEach(mt=>{
-      html+=`<td class="num ${mt.key==='qty'?'editable':''}" ${mt.key==='qty'?`title="Изменить план" onclick="editField(${p.product_id},'plan_qty')"`:''}>${fmt(monthlyPlan(p,mt.key))}</td>`;
-      html+=`<td class="num calc">${fmt(ffSum(p.product_id,mt.key))}</td>`;
-      if(EXP[mt.key]){
-        WEEKISO.forEach(w=>{
-          const rec=(WD[p.product_id]&&WD[p.product_id][mt.key]&&WD[p.product_id][mt.key][w])?WD[p.product_id][mt.key][w]:{plan:0,forecast:0};
-          html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','plan')">${fmt(rec.plan)}</td>`;
-          html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','forecast')">${fmt(rec.forecast)}</td>`;
-        });
-      }
+  const groups=[['m1','Матрица_1',m1],['m2','Матрица_2',m2]];
+  groups.forEach(([gid,gname,list])=>{
+    html+=`<tr class="mgroup"><td colspan="${totalCols}"><button onclick="toggleGM('${gid}')">${GM[gid]?'▾':'▸'}</button>${gname} • ${list.length} поз.</td></tr>`;
+    if(!GM[gid])return;
+    list.forEach(p=>{
+      const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+      html+=`<tr><td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
+        <td class="num editable" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
+        <td class="num editable" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>`;
+      METRICS.forEach(mt=>{
+        const editKey=mt.edit;
+        html+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${p.product_id},'${editKey}')"`:''}>${fmt(monthlyPlan(p,mt.key))}</td>`;
+        html+=`<td class="num calc">${fmt(collVal(p,mt.key))}</td>`;
+        if(EXP[mt.key]){
+          WEEKISO.forEach(w=>{
+            const rec=getRec(p.product_id,mt.key,w);
+            html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','plan')">${fmt(rec.plan)}</td>`;
+            html+=`<td class="num editable wcell" onclick="editWeek(${p.product_id},'${w}','${mt.key}','forecast')">${fmt(rec.forecast)}</td>`;
+          });
+        }
+      });
+      html+=`</tr>`;
     });
-    html+=`</tr>`;
   });
-  document.getElementById('tb').innerHTML=html||'<tr><td colspan="8" style="color:#94a3b8">нет данных</td></tr>';
+  document.getElementById('tb').innerHTML=html||`<tr><td colspan="${totalCols}" style="color:#94a3b8">нет данных</td></tr>`;
 }
 </script></body></html>
