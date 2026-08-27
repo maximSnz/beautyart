@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beauty Art — План продаж</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
+ .login,.wrap{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ h2{font-family:'Forum';color:#1C0D2E}
+ input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ table{width:100%;border-collapse:collapse;font-size:.88em;min-width:860px}
+ th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
+ th{color:#666}
+ tfoot td{border-top:2px solid rgba(84,66,115,.2);border-bottom:none;font-weight:700;color:#1C0D2E}
+ .hide{display:none}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
+ .err{color:#E33D78;font-size:.9em;margin:8px 0}
+ .num{font-weight:700;color:#1C0D2E;white-space:nowrap}
+ .editable{cursor:pointer;border-bottom:1px dashed #94a3b8}
+ .editable:hover{background:rgba(120,166,199,.15)}
+ .calc{color:#544273}
+ .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+ .toolbar input[type=text]{flex:1;min-width:180px}
+ @media (max-width:640px){
+   body{padding:8px}
+   .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
+   h2{font-size:1.15em}
+   .toolbar{flex-direction:column;align-items:stretch}
+   button{padding:10px 14px;font-size:1em}
+   table{font-size:.8em;min-width:800px}
+   th,td{padding:5px 6px}
+   .meta{font-size:.78em}
+ }
+</style></head>
+<body>
+<div class="login" id="login">
+  <h2>Закрытый раздел</h2>
+  <input type="password" id="pwd" placeholder="Пароль" onkeypress="if(event.key==='Enter')go()">
+  <button onclick="go()">Войти</button>
+</div>
+<div class="wrap hide" id="app">
+  <h2>📊 План продаж</h2>
+  <div class="meta" id="meta">загрузка…</div>
+  <div class="err" id="err"></div>
+  <div class="toolbar">
+    <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
+    <input type="month" id="month" onchange="onMonth(this.value)">
+    <button onclick="load()">⟳ Обновить</button>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>Артикул</th><th>Название</th><th>Цена продажи</th><th>План (шт)</th><th>План (руб)</th><th>Маржин. (%)</th><th>Маржа (руб)</th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+      <tfoot id="tf"></tfoot>
+    </table>
+  </div>
+</div>
+<script>
+const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
+const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+let ROWS=[],PLAN={},BYID={};
+const now0=new Date();
+let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
+const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
+async function go(){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
+  const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  if(h!==PASSWORD_HASH){alert('Неверный пароль');return;}
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  document.getElementById('month').value=MONTH;
+  load();
+}
+async function loadPlans(){
+  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan?month=eq.${MONTH}&select=product_id,price,plan_qty,margin_pct`,{headers:HD});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  PLAN={}; (await r.json()).forEach(x=>PLAN[x.product_id]={price:Number(x.price||0),plan_qty:Number(x.plan_qty||0),margin_pct:Number(x.margin_pct||0)});
+}
+async function load(){
+  const err=document.getElementById('err'); err.textContent='';
+  for(let a=1;a<=3;a++){
+    try{
+      const rp=await fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,price,archived&order=name.asc&limit=1000',{headers:HD});
+      if(!rp.ok)throw new Error('HTTP '+rp.status);
+      ROWS=(await rp.json()).filter(x=>!x.archived);
+      BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
+      await loadPlans();
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • клик по цене / плану / марже — редактировать`;
+      render(); return;
+    }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
+  }
+}
+async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
+  try{ await loadPlans(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+}
+async function editField(pid,field){
+  const p=BYID[pid]; if(!p)return;
+  const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+  const labels={price:'Цена продажи, ₽',plan_qty:'План, шт',margin_pct:'План маржинальность, %'};
+  const val=prompt(labels[field]+':', pl[field]);
+  if(val==null)return;
+  const num=Number(String(val).replace(',','.'));
+  if(!isFinite(num)||num<0){alert('Некорректное значение');return;}
+  pl[field]=num; PLAN[pid]=pl;
+  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan?on_conflict=month,product_id',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({month:MONTH,product_id:pid,price:pl.price,plan_qty:pl.plan_qty,margin_pct:pl.margin_pct})});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  render();
+}
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
+  let tQty=0,tRub=0,tMar=0, html='';
+  f.forEach(p=>{
+    const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+    const planRub=pl.price*pl.plan_qty;
+    const marRub=planRub*pl.margin_pct/100;
+    tQty+=pl.plan_qty; tRub+=planRub; tMar+=marRub;
+    html+=`<tr>
+      <td>${esc(p.offer_id)}</td><td>${esc(p.name)}</td>
+      <td class="editable num" title="Изменить цену" onclick="editField(${p.product_id},'price')">${fmt2(pl.price)}</td>
+      <td class="editable num" title="Изменить план" onclick="editField(${p.product_id},'plan_qty')">${fmt(pl.plan_qty)}</td>
+      <td class="num calc">${fmt(planRub)}</td>
+      <td class="editable num" title="Изменить маржинальность" onclick="editField(${p.product_id},'margin_pct')">${fmt2(pl.margin_pct)}</td>
+      <td class="num calc">${fmt(marRub)}</td>
+    </tr>`;
+  });
+  document.getElementById('tb').innerHTML=html||'<tr><td colspan="7" style="color:#94a3b8">нет данных</td></tr>';
+  document.getElementById('tf').innerHTML=`<tr><td colspan="3" style="text-align:right">ИТОГО:</td><td class="num">${fmt(tQty)}</td><td class="num">${fmt(tRub)}</td><td class="num"></td><td class="num">${fmt(tMar)}</td></tr>`;
+}
+</script></body></html>
