@@ -8,7 +8,7 @@
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
  .login,.wrap{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
  h2{font-family:'Forum';color:#1C0D2E}
- input{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ input,select{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
  button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
  button:disabled{opacity:.5;cursor:not-allowed}
  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -38,16 +38,22 @@
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
  .progfill{height:100%;width:0%;background:linear-gradient(90deg,#78A6C7,#E33D78);transition:width .2s}
  .progfill.bad{background:#E33D78}
- .topblock{border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px;margin:0 0 16px}
- .toptitle{font-family:'Forum';font-weight:700;color:#E33D78;font-size:1em;margin-bottom:8px}
- .topitem{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#fff;border:1px solid rgba(84,66,115,.15);border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:pointer;flex-wrap:wrap}
- .topitem:hover{border-color:#E33D78}
- .topname{flex:1;color:#1C0D2E;font-weight:700;font-size:.88em;min-width:140px}
- .topdir{font-size:.8em;font-weight:700;white-space:nowrap}
- .topchg{color:#544273;font-size:.82em;white-space:nowrap}
- .kp{font-size:.75em;font-weight:700;border-radius:5px;padding:1px 6px;background:rgba(148,163,184,.12);white-space:nowrap}
  .chartcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:10px 12px;margin:0 0 14px}
- .charttitle{font-size:.85em;font-weight:700;color:#544273;margin-bottom:6px}
+ .charthead{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+ .charttitle{font-size:.85em;font-weight:700;color:#544273;flex:1}
+ .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
+ .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+ .topblock{flex:1;min-width:320px;border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
+ .toptitle{font-family:'Forum';font-weight:700;color:#E33D78;font-size:1em;margin-bottom:8px}
+ .tophead,.topitem{display:grid;grid-template-columns:minmax(140px,1fr) auto auto 48px 48px 48px;align-items:center;gap:6px}
+ .tophead{font-size:.72em;color:#94a3b8;margin-bottom:4px}
+ .tophead span:nth-child(n+4){text-align:center}
+ .topitem{width:100%;text-align:left;background:#fff;border:1px solid rgba(84,66,115,.15);border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:pointer}
+ .topitem:hover{border-color:#E33D78}
+ .topname{color:#1C0D2E;font-weight:700;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .topdir{font-size:.78em;font-weight:700;white-space:nowrap}
+ .topchg{color:#544273;font-size:.8em;white-space:nowrap}
+ .kpc{font-size:.8em;font-weight:700;text-align:center;border-radius:5px;padding:2px 0;background:rgba(148,163,184,.12)}
  @keyframes flash{0%{background:rgba(227,61,120,.35);}100%{background:transparent;}}
  .hlflash{animation:flash 2s ease;}
  details.matrix{border:3px solid rgba(125,54,115,.3);border-radius:14px;background:#fdf7fb;margin:0 0 18px}
@@ -116,7 +122,7 @@
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
-    <label class="switch"><input type="checkbox" id="fireToggle" checked onchange="setIncludeFire(this.checked)"><span class="knob"></span>учитывать «пожар»</label>
+    <label class="switch" id="fireSwitch"><input type="checkbox" id="fireToggle" checked onchange="setIncludeFire(this.checked)"><span class="knob"></span>учитывать «пожар»</label>
     <div class="mode">
       <button id="modeSum" class="on" onclick="setMode('summary')">Сводная</button>
       <button id="modePr" onclick="setMode('products')">По товарам</button>
@@ -129,17 +135,19 @@
   </div>
   <div id="clusters"></div>
   <div class="grand" id="grand"></div>
+  <div class="tip" id="tip"></div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},PLAN_QTY={},DATES=new Set(),BASE=null,SALESCOUNT=0;
+let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},PLAN_QTY={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
-let importing=false, MODE='summary', INCLUDE_FIRE=true;
+let importing=false, MODE='summary', INCLUDE_FIRE=true, CHART_MK='m1';
 let MONTH='2026-09';
 let T_REPORT=11;
+let LASTCHART=null;
 const SMOOTH_DAYS=7;
 const MATRIX_NAME={m1:'Алекс',m2:'Александр'};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -156,9 +164,12 @@ function setMode(m){
   document.getElementById('modeSum').classList.toggle('on',m==='summary');
   document.getElementById('modePr').classList.toggle('on',m==='products');
   document.getElementById('modeCl').classList.toggle('on',m==='clusters');
+  document.getElementById('fireSwitch').style.display=(m==='summary')?'none':'flex';
   render();
 }
 function setIncludeFire(v){ INCLUDE_FIRE=v; render(); }
+function setChartMk(v){ CHART_MK=v; render(); }
+function moveTip(e){ const t=document.getElementById('tip'); t.style.left=(e.clientX+14)+'px'; t.style.top=(e.clientY+14)+'px'; }
 function jump(attr,val){
   const el=document.querySelector('[data-'+attr+'="'+val+'"]');
   if(!el)return;
@@ -176,6 +187,7 @@ async function go(){
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   document.getElementById('month').value=MONTH;
+  document.getElementById('fireSwitch').style.display='none';
   load();
 }
 async function loadPlan(){
@@ -246,7 +258,8 @@ async function load(){
       ]);
       await loadPlan();
       ROWS=rp.filter(x=>!x.archived);
-      const pidOffer={}; rp.forEach(p=>pidOffer[p.product_id]=p.offer_id);
+      OFFER_PID={}; const pidOffer={};
+      rp.forEach(p=>{pidOffer[p.product_id]=p.offer_id; OFFER_PID[p.offer_id]=p.product_id;});
       COST={}; rc.forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
       SUPPLIER={}; rp.forEach(p=>{ SUPPLIER[p.product_id]=(p.supplier||'').trim(); });
       STOCK={}; WHCLUSTER={};
@@ -302,34 +315,39 @@ function recText(pid,cs,c1,T){
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
 function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
-// % отклонения оборачиваемости от цели на окнах 1/3/7 дн
-function kpiPct(pairs,stock){
-  const out=[];
-  [1,3,7].forEach(w=>{
+// KPI %: (факт_темп_за_w_дн − план_день) / план_день × 100
+function kpiPct(pairs,P){
+  return [1,3,7].map(w=>{
+    if(P<=0)return null;
     let sum=0;
     for(let i=0;i<w;i++){
       const dt=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i));
       for(const pr of pairs) sum+= SALES[pr.o]?.[pr.wh]?.[dt]||0;
     }
     const A=sum/w;
-    if(A<=0||stock<=0){out.push(null);return;}
-    const D=stock/A;
-    out.push((D-T_REPORT)/T_REPORT*100);
+    return (A-P)/P*100;
   });
-  return out;
 }
-function kpiBadges(k){
-  return k.map((v,i)=>{
-    const lab=['1д','3д','7д'][i];
-    if(v==null)return `<span class="kp n">${lab} —</span>`;
-    const cls=v>0?'r':v<0?'g':'n';
-    return `<span class="kp ${cls}">${lab} ${v>0?'+':''}${Math.round(v)}%</span>`;
+function kpiCells(k){
+  return k.map(v=>{
+    if(v==null)return `<span class="kpc n">—</span>`;
+    const cls=Math.abs(v)<=10?'g':(v<0?'r':'o');
+    return `<span class="kpc ${cls}">${v>0?'+':''}${Math.round(v)}%</span>`;
   }).join('');
 }
-function devChart(mk,offers){
-  const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
-  let base=0; offers.forEach(o=>{ /* base below via pid map */ });
-  return null;
+function attachChart(){
+  const tip=document.getElementById('tip');
+  document.querySelectorAll('#devsvg circle[data-i]').forEach(c=>{
+    c.style.cursor='pointer';
+    c.addEventListener('mouseenter',e=>{
+      const i=+c.dataset.i;
+      const v=LASTCHART.vals[i];
+      tip.innerHTML=`<b>${LASTCHART.labels[i]}</b>: ${v>0?'+':''}${fmt(v)} шт/день`;
+      tip.style.opacity=1; moveTip(e);
+    });
+    c.addEventListener('mousemove',moveTip);
+    c.addEventListener('mouseleave',()=>tip.style.opacity=0);
+  });
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -354,7 +372,7 @@ function render(){
     }
     return arr;
   };
-  const entries=(MODE==='summary')?buildEntries(!INCLUDE_FIRE):buildEntries(true);
+  const entries=(MODE==='summary')?buildEntries(false):buildEntries(!INCLUDE_FIRE);
   const whRows=(arr)=>arr.sort((a,b)=>b.sum-a.sum).map(e=>`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s3,e.s4)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s1,e.s2)}</tr>`).join('');
   const head7=`<tr><th>Наименование</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
   let html='';
@@ -367,63 +385,71 @@ function render(){
       if(!p.clusters.has(e.cluster))p.clusters.set(e.cluster,[]);
       p.clusters.get(e.cluster).push(e);
     });
-    const prods=[...prodAgg.values()].map(p=>{p.clArr=toClArr(p);return p;});
-    function toClArr(p){return [...p.clusters.entries()].map(([c,a])=>({
+    const toClArr=(p)=>[...p.clusters.entries()].map(([c,a])=>({
       c,arr:a,
       cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0),
       c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
-    })).map(g=>{ g.rec=recText(p.pid,g.cs,g.c1,T_REPORT); g.dir=g.rec?(g.rec.cls==='r'?'up':'down'):0; g.change=g.rec?g.rec.change:0; g.signed=signedSmooth(g.cs,g.c1); return g; }).sort((a,b)=>b.csum-a.csum);}
+    })).map(g=>{ g.rec=recText(p.pid,g.cs,g.c1,T_REPORT); g.dir=g.rec?(g.rec.cls==='r'?'up':'down'):0; g.change=g.rec?g.rec.change:0; g.signed=signedSmooth(g.cs,g.c1); return g; }).sort((a,b)=>b.csum-a.csum);
+    const prods=[...prodAgg.values()].map(p=>{p.clArr=toClArr(p);return p;});
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    // Диаграммы отклонения от базы по дням
-    const chartBlock=(mk)=>{
-      const mProds=prods.filter(p=>p.matrix===mk);
-      const offerSet=new Set(mProds.map(p=>p.o));
-      let base=0; mProds.forEach(p=>base+=planDaily(p.pid));
-      const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
-      const vals=days.map(dt=>{
-        let act=0;
-        offerSet.forEach(o=>{ const wm=SALES[o]||{}; for(const wh in wm) act+= wm[wh][dt]||0; });
-        return act-base;
-      });
-      const maxAbs=Math.max(...vals.map(v=>Math.abs(v)),1);
-      const W=600,H=150,pL=8,pR=8,pT=26,pB=14;
-      const X=i=>pL+i*((W-pL-pR)/(days.length-1));
-      const Y=v=>pT+(1-((v+maxAbs)/(2*maxAbs)))*(H-pT-pB);
-      const pts=vals.map((v,i)=>`${X(i)},${Y(v)}`).join(' ');
-      return `<div class="chartcard"><div class="charttitle">📈 ${MATRIX_NAME[mk]} — отклонение от базы по дням (факт − план, шт/день)</div>
-        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:8px">
-          <line x1="${pL}" y1="${Y(0)}" x2="${W-pR}" y2="${Y(0)}" stroke="#cbd5e1" stroke-dasharray="4 3"/>
-          <polyline points="${pts}" fill="none" stroke="#7D3673" stroke-width="2"/>
-          ${vals.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="3" fill="${v>0?'#E33D78':v<0?'#16a34a':'#94a3b8'}"/><text x="${X(i)}" y="${Y(v)-6}" text-anchor="middle" font-size="9" fill="${v>0?'#E33D78':v<0?'#16a34a':'#94a3b8'}">${v>0?'+':''}${fmt(v)}</text>`).join('')}
-        </svg></div>`;
-    };
-    html+=chartBlock('m1')+chartBlock('m2');
-    // Топ по матрицам
-    const topBlock=(mk,isProd)=>{
+    // Диаграмма (одна, с селектором менеджера)
+    const mk=CHART_MK;
+    const mProds=prods.filter(p=>p.matrix===mk);
+    const offerSet=new Set(mProds.map(p=>p.o));
+    let base=0; mProds.forEach(p=>base+=planDaily(p.pid));
+    const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
+    const vals=days.map(dt=>{ let act=0; offerSet.forEach(o=>{const wm=SALES[o]||{}; for(const wh in wm) act+=wm[wh][dt]||0;}); return act-base; });
+    LASTCHART={vals,labels:days.map(dt=>lbl(dt))};
+    const maxAbs=Math.max(...vals.map(v=>Math.abs(v)),1);
+    const W=640,H=170,pL=34,pR=10,pT=14,pB=24;
+    const X=i=>pL+i*((W-pL-pR)/(days.length-1));
+    const Y=v=>pT+(1-((v+maxAbs)/(2*maxAbs)))*(H-pT-pB);
+    const ticks=[-maxAbs,-maxAbs/2,0,maxAbs/2,maxAbs];
+    const pts=vals.map((v,i)=>`${X(i)},${Y(v)}`).join(' ');
+    html+=`<div class="chartcard"><div class="charthead">
+        <span class="charttitle">📈 Отклонение от базы по дням (факт − план, шт/день)</span>
+        <select onchange="setChartMk(this.value)"><option value="m1" ${mk==='m1'?'selected':''}>Алекс</option><option value="m2" ${mk==='m2'?'selected':''}>Александр</option></select>
+      </div>
+      <svg id="devsvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:8px">
+        ${ticks.map(t=>`<line x1="${pL}" y1="${Y(t)}" x2="${W-pR}" y2="${Y(t)}" stroke="${t===0?'#94a3b8':'#e2e8f0'}" stroke-width="${t===0?1.5:1}" ${t===0?'':'stroke-dasharray="3 3"'}/><text x="${pL-4}" y="${Y(t)+3}" text-anchor="end" font-size="9" fill="#94a3b8">${fmt(t)}</text>`).join('')}
+        ${days.map((dt,i)=>(i%2===0?`<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#94a3b8">${lbl(dt)}</text>`:'')).join('')}
+        <polyline points="${pts}" fill="none" stroke="#7D3673" stroke-width="2"/>
+        ${vals.map((v,i)=>`<circle data-i="${i}" cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${v>0?'#E33D78':v<0?'#16a34a':'#94a3b8'}"/>`).join('')}
+      </svg></div>`;
+    // Топы по матрицам (горизонтально)
+    const topBlock=(mkk,isProd)=>{
       let items=[];
       if(isProd){
-        byMatrix.get(mk)?.forEach(p=>{
-          const signed=p.clArr.reduce((s,g)=>s+g.signed,0);
-          items.push({name:p.name,ref:p.o,attr:'prod',signed,pairs:p.pairs,stock:p.stock});
+        byMatrix.get(mkk)?.forEach(p=>{
+          let up=0,down=0; p.clArr.forEach(g=>{ if(g.dir==='up')up+=g.change; else if(g.dir==='down')down+=g.change; });
+          const dir=down>=up?'down':'up'; const mag=Math.max(up,down);
+          if(mag>0) items.push({name:p.name,ref:p.o,attr:'prod',dir,mag,P:planDaily(p.pid),pairs:p.pairs});
         });
       }else{
         const clMap=new Map();
-        byMatrix.get(mk)?.forEach(p=>{p.clArr.forEach(g=>{ if(!g.dir)return;
-          if(!clMap.has(g.c))clMap.set(g.c,{name:g.c,signed:0,pairs:[],stock:0});
-          const c=clMap.get(g.c); c.signed+=g.signed; c.stock+=g.cs; c.pairs.push(...g.arr.map(e=>({o:e.o,wh:e.wh})));
+        byMatrix.get(mkk)?.forEach(p=>{p.clArr.forEach(g=>{ if(!g.dir)return;
+          if(!clMap.has(g.c))clMap.set(g.c,{name:g.c,up:0,down:0,pids:new Set(),pairs:[]});
+          const c=clMap.get(g.c);
+          if(g.dir==='up')c.up+=g.change; else c.down+=g.change;
+          c.pids.add(p.pid); c.pairs.push(...g.arr.map(e=>({o:e.o,wh:e.wh})));
         });});
-        clMap.forEach(c=>items.push({name:c.name,ref:c.name,attr:'cluster',signed:c.signed,pairs:c.pairs,stock:c.stock}));
+        clMap.forEach(c=>{
+          const dir=c.down>=c.up?'down':'up'; const mag=Math.max(c.up,c.down);
+          let P=0; c.pids.forEach(pid=>P+=planDaily(pid));
+          if(mag>0) items.push({name:c.name,ref:c.name,attr:'cluster',dir,mag,P,pairs:c.pairs});
+        });
       }
-      items=items.filter(x=>Math.abs(x.signed)>0).sort((a,b)=>Math.abs(b.signed)-Math.abs(a.signed)).slice(0,isProd?10:4);
-      if(!items.length)return '';
-      return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mk]} — топ ${isProd?'товаров':'кластеров'}</div>`+
+      items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
+      if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="psub">нет позиций</div></div>`;
+      return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
+        <div class="tophead"><span>Наименование</span><span></span><span>шт/день</span><span>1д</span><span>3д</span><span>7д</span></div>`+
         items.map(x=>{
-          const dir=x.signed>0?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
-          return `<button class="topitem" onclick="jump('${x.attr}','${esc(x.ref)}')"><span class="topname">${esc(x.name)}</span>${dir}<span class="topchg">Σ ${f1(Math.abs(x.signed))} шт/день</span>${kpiBadges(kpiPct(x.pairs,x.stock))}</button>`;
+          const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
+          return `<button class="topitem" onclick="jump('${x.attr}','${esc(x.ref)}')"><span class="topname">${esc(x.name)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpiPct(x.pairs,x.P))}</button>`;
         }).join('')+`</div>`;
     };
-    html+=topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products');
+    html+=`<div class="topsrow">`+topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products')+`</div>`;
     if(MODE==='products'){
       const prodNode=(p,dir)=>{
         const cl=p.clArr.filter(g=>g.dir===dir);
@@ -445,10 +471,10 @@ function render(){
         const total=list.reduce((s,p)=>s+p._ch,0);
         return `<details class="sup"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+list.map(p=>prodNode(p,dir)).join('')+`</div></details>`;
       };
-      [...byMatrix.keys()].sort().forEach(mk=>{
-        const arr=byMatrix.get(mk);
+      [...byMatrix.keys()].sort().forEach(mkk=>{
+        const arr=byMatrix.get(mkk);
         const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
-        html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
+        html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
         html+=section('📦 Профицит (увеличить продажи)',arr,'up');
         html+=section('⛔ Дефицит (снизить продажи)',arr,'down');
         html+=`</div></details>`;
@@ -474,17 +500,18 @@ function render(){
         const total=clusters.reduce((s,c)=>s+c.ch,0);
         return `<details class="sup"><summary><span class="clname">${title} — ${clusters.length} кл.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+clusters.map(cl=>clusterNode(cl.c,cl.a)).join('')+`</div></details>`;
       };
-      [...byMatrix.keys()].sort().forEach(mk=>{
-        const arr=byMatrix.get(mk);
+      [...byMatrix.keys()].sort().forEach(mkk=>{
+        const arr=byMatrix.get(mkk);
         const pc=[];
         arr.forEach(p=>{p.clArr.forEach(g=>{ if(g.dir) pc.push({o:p.o,name:p.name,cluster:g.c,cs:g.cs,csum:g.csum,c1:g.c1,c2:g.c2,c3:g.c3,c4:g.c4,rec:g.rec,dir:g.dir,change:g.change,signed:g.signed,arr:g.arr}); });});
         const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
-        html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
+        html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
         html+=clusterSection('📦 Профицит (увеличить продажи)',pc,'up');
         html+=clusterSection('⛔ Дефицит (снизить продажи)',pc,'down');
         html+=`</div></details>`;
       });
     }
+    attachChart();
   }else{
     const whMap=new Map();
     entries.forEach(e=>{if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,rows:[]});whMap.get(e.wh).rows.push(e);});
@@ -501,7 +528,7 @@ function render(){
     };
     const clusterBlock=(o,inFire)=>`<details class="cluster"><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.sum,0))} ₽ • ${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт</span></summary>`+o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
     const fireList=sortC(fireC), mainList=sortC(mainC);
-    if(INCLUDE_FIRE&&fireList.length)html+=`<details class="fire"><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`;
+    if(fireList.length)html+=`<details class="fire"><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`;
     html+=mainList.map(o=>clusterBlock(o,false)).join('');
   }
   document.getElementById('clusters').innerHTML=html||'<div class="meta">Нет данных под фильтр.</div>';
