@@ -90,7 +90,12 @@ input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:
 .sp-note{font-size:.72rem;color:var(--dim);margin-top:.6rem;line-height:1.5}
 .scen-lead{font-size:.8rem;color:var(--mut);margin-bottom:.9rem;max-width:95ch;line-height:1.55}
 .scen-scroll-wrap{position:relative}
-.scen-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,1fr);gap:.85rem;overflow-x:auto;padding:10px 2px 12px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.scen-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,1fr);gap:.85rem;overflow-x:auto;padding:10px 2px 14px;scroll-snap-type:x proximity;
+  scrollbar-width:auto;scrollbar-color:#f2b84b #0b1722}
+.scen-grid::-webkit-scrollbar{height:12px}
+.scen-grid::-webkit-scrollbar-track{background:#0b1722;border:1px solid var(--line);border-radius:7px}
+.scen-grid::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#8a6420,#f2b84b);border-radius:7px}
+.scen-grid::-webkit-scrollbar-thumb:hover{background:#f2b84b}
 .scen-card{scroll-snap-align:start;position:relative;border:1px solid var(--line);background:#0b1722;border-radius:10px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.7rem;transition:border-color .3s,box-shadow .3s;min-width:0;overflow-wrap:anywhere}
 .scen-card.anyplate{border-color:#3a5570}
 .scen-top{display:flex;gap:.7rem;align-items:flex-start}
@@ -135,7 +140,11 @@ input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:
 .barC i{background:linear-gradient(90deg,#6a4a9a,var(--violet))}
 .barG i{background:linear-gradient(90deg,#9a6428,#e09a4c)}
 .scen-foot{font-size:.68rem;color:var(--dim);font-family:var(--mono);line-height:1.6;border-top:1px solid rgba(28,52,70,.6);padding-top:.5rem}
-.scen-swipe{font-size:.66rem;color:var(--dim);font-family:var(--mono);text-align:right;margin-top:.2rem}
+.scen-nav{display:flex;align-items:center;justify-content:center;gap:.9rem;margin-top:.5rem}
+.scen-nav span{font-size:.68rem;color:var(--dim);font-family:var(--mono)}
+.scen-nav-btn{width:36px;height:36px;border-radius:7px;border:1px solid var(--line);background:#0b1722;color:var(--amber);font-size:1.1rem;font-family:var(--mono);cursor:pointer;transition:.2s;display:grid;place-items:center;line-height:1}
+.scen-nav-btn:hover{border-color:var(--amber);background:rgba(242,184,75,.12);transform:translateY(-1px)}
+.scen-nav-btn:active{transform:translateY(0)}
 .sum-wrap{display:flex;flex-direction:column;gap:1rem}
 .sum-table{width:100%;border-collapse:collapse;font-size:.8rem}
 .sum-table th{font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);text-align:right;padding:.45rem .6rem;border-bottom:1px solid var(--line)}
@@ -382,7 +391,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
       <p class="scen-lead">Все суммы — к моменту закрытия ипотеки (горизонт = срок кредита выбранного ЖК), номинально. В варианте А из капитала Юры вычитаются его выплаты из собственных доходов после окончания пособий. В варианте Г остаток от продажи гасит кредиты родителей досрочно, остаток после кредитов идёт «на жизнь», а высвободившиеся платежи — в депозит с 1-го месяца. В вариантах А, Б и В высвободившиеся платежи поступают в депозит после планового погашения каждого кредита.</p>
 
       <div class="scen-scroll-wrap">
-        <div class="scen-grid">
+        <div class="scen-grid" id="scenGrid">
           <div class="scen-card" id="cardA">
             <div class="scen-plates" id="platesA"></div>
             <div class="scen-top"><span class="scen-letter lA">А</span>
@@ -470,7 +479,11 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
             <div class="scen-foot" id="footG"></div>
           </div>
         </div>
-        <div class="scen-swipe">← листайте варианты →</div>
+        <div class="scen-nav">
+          <button type="button" class="scen-nav-btn" id="scenPrev" aria-label="Предыдущий вариант">←</button>
+          <span>листайте варианты · кнопки ← → · колесо мыши</span>
+          <button type="button" class="scen-nav-btn" id="scenNext" aria-label="Следующий вариант">→</button>
+        </div>
       </div>
       <div class="sp-note">Полоса под каждым вариантом — итоговый капитал семьи относительно лучшего. Пособия 23 т.₽/мес заканчиваются через <span id="benNote">5</span> лет. Кредит 2 гасится в месяц <span id="c2Note">40</span>, кредит 1 — в месяц <span id="c1Note">56</span>; далее их платежи пополняют депозит.</div>
     </div>
@@ -662,8 +675,8 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const creditPayoffRub=s.creditPayoff;
  const afterCreditG=Math.max(0,afterBuyB-creditPayoffRub);
  const creditShortG=Math.max(0,creditPayoffRub-afterBuyB);
- const livingG=afterCreditG; /* остаток после кредитов — на жизнь */
- const depGrowG=growPot(0,freedImmediate,H,...growArgs).bal; /* депозит — только высвободившиеся платежи */
+ const livingG=afterCreditG;
+ const depGrowG=growPot(0,freedImmediate,H,...growArgs).bal;
  const yuraG=aptNew;
  const parG=depGrowG+livingG+benNomAll;
  const helpG=grossB-benFull;
@@ -952,6 +965,22 @@ function buildTable(){
 }
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.08});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* навигация по сценариям: кнопки + колесо мыши */
+const scenGrid=$('scenGrid');
+function scenStep(){
+ const card=scenGrid.querySelector('.scen-card');
+ const gap=parseFloat(getComputedStyle(scenGrid).gap)||14;
+ return card?card.getBoundingClientRect().width+gap:320;
+}
+$('scenPrev').addEventListener('click',()=>scenGrid.scrollBy({left:-scenStep(),behavior:'smooth'}));
+$('scenNext').addEventListener('click',()=>scenGrid.scrollBy({left:scenStep(),behavior:'smooth'}));
+scenGrid.addEventListener('wheel',e=>{
+ if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&Math.abs(e.deltaY)>0){
+   e.preventDefault();
+   scenGrid.scrollLeft+=e.deltaY;
+ }
+},{passive:false});
 
 buildCards();buildTable();
 CTLS.forEach(id=>setCtl(id,state[keyOf(id)]));
