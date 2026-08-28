@@ -32,6 +32,12 @@
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
  .progfill{height:100%;width:0%;background:linear-gradient(90deg,#78A6C7,#E33D78);transition:width .2s}
  .progfill.bad{background:#E33D78}
+ details.matrix{border:3px solid rgba(125,54,115,.3);border-radius:14px;background:#fdf7fb;margin:0 0 18px}
+ details.matrix>summary{cursor:pointer;padding:14px 18px;font-family:'Forum';font-weight:700;color:#1C0D2E;font-size:1.15em;list-style:none;display:flex;align-items:center;gap:12px}
+ details.matrix>summary::before{content:"▸ ";}
+ details.matrix[open]>summary::before{content:"▾ ";}
+ details.matrix[open]>summary{border-bottom:3px solid rgba(125,54,115,.15)}
+ .matrixbody{padding:14px 14px 6px}
  details.fire{border:2px dashed rgba(227,61,120,.55);border-radius:10px;background:#fff5f8;margin:0 0 16px}
  details.fire>summary{cursor:pointer;padding:12px 14px;font-family:'Forum';font-weight:700;color:#E33D78;font-size:1.05em;list-style:none;display:flex;align-items:center;gap:8px}
  details.fire>summary::before{content:"▸ ";}
@@ -122,6 +128,7 @@ const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
 const now0=new Date();
 let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
+function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function setMode(m){
   MODE=m;
   document.getElementById('modeCl').classList.toggle('on',m==='clusters');
@@ -195,6 +202,7 @@ function toggleFire(id,ev){
   render();
 }
 function daysInMonth(ym){const [y,m]=ym.split('-').map(Number);return new Date(y,m,0).getDate();}
+function daysPassed(ym,baseDate){const [y,m]=ym.split('-').map(Number);const start=new Date(y,m-1,1);const end=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate());if(end<start)return 0;const diff=Math.floor((end-start)/(1000*60*60*24))+1;return Math.min(diff,daysInMonth(ym));}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -232,7 +240,8 @@ async function load(){
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
       const T=DOW_TARGET[yest.getDay()];
       const dim=daysInMonth(MONTH);
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • план: ${MONTH} (${dim} дн) • норма на вчера (${DOW_NAME[yest.getDay()]}): ${T} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      const dp=daysPassed(MONTH,BASE);
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • план: ${MONTH} (${dim} дн, прошло ${dp} дн) • норма на вчера (${DOW_NAME[yest.getDay()]}): ${T} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
@@ -250,8 +259,19 @@ function cmpCell(v,prev){
   if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
-// Плановая себестоимость: остаток × (целевая_оборачиваемость × дневная_норма × себестоимость_единицы)
-// Дневная норма = план_шт_месяц / дней_в_месяце
+// Плановая себестоимость = (plan_qty / days_in_month) × days_passed × unit_cost
+// Фактическая себестоимость = stock × unit_cost
+// Отклонение = факт - план
+function planCost(pid,stock){
+  const pq=PLAN_QTY[pid]||0;
+  const cost=COST[pid]||0;
+  if(pq<=0||cost<=0)return 0;
+  const dim=daysInMonth(MONTH);
+  const dp=daysPassed(MONTH,BASE);
+  const daily=pq/dim;
+  return daily*dp*cost;
+}
+function factCost(stock,cost){ return stock*cost; }
 function recText(pid,cs,c1,T){
   if(cs<=0)return null;
   const pq=PLAN_QTY[pid]||0;
@@ -284,8 +304,8 @@ function render(){
       const stock=STOCK[o]?.[wh]||0;
       const s1=SALES[o]?.[wh]?.[d1]||0, s2=SALES[o]?.[wh]?.[d2]||0, s3=SALES[o]?.[wh]?.[d3]||0, s4=SALES[o]?.[wh]?.[d4]||0;
       if(stock===0&&s1===0&&s2===0&&s3===0&&s4===0)return;
-      const cost=COST[r.product_id]||0, sum=stock*cost;
-      entries.push({o,pid:r.product_id,name:r.name,cost,stock,sum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh});
+      const cost=COST[r.product_id]||0, sum=factCost(stock,cost), planSum=planCost(r.product_id,stock);
+      entries.push({o,pid:r.product_id,name:r.name,cost,stock,sum,planSum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh,matrix:matrixOf(o)});
     });
   }
   let html='';
@@ -294,107 +314,98 @@ function render(){
     entries.forEach(e=>{
       const key=e.o+'|||'+e.cluster;
       let p=agg.get(key);
-      if(!p){p={o:e.o,name:e.name,cost:e.cost,pid:e.pid,cluster:e.cluster,stock:0,s1:0,s2:0,s3:0,s4:0};agg.set(key,p);}
-      p.stock+=e.stock;p.s1+=e.s1;p.s2+=e.s2;p.s3+=e.s3;p.s4+=e.s4;
+      if(!p){p={o:e.o,name:e.name,cost:e.cost,pid:e.pid,cluster:e.cluster,matrix:e.matrix,stock:0,sum:0,planSum:0,s1:0,s2:0,s3:0,s4:0};agg.set(key,p);}
+      p.stock+=e.stock;p.sum+=e.sum;p.planSum+=e.planSum;p.s1+=e.s1;p.s2+=e.s2;p.s3+=e.s3;p.s4+=e.s4;
     });
-    const dim=daysInMonth(MONTH);
-    const items=[...agg.values()].map(p=>{
-      const pq=PLAN_QTY[p.pid]||0;
-      const daily=pq/dim;
-      p.sum=p.stock*p.cost;
-      p.plan=p.s1*T*p.cost;
-      p.planFromSales=daily*T*p.cost;
-      p.delta=p.sum-p.planFromSales;
-      return p;
-    });
+    const items=[...agg.values()].map(p=>{p.delta=p.sum-p.planSum;return p;});
     const deficit=items.filter(p=>p.delta<0);
     const over=items.filter(p=>p.delta>=0);
-    const groupByCluster=(arr)=>{
-      const m=new Map();
-      arr.forEach(p=>{ if(!m.has(p.cluster))m.set(p.cluster,[]); m.get(p.cluster).push(p); });
-      return [...m.entries()].map(([c,a])=>({
-        c,a,
-        sum:a.reduce((s,x)=>s+x.sum,0),
-        plan:a.reduce((s,x)=>s+x.planFromSales,0),
-        delta:a.reduce((s,x)=>s+x.delta,0)
-      })).sort((a,b)=>a.delta-b.delta);
-    };
-    const defGroups=groupByCluster(deficit);
-    const overGroups=groupByCluster(over);
-    const headDev=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Себестоимость</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th><th>План (${T} дн)</th><th>Δ план/факт</th></tr>`;
-    const rowDev=o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}<td class="num">${fmt(o.planFromSales)}</td><td class="num ${o.delta<0?'r':'o'}">${o.delta>0?'+':''}${fmt(o.delta)}</td></tr>`;
-    const renderGroup=(groups,sortFn)=>groups.map(g=>{
-      const sorted=[...g.a].sort(sortFn);
-      return `<details class="cluster"><summary><span class="clname">${esc(g.c)}</span><span class="cltot">${sorted.length} поз. • Δ ${g.delta>0?'+':''}${fmt(g.delta)} ₽</span></summary>
-        <div class="tablewrap"><table><thead>${headDev}</thead><tbody>${sorted.map(rowDev).join('')}</tbody></table></div></details>`;
-    }).join('');
+    const groupByMatrix=(arr)=>{const m=new Map();arr.forEach(p=>{if(!m.has(p.matrix))m.set(p.matrix,[]);m.get(p.matrix).push(p);});return m;};
+    const groupByCluster=(arr)=>{const m=new Map();arr.forEach(p=>{if(!m.has(p.cluster))m.set(p.cluster,[]);m.get(p.cluster).push(p);});return [...m.entries()].map(([c,a])=>({c,a,sum:a.reduce((s,x)=>s+x.sum,0),planSum:a.reduce((s,x)=>s+x.planSum,0),delta:a.reduce((s,x)=>s+x.delta,0)})).sort((a,b)=>a.delta-b.delta);};
+    const defMatrix=groupByMatrix(deficit);
+    const overMatrix=groupByMatrix(over);
+    const headDev=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Факт себест.</th><th>План себест.</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th><th>Δ план/факт</th></tr>`;
+    const rowDev=o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.sum)}</td><td class="num">${fmt(o.planSum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}<td class="num ${o.delta<0?'r':'o'}">${o.delta>0?'+':''}${fmt(o.delta)}</td></tr>`;
+    const renderCluster=(groups,sortFn)=>groups.map(g=>{const sorted=[...g.a].sort(sortFn);return `<details class="cluster"><summary><span class="clname">${esc(g.c)}</span><span class="cltot">${sorted.length} поз. • Δ ${g.delta>0?'+':''}${fmt(g.delta)} ₽</span></summary><div class="tablewrap"><table><thead>${headDev}</thead><tbody>${sorted.map(rowDev).join('')}</tbody></table></div></details>`;}).join('');
+    const renderMatrix=(matrixMap,title,sortFn)=>{const keys=[...matrixMap.keys()].sort();return keys.map(mk=>{const arr=matrixMap.get(mk);const clusters=groupByCluster(arr);const sum=arr.reduce((s,x)=>s+x.delta,0);return `<details class="sup" open><summary><span class="clname">${title} ${mk==='m1'?'Матрица_1':'Матрица_2'} — ${arr.length} поз.</span><span class="cltot">Δ ${sum>0?'+':''}${fmt(sum)} ₽</span></summary><div class="supbody">${renderCluster(clusters,sortFn)||'<div class="meta">нет</div>'}</div></details>`;}).join('');};
     const dSum=a=>a.reduce((s,p)=>s+p.delta,0);
-    html+=`<details class="sup" open><summary><span class="clname">⛔ Дефицит (аут-оф-сток) — ${deficit.length} поз.</span><span class="cltot">Δ ${fmt(dSum(deficit))} ₽</span></summary><div class="supbody">${renderGroup(defGroups,(a,b)=>a.delta-b.delta)||'<div class="meta">нет</div>'}</div></details>`;
-    html+=`<details class="sup" open><summary><span class="clname">📦 Перетар — ${over.length} поз.</span><span class="cltot">Δ +${fmt(dSum(over))} ₽</span></summary><div class="supbody">${renderGroup(overGroups,(a,b)=>b.delta-a.delta)||'<div class="meta">нет</div>'}</div></details>`;
+    if(deficit.length)html+=renderMatrix(defMatrix,'⛔ Дефицит',(a,b)=>a.delta-b.delta);
+    if(over.length)html+=renderMatrix(overMatrix,'📦 Перетар',(a,b)=>b.delta-a.delta);
   }else if(MODE==='products'){
     const prodMap=new Map();
     entries.forEach(e=>{
-      if(!prodMap.has(e.o))prodMap.set(e.o,{o:e.o,pid:e.pid,name:e.name,clusters:new Map()});
+      if(!prodMap.has(e.o))prodMap.set(e.o,{o:e.o,pid:e.pid,name:e.name,matrix:e.matrix,clusters:new Map()});
       const p=prodMap.get(e.o);
       if(!p.clusters.has(e.cluster))p.clusters.set(e.cluster,[]);
       p.clusters.get(e.cluster).push(e);
     });
     const prods=[...prodMap.values()].map(p=>{
-      let tS=0,tM=0;p.clusters.forEach(a=>a.forEach(e=>{tS+=e.stock;tM+=e.sum;}));
-      p.total=tS;p.sum=tM;p.supplier=(SUPPLIER[p.pid]||'')||'Без поставщика';return p;
+      let tS=0,tM=0,tP=0;p.clusters.forEach(a=>a.forEach(e=>{tS+=e.stock;tM+=e.sum;tP+=e.planSum;}));
+      p.total=tS;p.sum=tM;p.planSum=tP;p.supplier=(SUPPLIER[p.pid]||'')||'Без поставщика';return p;
     });
+    const matrixMap=new Map();
+    prods.forEach(p=>{if(!matrixMap.has(p.matrix))matrixMap.set(p.matrix,[]);matrixMap.get(p.matrix).push(p);});
     const supMap=new Map();
-    prods.forEach(p=>{ if(!supMap.has(p.supplier))supMap.set(p.supplier,[]); supMap.get(p.supplier).push(p); });
-    const sups=[...supMap.entries()].map(([s,arr])=>({s,arr,stock:arr.reduce((a,p)=>a+p.total,0),sum:arr.reduce((a,p)=>a+p.sum,0)})).sort((a,b)=>b.sum-a.sum);
-    sups.forEach(sp=>{
-      html+=`<details class="sup"><summary><span class="clname">${esc(sp.s)}</span><span class="cltot">${fmt(sp.stock)} шт • ${fmt(sp.sum)} ₽</span></summary><div class="supbody">`;
-      sp.arr.sort((a,b)=>b.sum-a.sum).forEach(p=>{
-        html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.total)} шт • ${fmt(p.sum)} ₽</span></summary>
-          <div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr></thead>`;
-        [...p.clusters.entries()].map(([c,arr])=>({
-          c,arr,
-          cs:arr.reduce((s,e)=>s+e.stock,0), csum:arr.reduce((s,e)=>s+e.sum,0),
-          c1:arr.reduce((s,e)=>s+e.s1,0), c2:arr.reduce((s,e)=>s+e.s2,0), c3:arr.reduce((s,e)=>s+e.s3,0), c4:arr.reduce((s,e)=>s+e.s4,0)
-        })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
-          const rec=recText(p.pid,g.cs,g.c1,T);
-          html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-            <td><span class="caret">▾</span>${esc(g.c)}${rec?`<span class="rec ${rec.cls}">${rec.txt}</span>`:''}</td>
-            <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`;
-          g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
-            html+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s3,e.s4)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s1,e.s2)}</tr>`;
+    prods.forEach(p=>{if(!supMap.has(p.supplier))supMap.set(p.supplier,[]);supMap.get(p.supplier).push(p);});
+    const sups=[...supMap.entries()].map(([s,arr])=>({s,arr,stock:arr.reduce((a,p)=>a+p.total,0),sum:arr.reduce((a,p)=>a+p.sum,0),planSum:arr.reduce((a,p)=>a+p.planSum,0)})).sort((a,b)=>b.sum-a.sum);
+    const matrixKeys=[...matrixMap.keys()].sort();
+    matrixKeys.forEach(mk=>{
+      const arr=matrixMap.get(mk);
+      const mSum=arr.reduce((s,p)=>s+p.sum,0);
+      const mPlanSum=arr.reduce((s,p)=>s+p.planSum,0);
+      const mStock=arr.reduce((s,p)=>s+p.total,0);
+      html+=`<details class="matrix" open><summary><span class="clname">${mk==='m1'?'Матрица_1':'Матрица_2'}</span><span class="cltot">${fmt(mStock)} шт • ${fmt(mSum)} ₽ (план: ${fmt(mPlanSum)} ₽)</span></summary><div class="matrixbody">`;
+      const supMap2=new Map();
+      arr.forEach(p=>{if(!supMap2.has(p.supplier))supMap2.set(p.supplier,[]);supMap2.get(p.supplier).push(p);});
+      const sups2=[...supMap2.entries()].map(([s,a])=>({s,a,stock:a.reduce((x,p)=>x+p.total,0),sum:a.reduce((x,p)=>x+p.sum,0),planSum:a.reduce((x,p)=>x+p.planSum,0)})).sort((a,b)=>b.sum-a.sum);
+      sups2.forEach(sp=>{
+        html+=`<details class="sup"><summary><span class="clname">${esc(sp.s)}</span><span class="cltot">${fmt(sp.stock)} шт • ${fmt(sp.sum)} ₽ (план: ${fmt(sp.planSum)} ₽)</span></summary><div class="supbody">`;
+        sp.arr.sort((a,b)=>b.sum-a.sum).forEach(p=>{
+          html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.total)} шт • ${fmt(p.sum)} ₽ (план: ${fmt(p.planSum)} ₽)</span></summary>
+            <div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Факт</th><th>План</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr></thead>`;
+          [...p.clusters.entries()].map(([c,a])=>({
+            c,a,
+            cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0), cplan:a.reduce((s,e)=>s+e.planSum,0),
+            c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
+          })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
+            const rec=recText(p.pid,g.cs,g.c1,T);
+            html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
+              <td><span class="caret">▾</span>${esc(g.c)}${rec?`<span class="rec ${rec.cls}">${rec.txt}</span>`:''}</td>
+              <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td><td class="num">${fmt(g.cplan)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`;
+            g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
+              html+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td><td class="num">${fmt(e.planSum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s3,e.s4)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s1,e.s2)}</tr>`;
+            });
+            html+=`</tbody>`;
           });
-          html+=`</tbody>`;
+          html+=`</table></div></details>`;
         });
-        html+=`</table></div></details>`;
+        html+=`</div></details>`;
       });
       html+=`</div></details>`;
     });
   }else{
     const whMap=new Map();
-    entries.forEach(e=>{ if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,rows:[]}); whMap.get(e.wh).rows.push(e); });
-    whMap.forEach(w=>{ w.rows.sort((a,b)=>b.sum-a.sum); w.total=w.rows.reduce((s,x)=>s+x.stock,0); w.sum=w.rows.reduce((s,x)=>s+x.sum,0); });
+    entries.forEach(e=>{if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,matrix:e.matrix,rows:[]});whMap.get(e.wh).rows.push(e);});
+    whMap.forEach(w=>{w.rows.sort((a,b)=>b.sum-a.sum);w.total=w.rows.reduce((s,x)=>s+x.stock,0);w.sum=w.rows.reduce((s,x)=>s+x.sum,0);w.planSum=w.rows.reduce((s,x)=>s+x.planSum,0);});
     const mainC=new Map(), fireC=new Map();
-    whMap.forEach(w=>{ const t=FIRE.has(w.id)?fireC:mainC; if(!t.has(w.cluster))t.set(w.cluster,[]); t.get(w.cluster).push(w); });
-    const sortC=map=>[...map.entries()].map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0)})).sort((a,b)=>b.sum-a.sum);
-    const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
+    whMap.forEach(w=>{const t=FIRE.has(w.id)?fireC:mainC;if(!t.has(w.cluster))t.set(w.cluster,[]);t.get(w.cluster).push(w);});
+    const sortC=map=>[...map.entries()].map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0),planSum:ws.reduce((s,w)=>s+w.planSum,0)})).sort((a,b)=>b.sum-a.sum);
+    const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Факт</th><th>План</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
     const whBlock=(w,inFire)=>{
-      const btn=inFire
-        ?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`
-        :`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join('')
-        :`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
-      return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
+      const btn=inFire?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`:`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
+      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td><td class="num">${fmt(o.planSum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="10" style="color:#94a3b8">нет данных</td></tr>`;
+      return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽ (план: ${fmt(w.planSum)} ₽)</span></summary>
         <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
     };
-    const clusterBlock=(o,inFire)=>`<details class="cluster" ${inFire?'open':''}><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт • ${fmt(o.sum)} ₽</span></summary>`+
-      o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
+    const clusterBlock=(o,inFire)=>`<details class="cluster" ${inFire?'open':''}><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт • ${fmt(o.sum)} ₽ (план: ${fmt(o.planSum)} ₽)</span></summary>`+o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
     const fireList=sortC(fireC), mainList=sortC(mainC);
-    if(fireList.length){ html+=`<details class="fire" open><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`; }
+    if(fireList.length)html+=`<details class="fire" open><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`;
     html+=mainList.map(o=>clusterBlock(o,false)).join('');
   }
   document.getElementById('clusters').innerHTML=html||'<div class="meta">Нет данных под фильтр.</div>';
   const tStock=entries.reduce((s,e)=>s+e.stock,0);
   const tSum=entries.reduce((s,e)=>s+e.sum,0);
-  document.getElementById('grand').innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽</span>`;
+  const tPlanSum=entries.reduce((s,e)=>s+e.planSum,0);
+  document.getElementById('grand').innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽ (план: ${fmt(tPlanSum)} ₽)</span>`;
 }
 </script></body></html>
