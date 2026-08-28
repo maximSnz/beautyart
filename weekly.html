@@ -119,6 +119,8 @@ const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},PLAN_QTY={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 let importing=false, MODE='clusters';
+let MONTH='2026-09';
+let T_REPORT=11;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -126,8 +128,6 @@ const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
-const now0=new Date();
-let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
 function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function setMode(m){
   MODE=m;
@@ -202,7 +202,6 @@ function toggleFire(id,ev){
   render();
 }
 function daysInMonth(ym){const [y,m]=ym.split('-').map(Number);return new Date(y,m,0).getDate();}
-function daysPassed(ym,baseDate){const [y,m]=ym.split('-').map(Number);const start=new Date(y,m-1,1);const end=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate());if(end<start)return 0;const diff=Math.floor((end-start)/(1000*60*60*24))+1;return Math.min(diff,daysInMonth(ym));}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -235,13 +234,11 @@ async function load(){
       const now=new Date();
       const yest=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
       BASE=(DATES.has(localISO(yest)))?yest:(max?parseISO(max):yest);
+      T_REPORT=DOW_TARGET[BASE.getDay()];
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      const T=DOW_TARGET[yest.getDay()];
-      const dim=daysInMonth(MONTH);
-      const dp=daysPassed(MONTH,BASE);
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • план: ${MONTH} (${dim} дн, прошло ${dp} дн) • норма на вчера (${DOW_NAME[yest.getDay()]}): ${T} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • план: ${MONTH} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
@@ -259,25 +256,19 @@ function cmpCell(v,prev){
   if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
-// Плановая себестоимость = (plan_qty / days_in_month) × days_passed × unit_cost
-// Фактическая себестоимость = stock × unit_cost
-// Отклонение = факт - план
-function planCost(pid,stock){
-  const pq=PLAN_QTY[pid]||0;
+// Плановая себестоимость остатка = себестоимость × норма_дней(день недели) × производительность(шт/день из плана MONTH)
+function planCost(pid){
   const cost=COST[pid]||0;
-  if(pq<=0||cost<=0)return 0;
-  const dim=daysInMonth(MONTH);
-  const dp=daysPassed(MONTH,BASE);
-  const daily=pq/dim;
-  return daily*dp*cost;
+  const pq=PLAN_QTY[pid]||0;
+  if(cost<=0||pq<=0)return 0;
+  const prod=pq/daysInMonth(MONTH);
+  return cost*T_REPORT*prod;
 }
-function factCost(stock,cost){ return stock*cost; }
 function recText(pid,cs,c1,T){
   if(cs<=0)return null;
   const pq=PLAN_QTY[pid]||0;
   if(pq<=0)return null;
-  const dim=daysInMonth(MONTH);
-  const daily=pq/dim;
+  const daily=pq/daysInMonth(MONTH);
   const vr=cs/daily;
   if(c1<=0)return {txt:`увеличить продажи на ${fmt(Math.ceil(vr))} шт/день`,cls:'r'};
   const delta=vr-c1;
@@ -289,9 +280,6 @@ function recText(pid,cs,c1,T){
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
-  const now=new Date();
-  const yestD=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
-  const T=DOW_TARGET[yestD.getDay()];
   const d1=localISO(BASE);
   const d2=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-1));
   const d3=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-2));
@@ -304,10 +292,15 @@ function render(){
       const stock=STOCK[o]?.[wh]||0;
       const s1=SALES[o]?.[wh]?.[d1]||0, s2=SALES[o]?.[wh]?.[d2]||0, s3=SALES[o]?.[wh]?.[d3]||0, s4=SALES[o]?.[wh]?.[d4]||0;
       if(stock===0&&s1===0&&s2===0&&s3===0&&s4===0)return;
-      const cost=COST[r.product_id]||0, sum=factCost(stock,cost), planSum=planCost(r.product_id,stock);
-      entries.push({o,pid:r.product_id,name:r.name,cost,stock,sum,planSum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh,matrix:matrixOf(o)});
+      const cost=COST[r.product_id]||0, sum=stock*cost;
+      entries.push({o,pid:r.product_id,name:r.name,cost,stock,sum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh,matrix:matrixOf(o),planSum:0});
     });
   }
+  // Аллокация плана позиции по складам пропорционально остатку
+  const prodTotal={}, prodPlan={};
+  entries.forEach(e=>{prodTotal[e.o]=(prodTotal[e.o]||0)+e.stock;});
+  entries.forEach(e=>{ if(prodPlan[e.o]==null) prodPlan[e.o]=planCost(e.pid); });
+  entries.forEach(e=>{ const ts=prodTotal[e.o]||0; e.planSum=ts>0?prodPlan[e.o]*(e.stock/ts):0; });
   let html='';
   if(MODE==='deviation'){
     const agg=new Map();
@@ -328,7 +321,6 @@ function render(){
     const rowDev=o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.sum)}</td><td class="num">${fmt(o.planSum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}<td class="num ${o.delta<0?'r':'o'}">${o.delta>0?'+':''}${fmt(o.delta)}</td></tr>`;
     const renderCluster=(groups,sortFn)=>groups.map(g=>{const sorted=[...g.a].sort(sortFn);return `<details class="cluster"><summary><span class="clname">${esc(g.c)}</span><span class="cltot">${sorted.length} поз. • Δ ${g.delta>0?'+':''}${fmt(g.delta)} ₽</span></summary><div class="tablewrap"><table><thead>${headDev}</thead><tbody>${sorted.map(rowDev).join('')}</tbody></table></div></details>`;}).join('');
     const renderMatrix=(matrixMap,title,sortFn)=>{const keys=[...matrixMap.keys()].sort();return keys.map(mk=>{const arr=matrixMap.get(mk);const clusters=groupByCluster(arr);const sum=arr.reduce((s,x)=>s+x.delta,0);return `<details class="sup" open><summary><span class="clname">${title} ${mk==='m1'?'Матрица_1':'Матрица_2'} — ${arr.length} поз.</span><span class="cltot">Δ ${sum>0?'+':''}${fmt(sum)} ₽</span></summary><div class="supbody">${renderCluster(clusters,sortFn)||'<div class="meta">нет</div>'}</div></details>`;}).join('');};
-    const dSum=a=>a.reduce((s,p)=>s+p.delta,0);
     if(deficit.length)html+=renderMatrix(defMatrix,'⛔ Дефицит',(a,b)=>a.delta-b.delta);
     if(over.length)html+=renderMatrix(overMatrix,'📦 Перетар',(a,b)=>b.delta-a.delta);
   }else if(MODE==='products'){
@@ -345,9 +337,6 @@ function render(){
     });
     const matrixMap=new Map();
     prods.forEach(p=>{if(!matrixMap.has(p.matrix))matrixMap.set(p.matrix,[]);matrixMap.get(p.matrix).push(p);});
-    const supMap=new Map();
-    prods.forEach(p=>{if(!supMap.has(p.supplier))supMap.set(p.supplier,[]);supMap.get(p.supplier).push(p);});
-    const sups=[...supMap.entries()].map(([s,arr])=>({s,arr,stock:arr.reduce((a,p)=>a+p.total,0),sum:arr.reduce((a,p)=>a+p.sum,0),planSum:arr.reduce((a,p)=>a+p.planSum,0)})).sort((a,b)=>b.sum-a.sum);
     const matrixKeys=[...matrixMap.keys()].sort();
     matrixKeys.forEach(mk=>{
       const arr=matrixMap.get(mk);
@@ -368,7 +357,7 @@ function render(){
             cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0), cplan:a.reduce((s,e)=>s+e.planSum,0),
             c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
           })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
-            const rec=recText(p.pid,g.cs,g.c1,T);
+            const rec=recText(p.pid,g.cs,g.c1,T_REPORT);
             html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
               <td><span class="caret">▾</span>${esc(g.c)}${rec?`<span class="rec ${rec.cls}">${rec.txt}</span>`:''}</td>
               <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td><td class="num">${fmt(g.cplan)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`;
