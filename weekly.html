@@ -130,6 +130,7 @@
   <div class="err" id="err"></div>
   <div class="toolbar">
     <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
+    <input type="month" id="month" onchange="onMonth(this.value)">
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <label class="switch" id="fireSwitch"><input type="checkbox" id="fireToggle" onchange="setIncludeFire(this.checked)"><span class="knob"></span>учитывать «пожар»</label>
@@ -151,9 +152,10 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
+let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},PLAN_QTY={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 let importing=false, MODE='summary', INCLUDE_FIRE=false;
+let MONTH='2026-09';
 let T_REPORT=11;
 let DEVIATION_HISTORY=[];
 const SMOOTH_DAYS=7;
@@ -167,47 +169,6 @@ const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
-// Самодостаточный SHA-256 (работает без Web Crypto / в любом контексте)
-function sha256(str){
-  const utf8=new TextEncoder().encode(str);
-  const H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
-  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
-  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
-  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
-  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
-  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
-  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
-  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
-  const rr=(v,a)=>(v>>>a)|(v<<(32-a));
-  const msg=Array.from(utf8);
-  const bitLen=msg.length*8;
-  msg.push(0x80);
-  while(msg.length%64!==56) msg.push(0);
-  const hi=Math.floor(bitLen/0x100000000), lo=bitLen>>>0;
-  msg.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
-  for(let off=0;off<msg.length;off+=64){
-    const w=new Array(64);
-    for(let i=0;i<16;i++) w[i]=(msg[off+i*4]<<24)|(msg[off+i*4+1]<<16)|(msg[off+i*4+2]<<8)|msg[off+i*4+3];
-    for(let i=16;i<64;i++){
-      const s0=rr(w[i-15],7)^rr(w[i-15],18)^(w[i-15]>>>3);
-      const s1=rr(w[i-2],17)^rr(w[i-2],19)^(w[i-2]>>>10);
-      w[i]=(w[i-16]+s0+w[i-7]+s1)|0;
-    }
-    let a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
-    for(let i=0;i<64;i++){
-      const S1=rr(e,6)^rr(e,11)^rr(e,25);
-      const ch=(e&f)^((~e)&g);
-      const t1=(h+S1+ch+K[i]+w[i])|0;
-      const S0=rr(a,2)^rr(a,13)^rr(a,22);
-      const maj=(a&b)^(a&c)^(b&c);
-      const t2=(S0+maj)|0;
-      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
-    }
-    H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;
-  }
-  return H.map(x=>('00000000'+(x>>>0).toString(16)).slice(-8)).join('');
-}
 function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function setMode(m){
   MODE=m;
@@ -241,19 +202,24 @@ function jump(id){
   setTimeout(()=>el.classList.remove('hlflash'),2000);
 }
 async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
-function go(){
-  try{
-    const h=sha256(document.getElementById('pwd').value);
-    if(h!==PASSWORD_HASH){alert('Неверный пароль');return;}
-    document.getElementById('login').classList.add('hide');
-    document.getElementById('app').classList.remove('hide');
-    document.getElementById('fireSwitch').style.display='none';
-    load();
-  }catch(e){ alert('Ошибка входа: '+e.message); }
+async function go(){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
+  const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  if(h!==PASSWORD_HASH){alert('Неверный пароль');return;}
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  document.getElementById('month').value=MONTH;
+  document.getElementById('fireSwitch').style.display='none';
+  load();
+}
+async function loadPlan(){
+  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan?month=eq.${MONTH}&select=product_id,plan_qty`,{headers:HD});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  PLAN_QTY={}; (await r.json()).forEach(x=>PLAN_QTY[x.product_id]=Number(x.plan_qty||0));
 }
 async function loadHistory(){
   try{
-    const since=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-30));
+    const since=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-8));
     const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation&order=report_date.asc`,{headers:HD});
     if(!r.ok){DEVIATION_HISTORY=[];return;}
     DEVIATION_HISTORY=await r.json();
@@ -319,6 +285,7 @@ function toggleFire(id,ev){
   localStorage.setItem('fire_wh',JSON.stringify([...FIRE]));
   render();
 }
+function daysInMonth(ym){const [y,m]=ym.split('-').map(Number);return new Date(y,m,0).getDate();}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -329,6 +296,7 @@ async function load(){
         fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present'),
         fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty')
       ]);
+      await loadPlan();
       ROWS=rp.filter(x=>!x.archived);
       OFFER_PID={}; const pidOffer={};
       rp.forEach(p=>{pidOffer[p.product_id]=p.offer_id; OFFER_PID[p.offer_id]=p.product_id;});
@@ -355,12 +323,15 @@ async function load(){
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • план: ${MONTH} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       await loadHistory();
       render();
       return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
+}
+async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
+  try{ await loadPlan(); await loadHistory(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function daysCell(stock,s1){
   if(s1>0){const d=stock/s1;const cls=(d<7||d>13)?'r':'g';return `<td class="num ${cls}">${f1(d)}</td>`;}
@@ -389,6 +360,7 @@ function recText(pid,cs,c1,T){
   if(smooth>0)return {txt:`увеличить на ${f1(smooth)} шт/день (за ${SMOOTH_DAYS} дн, +${pct}%)`,cls:'r',change};
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
+function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
 function kpiPctFromHistory(entityType, entityKey){
   const recs=DEVIATION_HISTORY.filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
@@ -460,7 +432,7 @@ function drawSplitChart(boxEl, tipEl, days, series) {
   svg += `<text x="${padL-8}" y="${padT-6}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">шт/день</text>`;
   svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+innerH}" stroke="#94a3b8" stroke-width="1.5"/>`;
   svg += `<line x1="${padL}" y1="${padT+innerH}" x2="${W-padR}" y2="${padT+innerH}" stroke="#94a3b8" stroke-width="1.5"/>`;
-  days.forEach((d, i) => { if (i % 2 === 0 || i===n-1) svg += `<text x="${x(i)}" y="${padT+innerH+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`; });
+  days.forEach((d, i) => { if (i % 2 === 0) svg += `<text x="${x(i)}" y="${padT+innerH+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`; });
   svg += `<text x="${W-padR}" y="${padT+innerH+30}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">дни</text>`;
   const mkPath = (vals, col, dashed) => {
     if (vals.length < 2) return '';
@@ -528,8 +500,8 @@ function render(){
     });
     const toClArr=(p)=>[...p.clusters.entries()].map(([c,a])=>({
       c,arr:a,
-      cs:a.reduce((s,e)=>s+e.stock,0), csum=a.reduce((s,e)=>s+e.sum,0),
-      c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4=a.reduce((s,e)=>s+e.s4,0)
+      cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0),
+      c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
     })).map(g=>{
       const dev=clusterDeviation(g.cs,g.c1);
       g.dev=dev; g.dir=dev>0.01?'up':dev<-0.01?'down':0;
@@ -544,25 +516,22 @@ function render(){
     });
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    const todayISO=localISO(BASE);
-    const todayMkt={m1:{sup:0,def:0},m2:{sup:0,def:0}};
-    prods.forEach(p=>{p.clArr.forEach(g=>{ const t=todayMkt[p.matrix]; if(g.dev>0)t.sup+=g.dev; else t.def+=g.dev; });});
-    const histMarket=DEVIATION_HISTORY.filter(r=>r.entity_type==='market');
-    const histDays=[...new Set(histMarket.map(r=>r.report_date))].filter(d=>d!==todayISO).sort();
-    const days=[...histDays, todayISO];
-    const series={m1:{sup:[],def:[]},m2:{sup:[],def:[]}};
-    days.forEach(d=>{
-      ['m1','m2'].forEach(mk=>{
-        if(d===todayISO){ series[mk].sup.push(todayMkt[mk].sup); series[mk].def.push(todayMkt[mk].def); }
-        else{
-          const s=histMarket.find(r=>r.entity_key===mk+':sup'&&r.report_date===d);
-          const f=histMarket.find(r=>r.entity_key===mk+':def'&&r.report_date===d);
-          series[mk].sup.push(s?Number(s.deviation):0);
-          series[mk].def.push(f?Number(f.deviation):0);
-        }
+    const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
+    const series={};
+    ['m1','m2'].forEach(mk=>{
+      const mProds=prods.filter(p=>p.matrix===mk);
+      const offerSet=new Set(mProds.map(p=>p.o));
+      const sup=days.map(()=>0), def=days.map(()=>0);
+      days.forEach((dt,idx)=>{
+        offerSet.forEach(o=>{
+          const wm=SALES[o]||{}; let act=0; for(const wh in wm) act+=wm[wh][dt]||0;
+          const dev=act-planDaily(OFFER_PID[o]);
+          if(dev>0) sup[idx]+=dev; else def[idx]+=dev;
+        });
       });
+      series[mk]={sup,def};
     });
-    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам: профицит и дефицит, шт/день (динамика работы с остатками)</span></div>
+    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Отклонение от плана по дням: отдельно профицит и дефицит (шт/день)</span></div>
       <div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div>
       <div class="chart-note">
         <div class="legend-row">
@@ -571,9 +540,10 @@ function render(){
           <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр профицит</span>
           <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр дефицит</span>
         </div>
-        <div>Цель — обе линии около нуля: остатки сбалансированы, корректировка минимальна. Рост линии = накопление несбалансированности.</div>
+        <div>Профицит (сплошная, выше 0) — продажи выше плана; дефицит (пунктир, ниже 0) — продажи ниже плана. Ноль — выполнение плана в точности.</div>
       </div></div>`;
     const historyRows=[];
+    const todayISO=localISO(BASE);
     prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev}); });
     const clAgg=new Map();
     prods.forEach(p=>{p.clArr.forEach(g=>{
@@ -582,10 +552,6 @@ function render(){
       clAgg.get(k).dev+=g.dev;
     });});
     clAgg.forEach(v=>{ historyRows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:todayISO,deviation:v.dev}); });
-    ['m1','m2'].forEach(mk=>{
-      historyRows.push({entity_type:'market',entity_key:mk+':sup',report_date:todayISO,deviation:todayMkt[mk].sup});
-      historyRows.push({entity_type:'market',entity_key:mk+':def',report_date:todayISO,deviation:todayMkt[mk].def});
-    });
     saveHistory(historyRows);
     const topBlock=(mkk,isProd)=>{
       let items=[];
