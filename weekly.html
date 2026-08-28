@@ -88,6 +88,7 @@
   <div class="err" id="err"></div>
   <div class="toolbar">
     <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
+    <input type="month" id="month" onchange="onMonth(this.value)">
     <button id="btnCsv" onclick="fileInput.click()">⬆ CSV продаж</button>
     <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importFile(this.files[0])">
     <button onclick="load()">⟳ Обновить</button>
@@ -109,7 +110,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},DATES=new Set(),BASE=null,SALESCOUNT=0;
+let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},PLAN_QTY={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 let importing=false, MODE='clusters';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -119,6 +120,8 @@ const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
+const now0=new Date();
+let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
 function setMode(m){
   MODE=m;
   document.getElementById('modeCl').classList.toggle('on',m==='clusters');
@@ -133,7 +136,13 @@ async function go(){
   if(h!==PASSWORD_HASH){alert('Неверный пароль');return;}
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
+  document.getElementById('month').value=MONTH;
   load();
+}
+async function loadPlan(){
+  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan?month=eq.${MONTH}&select=product_id,plan_qty`,{headers:HD});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  PLAN_QTY={}; (await r.json()).forEach(x=>PLAN_QTY[x.product_id]=Number(x.plan_qty||0));
 }
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
@@ -185,6 +194,7 @@ function toggleFire(id,ev){
   localStorage.setItem('fire_wh',JSON.stringify([...FIRE]));
   render();
 }
+function daysInMonth(ym){const [y,m]=ym.split('-').map(Number);return new Date(y,m,0).getDate();}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -195,6 +205,7 @@ async function load(){
         fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present'),
         fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty')
       ]);
+      await loadPlan();
       ROWS=rp.filter(x=>!x.archived);
       const pidOffer={}; rp.forEach(p=>pidOffer[p.product_id]=p.offer_id);
       COST={}; rc.forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
@@ -220,10 +231,14 @@ async function load(){
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
       const T=DOW_TARGET[yest.getDay()];
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • норма на вчера (${DOW_NAME[yest.getDay()]}): ${T} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      const dim=daysInMonth(MONTH);
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • план: ${MONTH} (${dim} дн) • норма на вчера (${DOW_NAME[yest.getDay()]}): ${T} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
+}
+async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
+  try{ await loadPlan(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function daysCell(stock,s1){
   if(s1>0){const d=stock/s1;const cls=(d<7||d>13)?'r':'g';return `<td class="num ${cls}">${d.toLocaleString('ru-RU',{maximumFractionDigits:1})}</td>`;}
@@ -235,9 +250,15 @@ function cmpCell(v,prev){
   if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
-function recText(cs,c1,T){
+// Плановая себестоимость: остаток × (целевая_оборачиваемость × дневная_норма × себестоимость_единицы)
+// Дневная норма = план_шт_месяц / дней_в_месяце
+function recText(pid,cs,c1,T){
   if(cs<=0)return null;
-  const vr=cs/T;
+  const pq=PLAN_QTY[pid]||0;
+  if(pq<=0)return null;
+  const dim=daysInMonth(MONTH);
+  const daily=pq/dim;
+  const vr=cs/daily;
   if(c1<=0)return {txt:`увеличить продажи на ${fmt(Math.ceil(vr))} шт/день`,cls:'r'};
   const delta=vr-c1;
   if(Math.abs(delta)<=Math.max(0.5,0.05*c1))return null;
@@ -269,16 +290,22 @@ function render(){
   }
   let html='';
   if(MODE==='deviation'){
-    // агрегация по (товар × кластер)
     const agg=new Map();
     entries.forEach(e=>{
       const key=e.o+'|||'+e.cluster;
       let p=agg.get(key);
-      if(!p){p={o:e.o,name:e.name,cost:e.cost,cluster:e.cluster,stock:0,s1:0,s2:0,s3:0,s4:0};agg.set(key,p);}
+      if(!p){p={o:e.o,name:e.name,cost:e.cost,pid:e.pid,cluster:e.cluster,stock:0,s1:0,s2:0,s3:0,s4:0};agg.set(key,p);}
       p.stock+=e.stock;p.s1+=e.s1;p.s2+=e.s2;p.s3+=e.s3;p.s4+=e.s4;
     });
+    const dim=daysInMonth(MONTH);
     const items=[...agg.values()].map(p=>{
-      p.sum=p.stock*p.cost; p.plan=p.s1*T*p.cost; p.delta=p.sum-p.plan; return p;
+      const pq=PLAN_QTY[p.pid]||0;
+      const daily=pq/dim;
+      p.sum=p.stock*p.cost;
+      p.plan=p.s1*T*p.cost;
+      p.planFromSales=daily*T*p.cost;
+      p.delta=p.sum-p.planFromSales;
+      return p;
     });
     const deficit=items.filter(p=>p.delta<0);
     const over=items.filter(p=>p.delta>=0);
@@ -288,14 +315,14 @@ function render(){
       return [...m.entries()].map(([c,a])=>({
         c,a,
         sum:a.reduce((s,x)=>s+x.sum,0),
-        plan:a.reduce((s,x)=>s+x.plan,0),
+        plan:a.reduce((s,x)=>s+x.planFromSales,0),
         delta:a.reduce((s,x)=>s+x.delta,0)
       })).sort((a,b)=>a.delta-b.delta);
     };
     const defGroups=groupByCluster(deficit);
     const overGroups=groupByCluster(over);
     const headDev=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Себестоимость</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th><th>План (${T} дн)</th><th>Δ план/факт</th></tr>`;
-    const rowDev=o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}<td class="num">${fmt(o.plan)}</td><td class="num ${o.delta<0?'r':'o'}">${o.delta>0?'+':''}${fmt(o.delta)}</td></tr>`;
+    const rowDev=o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}<td class="num">${fmt(o.planFromSales)}</td><td class="num ${o.delta<0?'r':'o'}">${o.delta>0?'+':''}${fmt(o.delta)}</td></tr>`;
     const renderGroup=(groups,sortFn)=>groups.map(g=>{
       const sorted=[...g.a].sort(sortFn);
       return `<details class="cluster"><summary><span class="clname">${esc(g.c)}</span><span class="cltot">${sorted.length} поз. • Δ ${g.delta>0?'+':''}${fmt(g.delta)} ₽</span></summary>
@@ -329,7 +356,7 @@ function render(){
           cs:arr.reduce((s,e)=>s+e.stock,0), csum:arr.reduce((s,e)=>s+e.sum,0),
           c1:arr.reduce((s,e)=>s+e.s1,0), c2:arr.reduce((s,e)=>s+e.s2,0), c3:arr.reduce((s,e)=>s+e.s3,0), c4:arr.reduce((s,e)=>s+e.s4,0)
         })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
-          const rec=recText(g.cs,g.c1,T);
+          const rec=recText(p.pid,g.cs,g.c1,T);
           html+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(g.c)}${rec?`<span class="rec ${rec.cls}">${rec.txt}</span>`:''}</td>
             <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`;
