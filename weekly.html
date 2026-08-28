@@ -258,21 +258,21 @@ function cmpCell(v,prev){
   if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
-// Целевые среднесуточные продажи (шт/день) из плана месяца
 function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
-// Целевой остаток (шт) = среднесуточные × норма дней
 function planPieces(pid){ return planDaily(pid)*T_REPORT; }
-// Плановая себестоимость = целевой остаток × цена
 function planCost(pid){ return planPieces(pid)*(COST[pid]||0); }
+// Рекомендация по кластеру: какую производительность нужно обеспечить,
+// чтобы при текущем остатке кластера выйти на целевую оборачиваемость T дней.
+// требуемая = остаток/T; сравниваем с текущей (продажи за последний день).
 function recText(pid,cs,c1,T){
   if(cs<=0)return null;
-  const td=planDaily(pid);
-  if(td<=0)return null;
-  const N=cs/T - td;
-  if(Math.abs(N)<=Math.max(0.5,0.05*td))return null;
-  const pct=Math.round(Math.abs(N)/td*100);
-  if(N>0)return {txt:`увеличить продажи на ${fmt(Math.max(1,Math.round(N)))} шт/день (+${pct}%)`,cls:'r'};
-  return {txt:`уменьшить продажи на ${fmt(Math.max(1,Math.round(-N)))} шт/день (−${pct}%)`,cls:'g'};
+  const req=cs/T;
+  if(c1<=0)return {txt:`вывести продажи на ${f1(req)} шт/день`,cls:'r'};
+  const delta=req-c1;
+  if(Math.abs(delta)<=Math.max(0.5,0.05*c1))return null;
+  const pct=Math.round(Math.abs(delta)/c1*100);
+  if(delta>0)return {txt:`увеличить продажи на ${f1(delta)} шт/день (+${pct}%)`,cls:'r'};
+  return {txt:`уменьшить продажи на ${f1(-delta)} шт/день (−${pct}%)`,cls:'g'};
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
