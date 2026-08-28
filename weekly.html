@@ -50,7 +50,6 @@
  .chart-note .legend-row{display:flex;gap:18px;flex-wrap:wrap}
  .legend-item{display:inline-flex;align-items:center;gap:6px;color:#544273}
  .sw{width:26px;height:3px;display:inline-block;border-radius:2px}
- .sw.dash{background:repeating-linear-gradient(90deg,#94a3b8 0 5px,transparent 5px 9px)}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
  .topblock{flex:1;min-width:320px;max-height:230px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
  .topblock::-webkit-scrollbar{width:4px}
@@ -410,63 +409,58 @@ function attachChart(box, tooltip){
     pt.addEventListener('mouseleave', hide);
   });
 }
-function drawDualChart(boxEl, tipEl, days, series) {
+// Диаграмма: отдельно профицит (сплошная, >0) и дефицит (пунктир, <0) для каждого менеджера
+function drawSplitChart(boxEl, tipEl, days, series) {
   const n = days.length;
   const W = 900, H = 240, padL = 64, padR = 14, padT = 18, padB = 40;
   const innerW = W - padL - padR, innerH = H - padT - padB;
-  const baseY = padT + innerH;
-  let maxAbs = 0;
+  const midY = padT + innerH / 2;
+  let maxAbs = 1;
   ['m1','m2'].forEach(mk => {
-    series[mk].vals.forEach(v => { if (v > maxAbs) maxAbs = v; });
-    if (series[mk].base > maxAbs) maxAbs = series[mk].base;
+    series[mk].sup.forEach(v => { if (v > maxAbs) maxAbs = v; });
+    series[mk].def.forEach(v => { if (Math.abs(v) > maxAbs) maxAbs = Math.abs(v); });
   });
   const scale = niceScale(maxAbs, 3);
   const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
-  const y = v => baseY - (v / scale.max) * innerH;
+  const y = v => midY - (v / scale.max) * (innerH / 2);
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
-  [0, 0.5, 1].forEach(f => {
+  [-1, -0.5, 0, 0.5, 1].forEach(f => {
     const v = scale.max * f, yy = y(v);
     svg += `<line x1="${padL-4}" y1="${yy}" x2="${padL}" y2="${yy}" stroke="#94a3b8" stroke-width="1.5"/>`;
-    svg += `<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="#e5e7eb" stroke-width="1" ${f!==0?'stroke-dasharray="2 4"':''}/>`;
-    svg += `<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="#544273" font-family="Forum">${fmt(v)}</text>`;
+    svg += `<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="${f===0?'#94a3b8':'#e5e7eb'}" stroke-width="${f===0?1.5:1}" ${f!==0?'stroke-dasharray="2 4"':''}/>`;
+    svg += `<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="#544273" font-family="Forum">${f>0?'+':''}${fmt(v)}</text>`;
   });
   svg += `<text x="${padL-8}" y="${padT-6}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">шт/день</text>`;
-  svg += `<line x1="${padL}" y1="${baseY}" x2="${W-padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
-  days.forEach((d, i) => {
-    if (i % 2 === 0) svg += `<text x="${x(i)}" y="${baseY+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`;
-  });
-  svg += `<text x="${W-padR}" y="${baseY+30}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">дни</text>`;
-  ['m1','m2'].forEach(mk => {
-    const col = mk==='m1'?C_M1:C_M2;
-    const by = y(series[mk].base);
-    svg += `<line x1="${padL}" y1="${by}" x2="${W-padR}" y2="${by}" stroke="${col}" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.6"/>`;
-  });
-  ['m1','m2'].forEach(mk => {
-    const col = mk==='m1'?C_M1:C_M2;
-    const vals = series[mk].vals;
-    if (vals.length > 1) {
-      let path = `M ${x(0)} ${y(vals[0])}`;
-      vals.forEach((v, i) => { if (i > 0) path += ` L ${x(i)} ${y(v)}`; });
-      svg += `<path class="chart-line" d="${path}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
-    }
-    vals.forEach((v, i) => {
-      const above = v > series[mk].base;
-      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(v)}" r="4" fill="${above?col:'#fff'}" stroke="${col}" stroke-width="2" data-label="${MATRIX_NAME[mk]}, ${days[i].slice(5)}" data-value="Σ|факт−план|: ${fmt(v)} шт/день • база: ${fmt(series[mk].base)} шт/день ${above?'(выше базы)':'(в норме)'}"/>`;
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+innerH}" stroke="#94a3b8" stroke-width="1.5"/>`;
+  svg += `<line x1="${padL}" y1="${padT+innerH}" x2="${W-padR}" y2="${padT+innerH}" stroke="#94a3b8" stroke-width="1.5"/>`;
+  days.forEach((d, i) => { if (i % 2 === 0) svg += `<text x="${x(i)}" y="${padT+innerH+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`; });
+  svg += `<text x="${W-padR}" y="${padT+innerH+30}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">дни</text>`;
+  const mkPath = (vals, col, dashed) => {
+    if (vals.length < 2) return '';
+    let dstr = `M ${x(0)} ${y(vals[0])}`;
+    vals.forEach((v, i) => { if (i > 0) dstr += ` L ${x(i)} ${y(v)}`; });
+    return `<path ${dashed?'':'class="chart-line"'} d="${dstr}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round" ${dashed?'stroke-dasharray="6 5"':''}/>`;
+  };
+  [['m1',C_M1],['m2',C_M2]].forEach(([mk,col]) => {
+    svg += mkPath(series[mk].sup, col, false);
+    svg += mkPath(series[mk].def, col, true);
+    days.forEach((d, i) => {
+      const tipVal = `Профицит: +${fmt(series[mk].sup[i])} шт/день • Дефицит: ${fmt(series[mk].def[i])} шт/день`;
+      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].sup[i])}" r="3.5" fill="${col}" data-label="${MATRIX_NAME[mk]}, ${d.slice(5)}" data-value="${tipVal}"/>`;
+      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].def[i])}" r="3.5" fill="#fff" stroke="${col}" stroke-width="2" data-label="${MATRIX_NAME[mk]}, ${d.slice(5)}" data-value="${tipVal}"/>`;
     });
   });
   svg += `</svg>`;
   boxEl.querySelectorAll('svg').forEach(el => el.remove());
   boxEl.insertAdjacentHTML('beforeend', svg);
-  const path = boxEl.querySelector('.chart-line');
-  if (path) {
+  boxEl.querySelectorAll('.chart-line').forEach(path => {
     const len = path.getTotalLength();
     path.style.strokeDasharray = len;
     path.style.strokeDashoffset = len;
     path.getBoundingClientRect();
     path.style.transition = 'stroke-dashoffset 1s ease';
     path.style.strokeDashoffset = '0';
-  }
+  });
   attachChart(boxEl, tipEl);
 }
 function render(){
@@ -528,28 +522,26 @@ function render(){
     ['m1','m2'].forEach(mk=>{
       const mProds=prods.filter(p=>p.matrix===mk);
       const offerSet=new Set(mProds.map(p=>p.o));
-      const planSum=mProds.reduce((s,p)=>s+planDaily(p.pid),0);
-      series[mk]={
-        base:0.10*planSum,
-        vals:days.map(dt=>{
-          let acc=0;
-          offerSet.forEach(o=>{
-            const wm=SALES[o]||{}; let act=0; for(const wh in wm) act+=wm[wh][dt]||0;
-            acc+=Math.abs(act-planDaily(OFFER_PID[o]));
-          });
-          return acc;
-        })
-      };
+      const sup=days.map(()=>0), def=days.map(()=>0);
+      days.forEach((dt,idx)=>{
+        offerSet.forEach(o=>{
+          const wm=SALES[o]||{}; let act=0; for(const wh in wm) act+=wm[wh][dt]||0;
+          const dev=act-planDaily(OFFER_PID[o]);
+          if(dev>0) sup[idx]+=dev; else def[idx]+=dev;
+        });
+      });
+      series[mk]={sup,def};
     });
-    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Динамика суммарного отклонения от плана (Σ|факт−план|, шт/день)</span></div>
+    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Отклонение от плана по дням: отдельно профицит и дефицит (шт/день)</span></div>
       <div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div>
       <div class="chart-note">
         <div class="legend-row">
-          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс</span>
-          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр</span>
-          <span class="legend-item"><span class="sw dash"></span>База = 10% от среднесуточных продаж по плану (${MONTH})</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс профицит</span>
+          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M1} 0 5px,transparent 5px 9px)"></span>Алекс дефицит</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр профицит</span>
+          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр дефицит</span>
         </div>
-        <div>Линия выше своей базы — суммарное отклонение превышает допустимые 10%: требуется ребалансировка ассортимента. Ниже базы — выполнение в пределах нормы.</div>
+        <div>Профицит (сплошная, выше 0) — продажи выше плана; дефицит (пунктир, ниже 0) — продажи ниже плана. Ноль — выполнение плана в точности.</div>
       </div></div>`;
     const historyRows=[];
     const todayISO=localISO(BASE);
@@ -657,7 +649,7 @@ function render(){
     setTimeout(() => {
       const box = document.getElementById('chartBox');
       const tip = document.getElementById('chartTip');
-      if (box && tip) drawDualChart(box, tip, days, series);
+      if (box && tip) drawSplitChart(box, tip, days, series);
     }, 0);
   }else{
     const whMap=new Map();
