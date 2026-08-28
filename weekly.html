@@ -410,7 +410,6 @@ function attachChart(box, tooltip){
     pt.addEventListener('mouseleave', hide);
   });
 }
-// Диаграмма: две линии (Алекс/Александр), Y = Σ|факт−план| шт/день, база = 10% от плановых среднесуточных
 function drawDualChart(boxEl, tipEl, days, series) {
   const n = days.length;
   const W = 900, H = 240, padL = 64, padR = 14, padT = 18, padB = 40;
@@ -425,7 +424,6 @@ function drawDualChart(boxEl, tipEl, days, series) {
   const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
   const y = v => baseY - (v / scale.max) * innerH;
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  // Ось Y (ординат) с подписями
   svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
   [0, 0.5, 1].forEach(f => {
     const v = scale.max * f, yy = y(v);
@@ -434,19 +432,16 @@ function drawDualChart(boxEl, tipEl, days, series) {
     svg += `<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="#544273" font-family="Forum">${fmt(v)}</text>`;
   });
   svg += `<text x="${padL-8}" y="${padT-6}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">шт/день</text>`;
-  // Ось X (абсцисс) с подписями
   svg += `<line x1="${padL}" y1="${baseY}" x2="${W-padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
   days.forEach((d, i) => {
     if (i % 2 === 0) svg += `<text x="${x(i)}" y="${baseY+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`;
   });
   svg += `<text x="${W-padR}" y="${baseY+30}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">дни</text>`;
-  // Базовые линии (10% от плановых среднесуточных)
   ['m1','m2'].forEach(mk => {
     const col = mk==='m1'?C_M1:C_M2;
     const by = y(series[mk].base);
     svg += `<line x1="${padL}" y1="${by}" x2="${W-padR}" y2="${by}" stroke="${col}" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.6"/>`;
   });
-  // Линии менеджеров
   ['m1','m2'].forEach(mk => {
     const col = mk==='m1'?C_M1:C_M2;
     const vals = series[mk].vals;
@@ -528,7 +523,6 @@ function render(){
     });
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    // Данные для диаграммы: Σ|факт−план| по дням + база 10%
     const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
     const series={};
     ['m1','m2'].forEach(mk=>{
@@ -574,7 +568,7 @@ function render(){
         byMatrix.get(mkk)?.forEach(p=>{
           let up=0,down=0; p.clArr.forEach(g=>{ if(g.dir==='up')up+=g.change; else if(g.dir==='down')down+=g.change; });
           const dir=down>=up?'down':'up'; const mag=Math.max(up,down);
-          if(mag>0) items.push({name:p.name,ref:p.o,attr:'prod',dir,mag,jumpId:`prod:${p.o}`,histKey:p.o,histType:'product'});
+          if(mag>0) items.push({label:p.o,ttl:p.name,dir,mag,jumpId:`prod:${p.o}`,histKey:p.o,histType:'product'});
         });
       }else{
         const clMap=new Map();
@@ -585,7 +579,7 @@ function render(){
         });});
         clMap.forEach(c=>{
           const dir=c.down>=c.up?'down':'up'; const mag=Math.max(c.up,c.down);
-          if(mag>0) items.push({name:c.name,ref:c.name,attr:'cluster',dir,mag,jumpId:`cl:${mkk}:${dir}:${c.name}`,histKey:mkk+':'+c.name,histType:'cluster'});
+          if(mag>0) items.push({label:c.name,ttl:'',dir,mag,jumpId:`cl:${mkk}:${dir}:${c.name}`,histKey:mkk+':'+c.name,histType:'cluster'});
         });
       }
       items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
@@ -595,7 +589,7 @@ function render(){
         items.map(x=>{
           const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
           const kpi=kpiPctFromHistory(x.histType,x.histKey);
-          return `<button class="topitem" onclick="jump('${x.jumpId}')"><span class="topname">${esc(x.name)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</button>`;
+          return `<button class="topitem" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</button>`;
         }).join('')+`</div>`;
     };
     html+=`<div class="topsrow">`+topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products')+`</div>`;
@@ -603,7 +597,7 @@ function render(){
       const prodNode=(p,dir)=>{
         const cl=p.clArr.filter(g=>g.dir===dir);
         const ch=cl.reduce((s,g)=>s+g.change,0);
-        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
+        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}"><summary><span class="clname" title="${esc(p.name)}">${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         cl.forEach(g=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
@@ -634,7 +628,7 @@ function render(){
         let out=`<details class="cluster" data-jump-id="cl:${mkk}:${dir}:${esc(cname)}"><summary><span class="clname">${esc(cname)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${list.length} поз.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         list.sort((a,b)=>b.change-a.change).forEach(x=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-            <td><span class="caret">▾</span>${esc(x.name)}${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
+            <td><span class="caret">▾</span><span title="${esc(x.name)}">${esc(x.o)}</span>${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
             <td class="num">${fmt(x.cs)}</td><td class="num">${fmt(x.csum)}</td>${daysCell(x.cs,x.c1)}${cmpCell(x.c3,x.c4)}${cmpCell(x.c2,x.c3)}${cmpCell(x.c1,x.c2)}</tr>`+whRows(x.arr)+`</tbody>`;
         });
         out+=`</table></div></details>`;
