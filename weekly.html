@@ -38,16 +38,19 @@
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
  .progfill{height:100%;width:0%;background:linear-gradient(90deg,#78A6C7,#E33D78);transition:width .2s}
  .progfill.bad{background:#E33D78}
- .chartcard{position:relative;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:14px 16px;margin:0 0 16px}
- .charthead{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
- .charttitle{font-size:.95em;font-weight:700;color:#544273;flex:1}
+ .chartcard{position:relative;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
+ .charthead{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+ .charttitle{font-size:.9em;font-weight:700;color:#544273;flex:1}
  .chart-box{position:relative;width:100%}
  .chart-box svg{width:100%;height:auto;display:block}
  .chart-tooltip{position:absolute;display:none;pointer-events:none;background:#1C0D2E;color:#fff;padding:8px 12px;border-radius:8px;font-family:'Forum',serif;font-size:.85em;line-height:1.4;transform:translate(-50%,-100%);white-space:nowrap;box-shadow:0 4px 12px rgba(28,13,46,.4);z-index:5}
  .chart-tooltip strong{color:#E33D78;display:block}
  .chart-point{cursor:pointer}
- .pulse-bad{animation:pulseBad 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
- @keyframes pulseBad{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.7}}
+ .chart-note{margin-top:10px;font-size:.8em;color:#94a3b8;font-family:'Forum',serif;display:flex;flex-direction:column;gap:6px}
+ .chart-note .legend-row{display:flex;gap:18px;flex-wrap:wrap}
+ .legend-item{display:inline-flex;align-items:center;gap:6px;color:#544273}
+ .sw{width:26px;height:3px;display:inline-block;border-radius:2px}
+ .sw.dash{background:repeating-linear-gradient(90deg,#94a3b8 0 5px,transparent 5px 9px)}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
  .topblock{flex:1;min-width:320px;max-height:230px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
  .topblock::-webkit-scrollbar{width:4px}
@@ -152,12 +155,13 @@ const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},PLAN_QTY={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
-let importing=false, MODE='summary', INCLUDE_FIRE=false, CHART_MK='m1';
+let importing=false, MODE='summary', INCLUDE_FIRE=false;
 let MONTH='2026-09';
 let T_REPORT=11;
 let DEVIATION_HISTORY=[];
 const SMOOTH_DAYS=7;
 const MATRIX_NAME={m1:'Алекс',m2:'Александр'};
+const C_M1='#E33D78', C_M2='#78A6C7';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
@@ -176,7 +180,6 @@ function setMode(m){
   render();
 }
 function setIncludeFire(v){ INCLUDE_FIRE=v; render(); }
-function setChartMk(v){ CHART_MK=v; render(); }
 function niceScale(maxValue, tickCount = 4) {
   if (maxValue <= 0) maxValue = 1;
   const rawStep = maxValue / tickCount;
@@ -341,10 +344,6 @@ function cmpCell(v,prev){
   if(v>prev){cls='g';ar='↑';}else if(v<prev){cls='r';ar='↓';}
   return `<td class="num ${cls}">${fmt(v)} ${ar}</td>`;
 }
-// Отклонение: сколько шт/день нужно изменить (знак = направление).
-// Требуемая производительность = остаток / норма_дней.
-// delta = требуемая − факт. >0 → увеличить (профицит), <0 → уменьшить (дефицит).
-// Распределяем по SMOOTH_DAYS, чтобы получить плавный темп коррекции.
 function clusterDeviation(cs,c1){
   if(cs<=0)return 0;
   const req=cs/T_REPORT;
@@ -363,8 +362,6 @@ function recText(pid,cs,c1,T){
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
 function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
-// KPI по истории отклонений: сравниваем модуль текущего отклонения со средним модулем за N прошлых дней.
-// Отрицательный % = лучше (объём требуемой работы уменьшился), положительный = хуже.
 function kpiPctFromHistory(entityType, entityKey){
   const recs=DEVIATION_HISTORY.filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
@@ -390,7 +387,6 @@ function kpiPctFromHistory(entityType, entityKey){
 function kpiCells(k){
   return k.map(v=>{
     if(v==null)return `<span class="kpc n">—</span>`;
-    // <0 = лучше (зелёный), >0 = хуже (красный)
     const cls=Math.abs(v)<=5?'n':(v<0?'g':'r');
     return `<span class="kpc ${cls}">${v>0?'+':''}${Math.round(v)}%</span>`;
   }).join('');
@@ -414,48 +410,56 @@ function attachChart(box, tooltip){
     pt.addEventListener('mouseleave', hide);
   });
 }
-function drawDevChart(boxEl, tipEl, days, vals, base) {
+// Диаграмма: две линии (Алекс/Александр), Y = Σ|факт−план| шт/день, база = 10% от плановых среднесуточных
+function drawDualChart(boxEl, tipEl, days, series) {
   const n = days.length;
-  const W = 900, H = 340, padL = 90, padR = 20, padT = 40, padB = 50;
+  const W = 900, H = 240, padL = 64, padR = 14, padT = 18, padB = 40;
   const innerW = W - padL - padR, innerH = H - padT - padB;
-  const baseY = padT + innerH / 2;
-  const maxAbs = Math.max(...vals.map(v => Math.abs(v)), 1);
+  const baseY = padT + innerH;
+  let maxAbs = 0;
+  ['m1','m2'].forEach(mk => {
+    series[mk].vals.forEach(v => { if (v > maxAbs) maxAbs = v; });
+    if (series[mk].base > maxAbs) maxAbs = series[mk].base;
+  });
   const scale = niceScale(maxAbs, 3);
   const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
-  const y = v => baseY - (v / scale.max) * (innerH / 2);
-  const C_LINE = '#7D3673';
-  const C_UP = '#E33D78';
-  const C_DOWN = '#16a34a';
+  const y = v => baseY - (v / scale.max) * innerH;
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  [-1, -0.5, 0, 0.5, 1].forEach(f => {
-    const yy = baseY - f * (innerH / 2);
-    svg += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="${f === 0 ? '#94a3b8' : '#e5e7eb'}" stroke-width="${f === 0 ? 1.5 : 1}" ${f !== 0 ? 'stroke-dasharray="2 4"' : ''}/>`;
-    svg += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#544273" font-family="Forum">${fmt(Math.round(scale.max * f))}</text>`;
+  // Ось Y (ординат) с подписями
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
+  [0, 0.5, 1].forEach(f => {
+    const v = scale.max * f, yy = y(v);
+    svg += `<line x1="${padL-4}" y1="${yy}" x2="${padL}" y2="${yy}" stroke="#94a3b8" stroke-width="1.5"/>`;
+    svg += `<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="#e5e7eb" stroke-width="1" ${f!==0?'stroke-dasharray="2 4"':''}/>`;
+    svg += `<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="#544273" font-family="Forum">${fmt(v)}</text>`;
   });
+  svg += `<text x="${padL-8}" y="${padT-6}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">шт/день</text>`;
+  // Ось X (абсцисс) с подписями
+  svg += `<line x1="${padL}" y1="${baseY}" x2="${W-padR}" y2="${baseY}" stroke="#94a3b8" stroke-width="1.5"/>`;
   days.forEach((d, i) => {
-    svg += `<line x1="${x(i)}" y1="${padT}" x2="${x(i)}" y2="${baseY + innerH / 2}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2 4"/>`;
+    if (i % 2 === 0) svg += `<text x="${x(i)}" y="${baseY+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`;
   });
-  if (vals.length > 1) {
-    let path = `M ${x(0)} ${y(vals[0])}`;
-    vals.forEach((v, i) => { if (i > 0) path += ` L ${x(i)} ${y(v)}`; });
-    svg += `<path class="chart-line" d="${path}" fill="none" stroke="${C_LINE}" stroke-width="3" stroke-linecap="round"/>`;
-  }
-  vals.forEach((v, i) => {
-    const px = x(i), py = y(v);
-    const col = v > 0 ? C_UP : v < 0 ? C_DOWN : '#94a3b8';
-    const bad = Math.abs(v) > scale.max * 0.6;
-    const devP = base ? (v / base * 100) : 0;
-    const sg = v > 0 ? '+' : v < 0 ? '−' : '';
-    const paren = ` <tspan fill="${col}">(${sg}${fmt(Math.abs(v))} / ${devP >= 0 ? '+' : '−'}${Math.abs(Math.round(devP))}%)</tspan>`;
-    svg += `<circle class="chart-point${bad ? ' pulse-bad' : ''}" cx="${px}" cy="${py}" r="5" fill="white" stroke="${col}" stroke-width="2.5" data-label="${days[i]}" data-value="${sg}${fmt(Math.abs(v))} шт/день • ${devP >= 0 ? '+' : '−'}${Math.abs(Math.round(devP))}% от плана"/>`;
-    let ly = py - 14;
-    if (ly < padT + 10) ly = py + 18;
-    svg += `<text x="${px}" y="${ly}" text-anchor="middle" font-size="10" font-weight="700" fill="${col}" font-family="Forum">${sg}${fmt(Math.abs(v))}${paren}</text>`;
+  svg += `<text x="${W-padR}" y="${baseY+30}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">дни</text>`;
+  // Базовые линии (10% от плановых среднесуточных)
+  ['m1','m2'].forEach(mk => {
+    const col = mk==='m1'?C_M1:C_M2;
+    const by = y(series[mk].base);
+    svg += `<line x1="${padL}" y1="${by}" x2="${W-padR}" y2="${by}" stroke="${col}" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.6"/>`;
   });
-  days.forEach((d, i) => {
-    svg += `<text x="${x(i)}" y="${baseY + innerH / 2 + 20}" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`;
+  // Линии менеджеров
+  ['m1','m2'].forEach(mk => {
+    const col = mk==='m1'?C_M1:C_M2;
+    const vals = series[mk].vals;
+    if (vals.length > 1) {
+      let path = `M ${x(0)} ${y(vals[0])}`;
+      vals.forEach((v, i) => { if (i > 0) path += ` L ${x(i)} ${y(v)}`; });
+      svg += `<path class="chart-line" d="${path}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+    vals.forEach((v, i) => {
+      const above = v > series[mk].base;
+      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(v)}" r="4" fill="${above?col:'#fff'}" stroke="${col}" stroke-width="2" data-label="${MATRIX_NAME[mk]}, ${days[i].slice(5)}" data-value="Σ|факт−план|: ${fmt(v)} шт/день • база: ${fmt(series[mk].base)} шт/день ${above?'(выше базы)':'(в норме)'}"/>`;
+    });
   });
-  svg += `<text x="14" y="${padT - 8}" font-size="12" font-weight="700" fill="#7D3673" font-family="Forum">Отклонение от базы (факт − план), шт/день</text>`;
   svg += `</svg>`;
   boxEl.querySelectorAll('svg').forEach(el => el.remove());
   boxEl.insertAdjacentHTML('beforeend', svg);
@@ -524,19 +528,35 @@ function render(){
     });
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    const mk=CHART_MK;
-    const mProds=prods.filter(p=>p.matrix===mk);
-    const offerSet=new Set(mProds.map(p=>p.o));
-    let base=0; mProds.forEach(p=>base+=planDaily(p.pid));
+    // Данные для диаграммы: Σ|факт−план| по дням + база 10%
     const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
-    const vals=days.map(dt=>{ let act=0; offerSet.forEach(o=>{const wm=SALES[o]||{}; for(const wh in wm) act+=wm[wh][dt]||0;}); return act-base; });
-    const labels=days.map(dt=>lbl(dt));
-    html+=`<div class="chartcard"><div class="charthead">
-        <span class="charttitle">📈 ${MATRIX_NAME[mk]} — динамика отклонения от плана за 14 дней</span>
-        <select onchange="setChartMk(this.value)"><option value="m1" ${mk==='m1'?'selected':''}>Алекс</option><option value="m2" ${mk==='m2'?'selected':''}>Александр</option></select>
-      </div>
-      <div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div></div>`;
-    // Собираем строки для записи в deviation_history
+    const series={};
+    ['m1','m2'].forEach(mk=>{
+      const mProds=prods.filter(p=>p.matrix===mk);
+      const offerSet=new Set(mProds.map(p=>p.o));
+      const planSum=mProds.reduce((s,p)=>s+planDaily(p.pid),0);
+      series[mk]={
+        base:0.10*planSum,
+        vals:days.map(dt=>{
+          let acc=0;
+          offerSet.forEach(o=>{
+            const wm=SALES[o]||{}; let act=0; for(const wh in wm) act+=wm[wh][dt]||0;
+            acc+=Math.abs(act-planDaily(OFFER_PID[o]));
+          });
+          return acc;
+        })
+      };
+    });
+    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Динамика суммарного отклонения от плана (Σ|факт−план|, шт/день)</span></div>
+      <div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div>
+      <div class="chart-note">
+        <div class="legend-row">
+          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр</span>
+          <span class="legend-item"><span class="sw dash"></span>База = 10% от среднесуточных продаж по плану (${MONTH})</span>
+        </div>
+        <div>Линия выше своей базы — суммарное отклонение превышает допустимые 10%: требуется ребалансировка ассортимента. Ниже базы — выполнение в пределах нормы.</div>
+      </div></div>`;
     const historyRows=[];
     const todayISO=localISO(BASE);
     prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev}); });
@@ -643,7 +663,7 @@ function render(){
     setTimeout(() => {
       const box = document.getElementById('chartBox');
       const tip = document.getElementById('chartTip');
-      if (box && tip) drawDevChart(box, tip, labels, vals, base);
+      if (box && tip) drawDualChart(box, tip, days, series);
     }, 0);
   }else{
     const whMap=new Map();
