@@ -323,7 +323,6 @@ function forecastClose(p,key){
   return sumFact + lastFact*noFact;
 }
 function devFor(p,key){ return forecastClose(p,key)-monthlyPlan(p,key); }
-// Текущее значение для метрики: факт текущей недели, иначе прогноз, иначе месячный план
 function currentFact(pid,key){
   const cw=currentWeekISO();
   if(!cw) return monthlyPlan({product_id:pid},key);
@@ -332,7 +331,6 @@ function currentFact(pid,key){
   if(rec.forecast!=null) return rec.forecast;
   return monthlyPlan({product_id:pid},key);
 }
-// Рекомендация: факт/прогноз текущей vs прогноз следующей
 function recFor(pid,key){
   const cw=currentWeekISO();
   if(!cw) return null;
@@ -350,7 +348,6 @@ function recFor(pid,key){
 function recText(r){
   if(!r) return {text:'—',cls:'n'};
   const abs=Math.abs(r.d);
-  const absF=(r.d<0?'−':'+')+fmt(abs);
   const pctF=(r.pct<0?'−':'+')+Math.round(Math.abs(r.pct))+'%';
   if(r.d>0.0001) return {text:`увеличить на ${fmt(abs)} (${pctF})`,cls:'g'};
   if(r.d<-0.0001) return {text:`уменьшить на ${fmt(abs)} (${pctF})`,cls:'r'};
@@ -400,7 +397,6 @@ async function evalProto(id,field,value){
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   await loadProto(); render();
 }
-function weekFact(pid,key,week){ const rec=(WD[pid]&&WD[pid][key]&&WD[pid][key][week])?WD[pid][key][week]:{fact:null}; return rec.fact; }
 function renderItem(it){
   const mk=it.metrics.split(',');
   const tg=JSON.parse(it.targets||'{}');
