@@ -121,6 +121,7 @@ let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 let importing=false, MODE='clusters';
 let MONTH='2026-09';
 let T_REPORT=11;
+const SMOOTH_DAYS=7;
 const MATRIX_NAME={m1:'Алекс',m2:'Александр'};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -261,15 +262,19 @@ function cmpCell(v,prev){
 function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
 function planPieces(pid){ return planDaily(pid)*T_REPORT; }
 function planCost(pid){ return planPieces(pid)*(COST[pid]||0); }
+// Рекомендация: выйти на целевую оборачиваемость T за SMOOTH_DAYS дней.
+// изменение шт/день = (требуемая − текущая) / SMOOTH_DAYS
 function recText(pid,cs,c1,T){
   if(cs<=0)return null;
   const req=cs/T;
-  if(c1<=0)return {txt:`вывести продажи на ${f1(req)} шт/день`,cls:'r'};
-  const delta=req-c1;
-  if(Math.abs(delta)<=Math.max(0.5,0.05*c1))return null;
-  const pct=Math.round(Math.abs(delta)/c1*100);
-  if(delta>0)return {txt:`увеличить продажи на ${f1(delta)} шт/день (+${pct}%)`,cls:'r'};
-  return {txt:`уменьшить продажи на ${f1(-delta)} шт/день (−${pct}%)`,cls:'g'};
+  const raw=req-c1;
+  if(Math.abs(raw)<=Math.max(0.5,0.05*(c1>0?c1:req)))return null;
+  const smooth=raw/SMOOTH_DAYS;
+  const base=(c1>0?c1:req);
+  const pct=Math.round(Math.abs(raw)/base*100);
+  const change=Math.abs(smooth);
+  if(smooth>0)return {txt:`увеличить на ${f1(smooth)} шт/день (за ${SMOOTH_DAYS} дн, +${pct}%)`,cls:'r',change};
+  return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -294,7 +299,7 @@ function render(){
     c,arr:a,
     cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0),
     c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
-  })).map(g=>{ g.rec=recText(p.pid,g.cs,g.c1,T_REPORT); g.dir=g.rec?(g.rec.cls==='r'?'up':g.rec.cls==='g'?'down':0):0; return g; }).sort((a,b)=>b.csum-a.csum);
+  })).map(g=>{ g.rec=recText(p.pid,g.cs,g.c1,T_REPORT); g.dir=g.rec?(g.rec.cls==='r'?'up':g.rec.cls==='g'?'down':0):0; g.change=g.rec?g.rec.change:0; return g; }).sort((a,b)=>b.csum-a.csum);
   const buildClusters=(p,dir)=>{
     const list=dir? p.clArr.filter(g=>g.dir===dir) : p.clArr;
     let out=`<div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr></thead>`;
@@ -320,26 +325,28 @@ function render(){
       if(!p.clusters.has(e.cluster))p.clusters.set(e.cluster,[]);
       p.clusters.get(e.cluster).push(e);
     });
-    const prods=[...prodAgg.values()].map(p=>{p.plan=planCost(p.pid);p.pieces=planPieces(p.pid);p.delta=p.sum-p.plan;p.clArr=toClArr(p);return p;});
+    const prods=[...prodAgg.values()].map(p=>{p.clArr=toClArr(p);return p;});
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    const prodNode=(p,dir)=>`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.sum)} ₽ • ${fmt(p.stock)} шт (план: ${fmt(p.plan)} ₽ • ${fmt(p.pieces)} шт) • Δ ${p.delta>0?'+':''}${fmt(p.delta)} ₽</span></summary>`+buildClusters(p,dir)+`</details>`;
-    const section=(title,list,dir)=>{
+    const prodNode=(p,dir)=>{
+      const cl=p.clArr.filter(g=>g.dir===dir);
+      const ch=cl.reduce((s,g)=>s+g.change,0);
+      return `<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary>`+buildClusters(p,dir)+`</details>`;
+    };
+    const section=(title,arr,dir)=>{
+      const list=arr.filter(p=>p.clArr.some(g=>g.dir===dir))
+        .map(p=>{p._ch=p.clArr.filter(g=>g.dir===dir).reduce((s,g)=>s+g.change,0);return p;})
+        .sort((a,b)=>b._ch-a._ch);
       if(!list.length)return '';
-      const sd=list.reduce((s,p)=>s+p.delta,0);
-      let out=`<details class="sup"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Δ ${sd>0?'+':''}${fmt(sd)} ₽</span></summary><div class="supbody">`;
-      out+=list.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).map(p=>prodNode(p,dir)).join('');
-      out+=`</div></details>`;
-      return out;
+      const total=list.reduce((s,p)=>s+p._ch,0);
+      return `<details class="sup"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+list.map(p=>prodNode(p,dir)).join('')+`</div></details>`;
     };
     [...byMatrix.keys()].sort().forEach(mk=>{
       const arr=byMatrix.get(mk);
-      const sup=arr.filter(p=>p.clArr.some(g=>g.dir==='up'));
-      const def=arr.filter(p=>p.clArr.some(g=>g.dir==='down'));
-      const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0), mPlan=arr.reduce((s,p)=>s+p.plan,0), mDelta=arr.reduce((s,p)=>s+p.delta,0);
-      html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт (план: ${fmt(mPlan)} ₽) • Δ ${mDelta>0?'+':''}${fmt(mDelta)} ₽</span></summary><div class="matrixbody">`;
-      html+=section('📦 Профицит (увеличить продажи)',sup,'up');
-      html+=section('⛔ Дефицит (снизить продажи)',def,'down');
+      const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
+      html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
+      html+=section('📦 Профицит (увеличить продажи)',arr,'up');
+      html+=section('⛔ Дефицит (снизить продажи)',arr,'down');
       html+=`</div></details>`;
     });
   }else if(MODE==='products'){
