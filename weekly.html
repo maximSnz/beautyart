@@ -38,52 +38,61 @@
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
  .progfill{height:100%;width:0%;background:linear-gradient(90deg,#78A6C7,#E33D78);transition:width .2s}
  .progfill.bad{background:#E33D78}
- .chartcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:10px 12px;margin:0 0 14px}
- .charthead{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
- .charttitle{font-size:.85em;font-weight:700;color:#544273;flex:1}
- .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
+ .chartcard{position:relative;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:14px 16px;margin:0 0 16px}
+ .charthead{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+ .charttitle{font-size:.95em;font-weight:700;color:#544273;flex:1}
+ .chart-box{position:relative;width:100%}
+ .chart-box svg{width:100%;height:auto;display:block}
+ .chart-tooltip{position:absolute;display:none;pointer-events:none;background:#1C0D2E;color:#fff;padding:8px 12px;border-radius:8px;font-family:'Forum',serif;font-size:.85em;line-height:1.4;transform:translate(-50%,-100%);white-space:nowrap;box-shadow:0 4px 12px rgba(28,13,46,.4);z-index:5}
+ .chart-tooltip strong{color:#E33D78;display:block}
+ .chart-point{cursor:pointer}
+ .pulse-bad{animation:pulseBad 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+ @keyframes pulseBad{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.7}}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
- .topblock{flex:1;min-width:320px;border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
+ .topblock{flex:1;min-width:320px;max-height:460px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
+ .topblock::-webkit-scrollbar{width:4px}
+ .topblock::-webkit-scrollbar-track{background:rgba(84,66,115,.1);border-radius:2px}
+ .topblock::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#78A6C7,#E33D78);border-radius:2px}
  .toptitle{font-family:'Forum';font-weight:700;color:#E33D78;font-size:1em;margin-bottom:8px}
  .tophead,.topitem{display:grid;grid-template-columns:minmax(140px,1fr) auto auto 48px 48px 48px;align-items:center;gap:6px}
  .tophead{font-size:.72em;color:#94a3b8;margin-bottom:4px}
  .tophead span:nth-child(n+4){text-align:center}
- .topitem{width:100%;text-align:left;background:#fff;border:1px solid rgba(84,66,115,.15);border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:pointer}
+ .topitem{width:100%;text-align:left;background:#fff;border:1px solid rgba(84,66,115,.15);border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:pointer;font-family:'Forum'}
  .topitem:hover{border-color:#E33D78}
  .topname{color:#1C0D2E;font-weight:700;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .topdir{font-size:.78em;font-weight:700;white-space:nowrap}
  .topchg{color:#544273;font-size:.8em;white-space:nowrap}
  .kpc{font-size:.8em;font-weight:700;text-align:center;border-radius:5px;padding:2px 0;background:rgba(148,163,184,.12)}
- @keyframes flash{0%{background:rgba(227,61,120,.35);}100%{background:transparent;}}
- .hlflash{animation:flash 2s ease;}
+ @keyframes flash{0%{background:rgba(227,61,120,.35)}100%{background:transparent}}
+ .hlflash{animation:flash 2s ease}
  details.matrix{border:3px solid rgba(125,54,115,.3);border-radius:14px;background:#fdf7fb;margin:0 0 18px}
  details.matrix>summary{cursor:pointer;padding:14px 18px;font-family:'Forum';font-weight:700;color:#1C0D2E;font-size:1.15em;list-style:none;display:flex;align-items:center;gap:12px}
- details.matrix>summary::before{content:"▸ ";}
- details.matrix[open]>summary::before{content:"▾ ";}
+ details.matrix>summary::before{content:"▸ "}
+ details.matrix[open]>summary::before{content:"▾ "}
  details.matrix[open]>summary{border-bottom:3px solid rgba(125,54,115,.15)}
  .matrixbody{padding:14px 14px 6px}
  details.fire{border:2px dashed rgba(227,61,120,.55);border-radius:10px;background:#fff5f8;margin:0 0 16px}
  details.fire>summary{cursor:pointer;padding:12px 14px;font-family:'Forum';font-weight:700;color:#E33D78;font-size:1.05em;list-style:none;display:flex;align-items:center;gap:8px}
- details.fire>summary::before{content:"▸ ";}
- details.fire[open]>summary::before{content:"▾ ";}
+ details.fire>summary::before{content:"▸ "}
+ details.fire[open]>summary::before{content:"▾ "}
  .firebody{padding:0 12px 12px}
  details.sup{border:2px solid rgba(125,54,115,.3);border-radius:12px;background:#fdf7fb;margin:0 0 16px}
  details.sup>summary{cursor:pointer;padding:12px 16px;font-family:'Forum';font-weight:700;color:#7D3673;font-size:1.05em;list-style:none;display:flex;align-items:center;gap:10px}
- details.sup>summary::before{content:"▸ ";}
- details.sup[open]>summary::before{content:"▾ ";}
+ details.sup>summary::before{content:"▸ "}
+ details.sup[open]>summary::before{content:"▾ "}
  details.sup[open]>summary{border-bottom:2px solid rgba(125,54,115,.15)}
  .supbody{padding:12px 12px 4px}
  details.cluster{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 12px}
  details.cluster>summary{cursor:pointer;padding:10px 14px;font-family:'Forum';font-weight:700;color:#544273;user-select:none;list-style:none;display:flex;align-items:center;gap:10px}
- details.cluster>summary::before{content:"▸ ";}
- details.cluster[open]>summary::before{content:"▾ ";}
+ details.cluster>summary::before{content:"▸ "}
+ details.cluster[open]>summary::before{content:"▾ "}
  details.cluster[open]>summary{border-bottom:2px solid rgba(84,66,115,.1)}
  .clname{flex:1;text-align:left}
  .cltot{color:#1C0D2E;font-size:.9em;white-space:nowrap;margin-left:auto}
  details.wh{margin:8px 10px;border:1px solid rgba(84,66,115,.12);border-radius:8px;background:#fff}
  details.wh>summary{cursor:pointer;padding:8px 10px;display:flex;align-items:center;gap:8px;font-weight:700;color:#33506b;list-style:none}
- details.wh>summary::before{content:"▸ ";}
- details.wh[open]>summary::before{content:"▾ ";}
+ details.wh>summary::before{content:"▸ "}
+ details.wh[open]>summary::before{content:"▾ "}
  .whname{flex:1;text-align:left}
  .whtot{margin-left:auto;color:#1C0D2E;font-size:.85em;white-space:nowrap}
  tr.clrow td{background:rgba(120,166,199,.18);font-weight:700;cursor:pointer}
@@ -135,7 +144,6 @@
   </div>
   <div id="clusters"></div>
   <div class="grand" id="grand"></div>
-  <div class="tip" id="tip"></div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
@@ -147,7 +155,6 @@ let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
 let importing=false, MODE='summary', INCLUDE_FIRE=true, CHART_MK='m1';
 let MONTH='2026-09';
 let T_REPORT=11;
-let LASTCHART=null;
 const SMOOTH_DAYS=7;
 const MATRIX_NAME={m1:'Алекс',m2:'Александр'};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -169,9 +176,21 @@ function setMode(m){
 }
 function setIncludeFire(v){ INCLUDE_FIRE=v; render(); }
 function setChartMk(v){ CHART_MK=v; render(); }
-function moveTip(e){ const t=document.getElementById('tip'); t.style.left=(e.clientX+14)+'px'; t.style.top=(e.clientY+14)+'px'; }
-function jump(attr,val){
-  const el=document.querySelector('[data-'+attr+'="'+val+'"]');
+function niceScale(maxValue, tickCount = 4) {
+  if (maxValue <= 0) maxValue = 1;
+  const rawStep = maxValue / tickCount;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  let step;
+  if (norm <= 1) step = mag;
+  else if (norm <= 2) step = 2 * mag;
+  else if (norm <= 2.5) step = 2.5 * mag;
+  else if (norm <= 5) step = 5 * mag;
+  else step = 10 * mag;
+  return { step, max: Math.ceil(maxValue / step) * step };
+}
+function jump(id){
+  const el=document.querySelector('[data-jump-id="'+id+'"]');
   if(!el)return;
   let n=el;
   while(n){ if(n.tagName==='DETAILS') n.open=true; n=n.parentElement; }
@@ -315,7 +334,6 @@ function recText(pid,cs,c1,T){
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
 function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
-// KPI %: (факт_темп_за_w_дн − план_день) / план_день × 100
 function kpiPct(pairs,P){
   return [1,3,7].map(w=>{
     if(P<=0)return null;
@@ -335,19 +353,80 @@ function kpiCells(k){
     return `<span class="kpc ${cls}">${v>0?'+':''}${Math.round(v)}%</span>`;
   }).join('');
 }
-function attachChart(){
-  const tip=document.getElementById('tip');
-  document.querySelectorAll('#devsvg circle[data-i]').forEach(c=>{
-    c.style.cursor='pointer';
-    c.addEventListener('mouseenter',e=>{
-      const i=+c.dataset.i;
-      const v=LASTCHART.vals[i];
-      tip.innerHTML=`<b>${LASTCHART.labels[i]}</b>: ${v>0?'+':''}${fmt(v)} шт/день`;
-      tip.style.opacity=1; moveTip(e);
-    });
-    c.addEventListener('mousemove',moveTip);
-    c.addEventListener('mouseleave',()=>tip.style.opacity=0);
+function attachChart(box, tooltip){
+  box.querySelectorAll('.chart-point').forEach(pt => {
+    pt.dataset.r0 = pt.getAttribute('r');
+    const show = () => {
+      const b = box.getBoundingClientRect(), r = pt.getBoundingClientRect();
+      tooltip.innerHTML = `<strong>${pt.dataset.label}</strong>${pt.dataset.value}`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (r.left - b.left + r.width / 2) + 'px';
+      tooltip.style.top = (r.top - b.top - 8) + 'px';
+      pt.setAttribute('r', String(parseFloat(pt.dataset.r0) + 2));
+    };
+    const hide = () => {
+      tooltip.style.display = 'none';
+      pt.setAttribute('r', pt.dataset.r0);
+    };
+    pt.addEventListener('mouseenter', show);
+    pt.addEventListener('mouseleave', hide);
   });
+}
+function drawDevChart(boxEl, tipEl, days, vals, base) {
+  const n = days.length;
+  const W = 900, H = 340, padL = 90, padR = 20, padT = 40, padB = 50;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const baseY = padT + innerH / 2;
+  const maxAbs = Math.max(...vals.map(v => Math.abs(v)), 1);
+  const scale = niceScale(maxAbs, 3);
+  const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
+  const y = v => baseY - (v / scale.max) * (innerH / 2);
+  const C_LINE = '#7D3673';
+  const C_UP = '#E33D78';
+  const C_DOWN = '#16a34a';
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  [-1, -0.5, 0, 0.5, 1].forEach(f => {
+    const yy = baseY - f * (innerH / 2);
+    svg += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="${f === 0 ? '#94a3b8' : '#e5e7eb'}" stroke-width="${f === 0 ? 1.5 : 1}" ${f !== 0 ? 'stroke-dasharray="2 4"' : ''}/>`;
+    svg += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#544273" font-family="Forum">${fmt(Math.round(scale.max * f))}</text>`;
+  });
+  days.forEach((d, i) => {
+    svg += `<line x1="${x(i)}" y1="${padT}" x2="${x(i)}" y2="${baseY + innerH / 2}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2 4"/>`;
+  });
+  if (vals.length > 1) {
+    let path = `M ${x(0)} ${y(vals[0])}`;
+    vals.forEach((v, i) => { if (i > 0) path += ` L ${x(i)} ${y(v)}`; });
+    svg += `<path class="chart-line" d="${path}" fill="none" stroke="${C_LINE}" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  vals.forEach((v, i) => {
+    const px = x(i), py = y(v);
+    const col = v > 0 ? C_UP : v < 0 ? C_DOWN : '#94a3b8';
+    const bad = Math.abs(v) > scale.max * 0.6;
+    const devP = base ? (v / base * 100) : 0;
+    const sg = v > 0 ? '+' : v < 0 ? '−' : '';
+    const paren = ` <tspan fill="${col}">(${sg}${fmt(Math.abs(v))} / ${devP >= 0 ? '+' : '−'}${Math.abs(Math.round(devP))}%)</tspan>`;
+    svg += `<circle class="chart-point${bad ? ' pulse-bad' : ''}" cx="${px}" cy="${py}" r="5" fill="white" stroke="${col}" stroke-width="2.5" data-label="${days[i]}" data-value="${sg}${fmt(Math.abs(v))} шт/день • ${devP >= 0 ? '+' : '−'}${Math.abs(Math.round(devP))}% от плана"/>`;
+    let ly = py - 14;
+    if (ly < padT + 10) ly = py + 18;
+    svg += `<text x="${px}" y="${ly}" text-anchor="middle" font-size="10" font-weight="700" fill="${col}" font-family="Forum">${sg}${fmt(Math.abs(v))}${paren}</text>`;
+  });
+  days.forEach((d, i) => {
+    svg += `<text x="${x(i)}" y="${baseY + innerH / 2 + 20}" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`;
+  });
+  svg += `<text x="14" y="${padT - 8}" font-size="12" font-weight="700" fill="#7D3673" font-family="Forum">Отклонение от базы (факт − план), шт/день</text>`;
+  svg += `</svg>`;
+  boxEl.querySelectorAll('svg').forEach(el => el.remove());
+  boxEl.insertAdjacentHTML('beforeend', svg);
+  const path = boxEl.querySelector('.chart-line');
+  if (path) {
+    const len = path.getTotalLength();
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.getBoundingClientRect();
+    path.style.transition = 'stroke-dashoffset 1s ease';
+    path.style.strokeDashoffset = '0';
+  }
+  attachChart(boxEl, tipEl);
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -393,38 +472,25 @@ function render(){
     const prods=[...prodAgg.values()].map(p=>{p.clArr=toClArr(p);return p;});
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    // Диаграмма (одна, с селектором менеджера)
     const mk=CHART_MK;
     const mProds=prods.filter(p=>p.matrix===mk);
     const offerSet=new Set(mProds.map(p=>p.o));
     let base=0; mProds.forEach(p=>base+=planDaily(p.pid));
     const days=[]; for(let i=13;i>=0;i--) days.push(localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-i)));
     const vals=days.map(dt=>{ let act=0; offerSet.forEach(o=>{const wm=SALES[o]||{}; for(const wh in wm) act+=wm[wh][dt]||0;}); return act-base; });
-    LASTCHART={vals,labels:days.map(dt=>lbl(dt))};
-    const maxAbs=Math.max(...vals.map(v=>Math.abs(v)),1);
-    const W=640,H=170,pL=34,pR=10,pT=14,pB=24;
-    const X=i=>pL+i*((W-pL-pR)/(days.length-1));
-    const Y=v=>pT+(1-((v+maxAbs)/(2*maxAbs)))*(H-pT-pB);
-    const ticks=[-maxAbs,-maxAbs/2,0,maxAbs/2,maxAbs];
-    const pts=vals.map((v,i)=>`${X(i)},${Y(v)}`).join(' ');
+    const labels=days.map(dt=>lbl(dt));
     html+=`<div class="chartcard"><div class="charthead">
-        <span class="charttitle">📈 Отклонение от базы по дням (факт − план, шт/день)</span>
+        <span class="charttitle">📈 ${MATRIX_NAME[mk]} — динамика отклонения от плана за 14 дней</span>
         <select onchange="setChartMk(this.value)"><option value="m1" ${mk==='m1'?'selected':''}>Алекс</option><option value="m2" ${mk==='m2'?'selected':''}>Александр</option></select>
       </div>
-      <svg id="devsvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fff;border:1px solid rgba(84,66,115,.12);border-radius:8px">
-        ${ticks.map(t=>`<line x1="${pL}" y1="${Y(t)}" x2="${W-pR}" y2="${Y(t)}" stroke="${t===0?'#94a3b8':'#e2e8f0'}" stroke-width="${t===0?1.5:1}" ${t===0?'':'stroke-dasharray="3 3"'}/><text x="${pL-4}" y="${Y(t)+3}" text-anchor="end" font-size="9" fill="#94a3b8">${fmt(t)}</text>`).join('')}
-        ${days.map((dt,i)=>(i%2===0?`<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#94a3b8">${lbl(dt)}</text>`:'')).join('')}
-        <polyline points="${pts}" fill="none" stroke="#7D3673" stroke-width="2"/>
-        ${vals.map((v,i)=>`<circle data-i="${i}" cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${v>0?'#E33D78':v<0?'#16a34a':'#94a3b8'}"/>`).join('')}
-      </svg></div>`;
-    // Топы по матрицам (горизонтально)
+      <div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div></div>`;
     const topBlock=(mkk,isProd)=>{
       let items=[];
       if(isProd){
         byMatrix.get(mkk)?.forEach(p=>{
           let up=0,down=0; p.clArr.forEach(g=>{ if(g.dir==='up')up+=g.change; else if(g.dir==='down')down+=g.change; });
           const dir=down>=up?'down':'up'; const mag=Math.max(up,down);
-          if(mag>0) items.push({name:p.name,ref:p.o,attr:'prod',dir,mag,P:planDaily(p.pid),pairs:p.pairs});
+          if(mag>0) items.push({name:p.name,ref:p.o,attr:'prod',dir,mag,P:planDaily(p.pid),pairs:p.pairs,jumpId:`prod:${p.o}`});
         });
       }else{
         const clMap=new Map();
@@ -437,16 +503,16 @@ function render(){
         clMap.forEach(c=>{
           const dir=c.down>=c.up?'down':'up'; const mag=Math.max(c.up,c.down);
           let P=0; c.pids.forEach(pid=>P+=planDaily(pid));
-          if(mag>0) items.push({name:c.name,ref:c.name,attr:'cluster',dir,mag,P,pairs:c.pairs});
+          if(mag>0) items.push({name:c.name,ref:c.name,attr:'cluster',dir,mag,P,pairs:c.pairs,jumpId:`cl:${mkk}:${dir}:${c.name}`});
         });
       }
       items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
-      if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="psub">нет позиций</div></div>`;
+      if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="meta">нет позиций</div></div>`;
       return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
         <div class="tophead"><span>Наименование</span><span></span><span>шт/день</span><span>1д</span><span>3д</span><span>7д</span></div>`+
         items.map(x=>{
           const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
-          return `<button class="topitem" onclick="jump('${x.attr}','${esc(x.ref)}')"><span class="topname">${esc(x.name)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpiPct(x.pairs,x.P))}</button>`;
+          return `<button class="topitem" onclick="jump('${x.jumpId}')"><span class="topname">${esc(x.name)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpiPct(x.pairs,x.P))}</button>`;
         }).join('')+`</div>`;
     };
     html+=`<div class="topsrow">`+topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products')+`</div>`;
@@ -454,7 +520,7 @@ function render(){
       const prodNode=(p,dir)=>{
         const cl=p.clArr.filter(g=>g.dir===dir);
         const ch=cl.reduce((s,g)=>s+g.change,0);
-        let out=`<details class="cluster" data-prod="${esc(p.o)}"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
+        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         cl.forEach(g=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
@@ -469,20 +535,20 @@ function render(){
           .sort((a,b)=>b._ch-a._ch);
         if(!list.length)return '';
         const total=list.reduce((s,p)=>s+p._ch,0);
-        return `<details class="sup"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+list.map(p=>prodNode(p,dir)).join('')+`</div></details>`;
+        return `<details class="sup" data-dir="${dir}"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+list.map(p=>prodNode(p,dir)).join('')+`</div></details>`;
       };
       [...byMatrix.keys()].sort().forEach(mkk=>{
         const arr=byMatrix.get(mkk);
         const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
-        html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
+        html+=`<details class="matrix" data-matrix="${mkk}"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
         html+=section('📦 Профицит (увеличить продажи)',arr,'up');
         html+=section('⛔ Дефицит (снизить продажи)',arr,'down');
         html+=`</div></details>`;
       });
     }else{
-      const clusterNode=(cname,list)=>{
+      const clusterNode=(cname,list,mkk,dir)=>{
         const ch=list.reduce((s,x)=>s+x.change,0);
-        let out=`<details class="cluster" data-cluster="${esc(cname)}"><summary><span class="clname">${esc(cname)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${list.length} поз.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
+        let out=`<details class="cluster" data-jump-id="cl:${mkk}:${dir}:${esc(cname)}"><summary><span class="clname">${esc(cname)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${list.length} поз.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         list.sort((a,b)=>b.change-a.change).forEach(x=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(x.name)}${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
@@ -491,27 +557,31 @@ function render(){
         out+=`</table></div></details>`;
         return out;
       };
-      const clusterSection=(title,pc,dir)=>{
+      const clusterSection=(title,pc,dir,mkk)=>{
         const list=pc.filter(x=>x.dir===dir);
         if(!list.length)return '';
         const byCl=new Map();
         list.forEach(x=>{if(!byCl.has(x.cluster))byCl.set(x.cluster,[]);byCl.get(x.cluster).push(x);});
         const clusters=[...byCl.entries()].map(([c,a])=>({c,a,ch:a.reduce((s,x)=>s+x.change,0)})).sort((a,b)=>b.ch-a.ch);
         const total=clusters.reduce((s,c)=>s+c.ch,0);
-        return `<details class="sup"><summary><span class="clname">${title} — ${clusters.length} кл.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+clusters.map(cl=>clusterNode(cl.c,cl.a)).join('')+`</div></details>`;
+        return `<details class="sup" data-dir="${dir}"><summary><span class="clname">${title} — ${clusters.length} кл.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+clusters.map(cl=>clusterNode(cl.c,cl.a,mkk,dir)).join('')+`</div></details>`;
       };
       [...byMatrix.keys()].sort().forEach(mkk=>{
         const arr=byMatrix.get(mkk);
         const pc=[];
         arr.forEach(p=>{p.clArr.forEach(g=>{ if(g.dir) pc.push({o:p.o,name:p.name,cluster:g.c,cs:g.cs,csum:g.csum,c1:g.c1,c2:g.c2,c3:g.c3,c4:g.c4,rec:g.rec,dir:g.dir,change:g.change,signed:g.signed,arr:g.arr}); });});
         const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
-        html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
-        html+=clusterSection('📦 Профицит (увеличить продажи)',pc,'up');
-        html+=clusterSection('⛔ Дефицит (снизить продажи)',pc,'down');
+        html+=`<details class="matrix" data-matrix="${mkk}"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
+        html+=clusterSection('📦 Профицит (увеличить продажи)',pc,'up',mkk);
+        html+=clusterSection('⛔ Дефицит (снизить продажи)',pc,'down',mkk);
         html+=`</div></details>`;
       });
     }
-    attachChart();
+    setTimeout(() => {
+      const box = document.getElementById('chartBox');
+      const tip = document.getElementById('chartTip');
+      if (box && tip) drawDevChart(box, tip, labels, vals, base);
+    }, 0);
   }else{
     const whMap=new Map();
     entries.forEach(e=>{if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,rows:[]});whMap.get(e.wh).rows.push(e);});
