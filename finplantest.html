@@ -4,26 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Калькулятор жилья для Юры · Екатеринбург, 2026</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0a141d; --panel:#101f2b; --panel2:#0d1926; --line:#1c3446;
-  --ink:#e9f1f6; --mut:#8aa0b0; --dim:#5c7385;
-  --amber:#f2b84b; --green:#43d99b; --red:#ff6e5e; --cyan:#6fc7e4; --violet:#b48ce0;
-  --disp:'Unbounded',system-ui,sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+:root{--bg:#0a141d;--panel:#101f2b;--panel2:#0d1926;--line:#1c3446;--ink:#e9f1f6;--mut:#8aa0b0;--dim:#5c7385;--amber:#f2b84b;--green:#43d99b;--red:#ff6e5e;--cyan:#6fc7e4;--violet:#b48ce0;--disp:'Unbounded',system-ui,sans-serif;--body:'IBM Plex Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:
-   radial-gradient(900px 520px at 85% -10%, rgba(242,184,75,.09), transparent 60%),
-   radial-gradient(760px 460px at -10% 35%, rgba(111,199,228,.07), transparent 60%),
-   radial-gradient(600px 500px at 60% 110%, rgba(67,217,155,.05), transparent 60%),
-   repeating-linear-gradient(0deg, rgba(28,52,70,.22) 0 1px, transparent 1px 46px),
-   repeating-linear-gradient(90deg, rgba(28,52,70,.22) 0 1px, transparent 1px 46px);}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(900px 520px at 85% -10%,rgba(242,184,75,.09),transparent 60%),radial-gradient(760px 460px at -10% 35%,rgba(111,199,228,.07),transparent 60%),radial-gradient(600px 500px at 60% 110%,rgba(67,217,155,.05),transparent 60%),repeating-linear-gradient(0deg,rgba(28,52,70,.22) 0 1px,transparent 1px 46px),repeating-linear-gradient(90deg,rgba(28,52,70,.22) 0 1px,transparent 1px 46px)}
 .wrap{max-width:1440px;margin:0 auto;padding:0 22px}
 header{padding:2.4rem 0 1.6rem}
 .head-top{display:flex;justify-content:space-between;gap:1rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:1.4rem}
@@ -32,8 +18,7 @@ h1{font-family:var(--disp);font-weight:800;font-size:clamp(2rem,4.2vw,3.2rem);li
 h1 em{font-style:normal;color:var(--amber)}
 .lead{max-width:78ch;color:var(--mut);margin-top:1rem}
 .chips{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.4rem}
-.chip{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:.55rem .9rem;display:flex;flex-direction:column;gap:.1rem;transition:transform .25s,border-color .25s}
-.chip:hover{transform:translateY(-2px);border-color:var(--amber)}
+.chip{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:.55rem .9rem;display:flex;flex-direction:column;gap:.1rem}
 .chip b{font-family:var(--mono);font-size:1rem;color:var(--amber)}
 .chip span{font-size:.7rem;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
 .layout{display:grid;grid-template-columns:460px 1fr;gap:22px;align-items:start;margin-top:.6rem}
@@ -46,16 +31,16 @@ h1 em{font-style:normal;color:var(--amber)}
 .grp summary::-webkit-details-marker{display:none}
 .grp summary .pt{margin-bottom:0}
 .grp-info{display:flex;align-items:center;gap:.6rem;font-family:var(--mono);font-size:.68rem;color:var(--cyan);text-align:right;line-height:1.4}
-.chev{width:18px;height:18px;flex:none;border:1px solid var(--line);border-radius:4px;display:grid;place-items:center;font-style:normal;color:var(--amber);font-size:.82rem;transition:.25s}
+.chev{width:18px;height:18px;flex:none;border:1px solid var(--line);border-radius:4px;display:grid;place-items:center;font-style:normal;color:var(--amber);font-size:.82rem}
 .chev::after{content:'+'}
 .grp[open] .chev::after{content:'−'}
 .grp-body{padding-top:.6rem}
 .zgrid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
-.zhk{position:relative;border:1px solid var(--line);background:#0b1722;border-radius:8px;padding:.7rem .8rem;cursor:pointer;transition:transform .2s,border-color .2s,background .2s}
-.zhk:hover{transform:translateY(-2px);border-color:#2c4d66}
+.zhk{position:relative;border:1px solid var(--line);background:#0b1722;border-radius:8px;padding:.7rem .8rem;cursor:pointer}
+.zhk:hover{border-color:#2c4d66}
 .zhk.sel{border-color:var(--amber);background:rgba(242,184,75,.07)}
 .zhk.isbest{border-color:var(--green)}
-.zhk-best{display:none;position:absolute;top:-8px;right:6px;font-family:var(--mono);font-size:.56rem;font-weight:700;background:var(--green);color:#08131c;padding:.18rem .45rem;border-radius:4px;letter-spacing:.03em}
+.zhk-best{display:none;position:absolute;top:-8px;right:6px;font-family:var(--mono);font-size:.56rem;font-weight:700;background:var(--green);color:#08131c;padding:.18rem .45rem;border-radius:4px}
 .zhk.isbest .zhk-best{display:block}
 .z-top b{font-size:.82rem;font-weight:600}
 .z-loc{display:block;font-size:.68rem;color:var(--dim)}
@@ -67,15 +52,14 @@ h1 em{font-style:normal;color:var(--amber)}
 .ctl-head{display:flex;justify-content:space-between;align-items:baseline;gap:.8rem}
 .ctl-head label{font-size:.8rem;color:var(--mut)}
 .ctl-num{display:flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.82rem}
-.ctl-num input{width:118px;background:#0b1722;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:.82rem;text-align:right;padding:.32rem .5rem;border-radius:6px;outline:none;transition:border-color .2s}
+.ctl-num input{width:118px;background:#0b1722;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:.82rem;text-align:right;padding:.32rem .5rem;border-radius:6px}
 .ctl-num input:focus{border-color:var(--amber)}
 .ctl-num .u{color:var(--dim);font-size:.72rem}
-input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:pointer;height:4px}
+input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:pointer}
 .ctl-hint{font-size:.7rem;color:var(--dim);margin-top:.3rem}
 .ctl-hint.warn{color:var(--red)}
 .badge-pv{font-family:var(--mono);font-size:.7rem;color:var(--cyan)}
-.btn-mini{background:none;border:1px solid var(--line);color:var(--cyan);font-family:var(--mono);font-size:.68rem;padding:.3rem .6rem;border-radius:6px;cursor:pointer;transition:.2s;margin-top:.7rem}
-.btn-mini:hover{border-color:var(--cyan)}
+.btn-mini{background:none;border:1px solid var(--line);color:var(--cyan);font-family:var(--mono);font-size:.68rem;padding:.3rem .6rem;border-radius:6px;cursor:pointer;margin-top:.7rem}
 .taxrow{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--mut)}
 .taxrow input{accent-color:var(--amber);width:16px;height:16px}
 .results{display:flex;flex-direction:column;gap:22px;min-width:0}
@@ -89,62 +73,75 @@ input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:
 .stat span{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
 .sp-note{font-size:.72rem;color:var(--dim);margin-top:.6rem;line-height:1.5}
 .scen-lead{font-size:.8rem;color:var(--mut);margin-bottom:.9rem;max-width:95ch;line-height:1.55}
-.scen-scroll-wrap{position:relative}
-.scen-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,1fr);gap:.85rem;overflow-x:auto;padding:10px 2px 14px;scroll-snap-type:x proximity;
-  scrollbar-width:auto;scrollbar-color:#f2b84b #0b1722}
+.scen-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,1fr);gap:.85rem;overflow-x:auto;padding:10px 2px 14px;scroll-snap-type:x proximity;scrollbar-width:auto;scrollbar-color:#f2b84b #0b1722}
 .scen-grid::-webkit-scrollbar{height:12px}
 .scen-grid::-webkit-scrollbar-track{background:#0b1722;border:1px solid var(--line);border-radius:7px}
 .scen-grid::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#8a6420,#f2b84b);border-radius:7px}
-.scen-grid::-webkit-scrollbar-thumb:hover{background:#f2b84b}
-.scen-card{scroll-snap-align:start;position:relative;border:1px solid var(--line);background:#0b1722;border-radius:10px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.7rem;transition:border-color .3s,box-shadow .3s;min-width:0;overflow-wrap:anywhere}
+.scen-card{scroll-snap-align:start;border:1px solid var(--line);background:#0b1722;border-radius:10px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.7rem;min-width:0;overflow-wrap:anywhere}
 .scen-card.anyplate{border-color:#3a5570}
 .scen-top{display:flex;gap:.7rem;align-items:flex-start}
 .scen-letter{flex:none;width:32px;height:32px;display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:.92rem;border-radius:7px;background:#12222f;border:1px solid var(--line)}
-.lA{color:var(--amber)} .lB{color:var(--cyan)} .lC{color:var(--violet)} .lG{color:#e09a4c}
+.lA{color:var(--amber)}.lB{color:var(--cyan)}.lC{color:var(--violet)}.lG{color:#e09a4c}
 .scen-top b{font-size:.9rem;display:block}
 .scen-ess{font-size:.72rem;color:var(--dim);line-height:1.5;display:block;margin-top:.2rem}
 .scen-plates{display:flex;flex-wrap:wrap;gap:.35rem;min-height:24px}
 .plate{font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.05em;padding:.28rem .55rem;border-radius:5px;color:#08131c;white-space:nowrap}
-.plate.p-fam{background:var(--amber)}
-.plate.p-con{background:var(--violet)}
-.plate.p-yur{background:var(--green)}
-.plate.p-par{background:var(--cyan)}
-.plate.p-bal{background:#dfe9f0}
+.plate.p-fam{background:var(--amber)}.plate.p-con{background:var(--violet)}.plate.p-yur{background:var(--green)}.plate.p-par{background:var(--cyan)}.plate.p-bal{background:#dfe9f0}
 .scen-flow{border-top:1px solid rgba(28,52,70,.6);padding-top:.35rem}
 .fl{display:flex;justify-content:space-between;gap:.7rem;font-size:.73rem;padding:.3rem 0;border-bottom:1px dashed rgba(28,52,70,.55)}
 .fl:last-child{border-bottom:none}
 .fl span{color:var(--mut)}
 .fl b{font-family:var(--mono);font-weight:600;font-size:.74rem;text-align:right;min-width:0}
-.fl b.g{color:var(--green)} .fl b.c{color:var(--cyan)} .fl b.r{color:var(--red)} .fl b.v{color:var(--violet)}
+.fl b.g{color:var(--green)}.fl b.c{color:var(--cyan)}.fl b.r{color:var(--red)}.fl b.v{color:var(--violet)}
 .metrics{display:flex;flex-direction:column;gap:.4rem;border-top:1px solid rgba(28,52,70,.6);padding-top:.6rem;min-width:0}
 .metric{display:flex;justify-content:space-between;align-items:baseline;gap:.7rem}
 .metric-lbl{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
 .metric-val{font-family:var(--mono);font-size:.83rem;font-weight:600;text-align:right}
 .metric.hero-m .metric-lbl{color:var(--mut);font-weight:600}
 .metric.hero-m .metric-val{font-size:1.3rem;font-weight:700}
-.metric.yura .metric-val{color:var(--green)}
-.metric.help .metric-val{color:var(--violet)}
-.metric.par .metric-val{color:var(--cyan)}
-.metric.tot .metric-val{color:var(--ink)}
+.metric.yura .metric-val{color:var(--green)}.metric.help .metric-val{color:var(--violet)}.metric.par .metric-val{color:var(--cyan)}.metric.tot .metric-val{color:var(--ink)}
 .metric.tot{border-top:1px solid rgba(28,52,70,.6);padding-top:.4rem}
 .metric.sub{padding-left:.9rem}
 .metric.sub .metric-lbl{font-size:.62rem;text-transform:none;letter-spacing:0;color:var(--dim)}
 .metric.sub .metric-val{font-size:.74rem;font-weight:500;color:var(--mut)}
-.metric.sub.info .metric-lbl{font-style:italic}
-.metric.sub.info .metric-val{color:var(--dim)}
+.metric.sub.info .metric-lbl{font-style:italic}.metric.sub.info .metric-val{color:var(--dim)}
 .metric.sub.neg .metric-val{color:var(--red)}
 .scen-bar{height:8px;background:#08121b;border:1px solid var(--line);border-radius:3px;overflow:hidden}
 .scen-bar i{display:block;height:100%;width:0;transition:width .9s cubic-bezier(.2,.7,.2,1)}
-.barA i{background:linear-gradient(90deg,#8a6420,var(--amber))}
-.barB i{background:linear-gradient(90deg,#2a6d86,var(--cyan))}
-.barC i{background:linear-gradient(90deg,#6a4a9a,var(--violet))}
-.barG i{background:linear-gradient(90deg,#9a6428,#e09a4c)}
+.barA i{background:linear-gradient(90deg,#8a6420,var(--amber))}.barB i{background:linear-gradient(90deg,#2a6d86,var(--cyan))}.barC i{background:linear-gradient(90deg,#6a4a9a,var(--violet))}.barG i{background:linear-gradient(90deg,#9a6428,#e09a4c)}
 .scen-foot{font-size:.68rem;color:var(--dim);font-family:var(--mono);line-height:1.6;border-top:1px solid rgba(28,52,70,.6);padding-top:.5rem}
 .scen-nav{display:flex;align-items:center;justify-content:center;gap:.9rem;margin-top:.5rem}
 .scen-nav span{font-size:.68rem;color:var(--dim);font-family:var(--mono)}
-.scen-nav-btn{width:36px;height:36px;border-radius:7px;border:1px solid var(--line);background:#0b1722;color:var(--amber);font-size:1.1rem;font-family:var(--mono);cursor:pointer;transition:.2s;display:grid;place-items:center;line-height:1}
-.scen-nav-btn:hover{border-color:var(--amber);background:rgba(242,184,75,.12);transform:translateY(-1px)}
-.scen-nav-btn:active{transform:translateY(0)}
+.scen-nav-btn{width:36px;height:36px;border-radius:7px;border:1px solid var(--line);background:#0b1722;color:var(--amber);font-size:1.1rem;cursor:pointer;display:grid;place-items:center;line-height:1}
+.scen-nav-btn:hover{border-color:var(--amber);background:rgba(242,184,75,.12)}
+/* блок динамики Г */
+.dyn-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem}
+.dyn-head .pt{margin-bottom:0}
+.dyn-year-row{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem}
+.dyn-year-row label{font-size:.78rem;color:var(--mut)}
+.dyn-ybtns{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:#0b1722}
+.dyn-ybtns button{font-family:var(--mono);font-size:.74rem;color:var(--mut);background:none;border:none;padding:.45rem .85rem;cursor:pointer;border-right:1px solid var(--line)}
+.dyn-ybtns button:last-child{border-right:none}
+.dyn-ybtns button.on{background:rgba(224,154,76,.15);color:#e09a4c;font-weight:700}
+.dyn-slider{flex:1;min-width:140px;accent-color:#e09a4c}
+.dyn-year-val{font-family:var(--mono);font-size:.82rem;color:#e09a4c;font-weight:700;min-width:3.5em;text-align:right}
+.dyn-grid{display:grid;grid-template-columns:1fr;gap:.85rem;margin-bottom:1rem}
+.dyn-card{border:1px solid var(--line);background:#0b1722;border-radius:10px;padding:1.2rem 1.3rem;min-width:0}
+.dyn-card h4{font-family:var(--mono);font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.6rem}
+.dyn-val{font-family:var(--mono);font-weight:700;font-size:2.4rem;line-height:1.1;color:var(--cyan)}
+.dyn-sub{font-size:.76rem;color:var(--dim);margin-top:.55rem;font-family:var(--mono);line-height:1.7}
+.dyn-sub .real{color:var(--mut)}
+.dyn-sub .inc{color:var(--green)}
+.dyn-tbl-wrap{overflow-x:auto}
+table.dyn-tbl{width:100%;border-collapse:collapse;font-size:.78rem}
+table.dyn-tbl th{font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);text-align:right;padding:.5rem .6rem;border-bottom:1px solid var(--line)}
+table.dyn-tbl th:first-child{text-align:left}
+table.dyn-tbl td{padding:.45rem .6rem;border-bottom:1px solid rgba(28,52,70,.5);text-align:right;font-family:var(--mono);white-space:nowrap}
+table.dyn-tbl td:first-child{text-align:left;font-family:var(--body);color:var(--mut)}
+table.dyn-tbl tr.row-cur{background:rgba(224,154,76,.08)}
+table.dyn-tbl tr.row-cur td:first-child{border-left:3px solid #e09a4c}
+.dyn-note{font-size:.7rem;color:var(--dim);line-height:1.5;margin-top:.6rem}
+/* остальное */
 .sum-wrap{display:flex;flex-direction:column;gap:1rem}
 .sum-table{width:100%;border-collapse:collapse;font-size:.8rem}
 .sum-table th{font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);text-align:right;padding:.45rem .6rem;border-bottom:1px solid var(--line)}
@@ -153,47 +150,38 @@ input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:
 .sum-table td:first-child{text-align:left;font-family:var(--body);color:var(--mut)}
 .sum-table .win{font-weight:700;position:relative}
 .sum-table .win::before{content:'●';font-size:.55rem;margin-right:.35rem;vertical-align:2px}
-.sum-table .win.w-fam{color:var(--amber)}
-.sum-table .win.w-con{color:var(--violet)}
-.sum-table .win.w-yur{color:var(--green)}
-.sum-table .win.w-par{color:var(--cyan)}
+.sum-table .win.w-fam{color:var(--amber)}.sum-table .win.w-con{color:var(--violet)}.sum-table .win.w-yur{color:var(--green)}.sum-table .win.w-par{color:var(--cyan)}
 .sum-note{font-size:.7rem;color:var(--dim);line-height:1.5}
 .verdict-details{border:1px solid var(--line);border-radius:8px;background:#0b1722;overflow:hidden}
-.verdict-details>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;font-family:var(--disp);font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);transition:color .2s}
+.verdict-details>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;font-family:var(--disp);font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
 .verdict-details>summary::-webkit-details-marker{display:none}
-.verdict-details>summary:hover{color:var(--ink)}
 .verdict-details>summary .chev{margin-left:.5rem}
 .verdict-details[open]>summary{color:var(--amber);border-bottom:1px dashed var(--line)}
 .verdict-details ul{list-style:none;padding:.4rem 1rem .8rem}
 .verdict-details li{display:flex;gap:.7rem;padding:.5rem 0;border-bottom:1px dashed rgba(28,52,70,.6);font-size:.84rem;line-height:1.55}
 .verdict-details li:last-child{border-bottom:none}
 .vdot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:.45rem}
-.v-good .vdot{background:var(--green);box-shadow:0 0 10px var(--green)}
-.v-bad .vdot{background:var(--red);box-shadow:0 0 10px var(--red)}
-.v-warn .vdot{background:var(--amber);box-shadow:0 0 10px var(--amber)}
-.v-info .vdot{background:var(--cyan)}
+.v-good .vdot{background:var(--green);box-shadow:0 0 10px var(--green)}.v-bad .vdot{background:var(--red);box-shadow:0 0 10px var(--red)}.v-warn .vdot{background:var(--amber);box-shadow:0 0 10px var(--amber)}.v-info .vdot{background:var(--cyan)}
 .tbl-wrap{overflow-x:auto}
 table.ztbl{width:100%;border-collapse:collapse;font-size:.84rem}
 table.ztbl th{font-family:var(--mono);font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);text-align:left;padding:.55rem .6rem;border-bottom:1px solid var(--line)}
 table.ztbl td{padding:.62rem .6rem;border-bottom:1px solid rgba(28,52,70,.5);vertical-align:top}
 table.ztbl td.num{font-family:var(--mono);white-space:nowrap}
-tr.tr-preset{cursor:pointer;transition:background .2s}
+tr.tr-preset{cursor:pointer}
 tr.tr-preset:hover{background:rgba(111,199,228,.06)}
 tr.tr-sel{background:rgba(242,184,75,.08)}
 tr.tr-sel td:first-child{border-left:3px solid var(--amber)}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.8rem;margin-top:1rem}
-.mcard{border:1px solid var(--line);background:#0b1722;border-radius:8px;padding:.9rem 1rem;transition:transform .2s,border-color .2s}
-.mcard:hover{transform:translateY(-3px);border-color:#2c4d66}
+.mcard{border:1px solid var(--line);background:#0b1722;border-radius:8px;padding:.9rem 1rem}
 .mcard .src{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.4rem}
 .mcard p{font-size:.78rem;color:var(--mut);line-height:1.5}
-.s1{color:var(--red)} .s2{color:var(--amber)} .s3{color:var(--green)} .s4{color:var(--cyan)}
+.s1{color:var(--red)}.s2{color:var(--amber)}.s3{color:var(--green)}.s4{color:var(--cyan)}
 .assume{margin-top:1rem;font-size:.76rem;color:var(--dim);border-left:3px solid var(--line);padding-left:.9rem;line-height:1.6}
 footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);font-size:.72rem;color:var(--dim);line-height:1.7}
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}
 .reveal.in{opacity:1;transform:none}
 @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{position:static;max-height:none}}
 @media(max-width:640px){.zgrid{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -204,7 +192,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
     <div>четверг · 27.08.2026</div>
   </div>
   <h1>Квартира для <em>Юры</em>: кто что получает в каждом варианте</h1>
-  <p class="lead">Калькулятор для родителей: четыре способа обеспечить Юру жильём и итоговый капитал <b>Юры</b> и <b>родителей</b> к моменту закрытия ипотеки. Ресурсы: квартира на Онуфриева, 14 (родительская), Юрин капитал 700 тыс. ₽, его пособие 23 т.₽/мес ещё 5 лет и два актуальных кредита родителей. Во всех вариантах после погашения кредитов высвободившиеся платежи идут в депозит. Варианты листаются влево/вправо.</p>
+  <p class="lead">Калькулятор для родителей: четыре способа обеспечить Юру жильём и итоговый капитал <b>Юры</b> и <b>родителей</b> к моменту закрытия ипотеки. Ресурсы: квартира на Онуфриева, 14 (родительская), Юрин капитал 700 тыс. ₽, его пособие 23 т.₽/мес ещё 5 лет и два актуальных кредита родителей. Приоритетный вариант — <b>Г</b>, для него отдельно показана динамика роста депозита родителей по годам.</p>
   <div class="chips">
     <div class="chip"><b id="chipOnuf">—</b><span>Онуфриева, 14 · 47 м² (родители)</span></div>
     <div class="chip"><b id="chipCapital">—</b><span>Юрин капитал (накопленные пособия)</span></div>
@@ -251,7 +239,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
           <div class="ctl-head"><label for="term">Срок кредита</label>
             <div class="ctl-num"><input type="number" id="term" step="1" min="5" max="30"><span class="u">лет</span></div></div>
           <input type="range" id="termR" min="5" max="30" step="1">
-          <div class="ctl-hint">в подборке: 15–20 лет · горизонт расчёта = сроку кредита</div>
+          <div class="ctl-hint">в подборке: 15–20 лет · горизонт сравнения А/Б/В/Г = сроку кредита</div>
         </div>
         <div class="ctl" id="markupRow">
           <div class="ctl-head"><label for="markup" id="markupLabel">Удорожание</label>
@@ -390,102 +378,139 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
       <div class="pt" id="scenTitle">Кто что получает к закрытию ипотеки</div>
       <p class="scen-lead">Все суммы — к моменту закрытия ипотеки (горизонт = срок кредита выбранного ЖК), номинально. В варианте А из капитала Юры вычитаются его выплаты из собственных доходов после окончания пособий. В варианте Г остаток от продажи гасит кредиты родителей досрочно, остаток после кредитов идёт «на жизнь», а высвободившиеся платежи — в депозит с 1-го месяца. В вариантах А, Б и В высвободившиеся платежи поступают в депозит после планового погашения каждого кредита.</p>
 
-      <div class="scen-scroll-wrap">
-        <div class="scen-grid" id="scenGrid">
-          <div class="scen-card" id="cardA">
-            <div class="scen-plates" id="platesA"></div>
-            <div class="scen-top"><span class="scen-letter lA">А</span>
-              <div><b>Ипотека на Юру</b>
-              <span class="scen-ess">Продаём Онуфриева, покупаем недвижимость в ипотеку на Юру; родители «добивают» ПВ, остаток — депозит и «на жизнь»; 5 лет ипотеку гасит пособие + доплата родителей, далее платит Юра из своих доходов</span></div>
-            </div>
-            <div class="scen-flow" id="flowA"></div>
-            <div class="metrics">
-              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraA">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">квартира (рост)</span><span class="metric-val" id="yuraA_apt">—</span></div>
-              <div class="metric sub neg"><span class="metric-lbl">− выплаты Юры из доходов</span><span class="metric-val" id="yuraA_paid">—</span></div>
-              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parA">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parA_dep">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parA_liv">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parA_ben">—</span></div>
-              <div class="metric sub info"><span class="metric-lbl">пособия → в ипотеку (Юрины деньги)</span><span class="metric-val" id="parA_benInfo">—</span></div>
-              <div class="metric sub neg"><span class="metric-lbl">доплата родителей в ипотеку (недостача)</span><span class="metric-val" id="parA_mtg">—</span></div>
-              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpA">—</span></div>
-              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalA">—</span></div>
-            </div>
-            <div class="scen-bar barA"><i id="barA"></i></div>
-            <div class="scen-foot" id="footA"></div>
+      <div class="scen-grid" id="scenGrid">
+        <div class="scen-card" id="cardA">
+          <div class="scen-plates" id="platesA"></div>
+          <div class="scen-top"><span class="scen-letter lA">А</span>
+            <div><b>Ипотека на Юру</b>
+            <span class="scen-ess">Продаём Онуфриева, покупаем недвижимость в ипотеку на Юру; родители «добивают» ПВ, остаток — депозит и «на жизнь»; 5 лет ипотеку гасит пособие + доплата родителей, далее платит Юра из своих доходов</span></div>
           </div>
-
-          <div class="scen-card" id="cardB">
-            <div class="scen-plates" id="platesB"></div>
-            <div class="scen-top"><span class="scen-letter lB">Б</span>
-              <div><b>Без кредита</b>
-              <span class="scen-ess">Продаём Онуфриева и покупаем недвижимость сразу: Юра даёт свой капитал, родители доплачивают, остаток — депозит и «на жизнь»; пособия — родителям</span></div>
-            </div>
-            <div class="scen-flow" id="flowB"></div>
-            <div class="metrics">
-              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraB">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraB_apt">—</span></div>
-              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parB">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parB_dep">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parB_liv">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parB_ben">—</span></div>
-              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpB">—</span></div>
-              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalB">—</span></div>
-            </div>
-            <div class="scen-bar barB"><i id="barB"></i></div>
-            <div class="scen-foot" id="footB"></div>
+          <div class="scen-flow" id="flowA"></div>
+          <div class="metrics">
+            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraA">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">квартира (рост)</span><span class="metric-val" id="yuraA_apt">—</span></div>
+            <div class="metric sub neg"><span class="metric-lbl">− выплаты Юры из доходов</span><span class="metric-val" id="yuraA_paid">—</span></div>
+            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parA">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parA_dep">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parA_liv">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parA_ben">—</span></div>
+            <div class="metric sub info"><span class="metric-lbl">пособия → в ипотеку (Юрины деньги)</span><span class="metric-val" id="parA_benInfo">—</span></div>
+            <div class="metric sub neg"><span class="metric-lbl">доплата родителей в ипотеку</span><span class="metric-val" id="parA_mtg">—</span></div>
+            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpA">—</span></div>
+            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalA">—</span></div>
           </div>
-
-          <div class="scen-card" id="cardC">
-            <div class="scen-plates" id="platesC"></div>
-            <div class="scen-top"><span class="scen-letter lC">В</span>
-              <div><b>Онуфриева Юре, деньги родителям</b>
-              <span class="scen-ess">Ничего не продаём и не покупаем: Онуфриева отходит Юре и дорожает, его 700 т.₽ и пособия забирают родители «на жизнь»; высвободившиеся платежи кредитов — в депозит</span></div>
-            </div>
-            <div class="scen-flow" id="flowC"></div>
-            <div class="metrics">
-              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraC">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">Онуфриева (рост)</span><span class="metric-val" id="yuraC_apt">—</span></div>
-              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parC">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">депозит (высвободившиеся платежи)</span><span class="metric-val" id="parC_dep">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (Юрины 700 т.₽)</span><span class="metric-val" id="parC_liv">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parC_ben">—</span></div>
-              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpC">—</span></div>
-              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalC">—</span></div>
-            </div>
-            <div class="scen-bar barC"><i id="barC"></i></div>
-            <div class="scen-foot" id="footC"></div>
-          </div>
-
-          <div class="scen-card" id="cardG">
-            <div class="scen-plates" id="platesG"></div>
-            <div class="scen-top"><span class="scen-letter lG">Г</span>
-              <div><b>Без кредита + досрочное погашение кредитов</b>
-              <span class="scen-ess">Как Б: продаём Онуфриева и покупаем без ипотеки; остаток гасит кредиты родителей досрочно, остаток после кредитов — «на жизнь», а высвободившиеся платежи — в депозит с 1-го месяца</span></div>
-            </div>
-            <div class="scen-flow" id="flowG"></div>
-            <div class="metrics">
-              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraG">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraG_apt">—</span></div>
-              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parG">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">депозит (высвободившиеся платежи)</span><span class="metric-val" id="parG_dep">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (остаток после кредитов)</span><span class="metric-val" id="parG_liv">—</span></div>
-              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parG_ben">—</span></div>
-              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpG">—</span></div>
-              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalG">—</span></div>
-            </div>
-            <div class="scen-bar barG"><i id="barG"></i></div>
-            <div class="scen-foot" id="footG"></div>
-          </div>
+          <div class="scen-bar barA"><i id="barA"></i></div>
+          <div class="scen-foot" id="footA"></div>
         </div>
-        <div class="scen-nav">
-          <button type="button" class="scen-nav-btn" id="scenPrev" aria-label="Предыдущий вариант">←</button>
-          <span>листайте варианты · кнопки ← → · колесо мыши</span>
-          <button type="button" class="scen-nav-btn" id="scenNext" aria-label="Следующий вариант">→</button>
+
+        <div class="scen-card" id="cardB">
+          <div class="scen-plates" id="platesB"></div>
+          <div class="scen-top"><span class="scen-letter lB">Б</span>
+            <div><b>Без кредита</b>
+            <span class="scen-ess">Продаём Онуфриева и покупаем недвижимость сразу: Юра даёт свой капитал, родители доплачивают, остаток — депозит и «на жизнь»; пособия — родителям</span></div>
+          </div>
+          <div class="scen-flow" id="flowB"></div>
+          <div class="metrics">
+            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraB">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraB_apt">—</span></div>
+            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parB">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parB_dep">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parB_liv">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parB_ben">—</span></div>
+            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpB">—</span></div>
+            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalB">—</span></div>
+          </div>
+          <div class="scen-bar barB"><i id="barB"></i></div>
+          <div class="scen-foot" id="footB"></div>
+        </div>
+
+        <div class="scen-card" id="cardC">
+          <div class="scen-plates" id="platesC"></div>
+          <div class="scen-top"><span class="scen-letter lC">В</span>
+            <div><b>Онуфриева Юре, деньги родителям</b>
+            <span class="scen-ess">Ничего не продаём и не покупаем: Онуфриева отходит Юре и дорожает, его 700 т.₽ и пособия забирают родители «на жизнь»; высвободившиеся платежи кредитов — в депозит</span></div>
+          </div>
+          <div class="scen-flow" id="flowC"></div>
+          <div class="metrics">
+            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraC">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">Онуфриева (рост)</span><span class="metric-val" id="yuraC_apt">—</span></div>
+            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parC">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">депозит (высвободившиеся платежи)</span><span class="metric-val" id="parC_dep">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (Юрины 700 т.₽)</span><span class="metric-val" id="parC_liv">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parC_ben">—</span></div>
+            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpC">—</span></div>
+            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalC">—</span></div>
+          </div>
+          <div class="scen-bar barC"><i id="barC"></i></div>
+          <div class="scen-foot" id="footC"></div>
+        </div>
+
+        <div class="scen-card" id="cardG">
+          <div class="scen-plates" id="platesG"></div>
+          <div class="scen-top"><span class="scen-letter lG">Г</span>
+            <div><b>Без кредита + досрочное погашение кредитов</b>
+            <span class="scen-ess">Как Б: продаём Онуфриева и покупаем без ипотеки; остаток гасит кредиты родителей досрочно, остаток после кредитов — «на жизнь», а высвободившиеся платежи — в депозит с 1-го месяца</span></div>
+          </div>
+          <div class="scen-flow" id="flowG"></div>
+          <div class="metrics">
+            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraG">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraG_apt">—</span></div>
+            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parG">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">депозит (высвободившиеся платежи)</span><span class="metric-val" id="parG_dep">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (остаток после кредитов)</span><span class="metric-val" id="parG_liv">—</span></div>
+            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parG_ben">—</span></div>
+            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpG">—</span></div>
+            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalG">—</span></div>
+          </div>
+          <div class="scen-bar barG"><i id="barG"></i></div>
+          <div class="scen-foot" id="footG"></div>
         </div>
       </div>
+      <div class="scen-nav">
+        <button type="button" class="scen-nav-btn" id="scenPrev" aria-label="Предыдущий вариант">←</button>
+        <span>листайте варианты · кнопки ← → · колесо мыши</span>
+        <button type="button" class="scen-nav-btn" id="scenNext" aria-label="Следующий вариант">→</button>
+      </div>
       <div class="sp-note">Полоса под каждым вариантом — итоговый капитал семьи относительно лучшего. Пособия 23 т.₽/мес заканчиваются через <span id="benNote">5</span> лет. Кредит 2 гасится в месяц <span id="c2Note">40</span>, кредит 1 — в месяц <span id="c1Note">56</span>; далее их платежи пополняют депозит.</div>
+    </div>
+
+    <!-- =========== ПРИОРИТЕТНЫЙ БЛОК: ВАРИАНТ Г — ДИНАМИКА ДЕПОЗИТА РОДИТЕЛЕЙ =========== -->
+    <div class="panel reveal" id="dynPanel">
+      <div class="po">Приоритетный вариант</div>
+      <div class="dyn-head">
+        <div class="pt">Вариант Г — динамика роста депозита родителей по годам</div>
+      </div>
+      <p class="scen-lead">В варианте Г кредиты родителей гасятся досрочно, и высвободившиеся платежи (40,3 + 25,7 = 66 т.₽/мес) с 1-го месяца идут в депозит родителей и растут по ставке вклада. Выберите год, чтобы увидеть, каким будет депозит к этой дате, — так удобно прикинуть срок выхода на пенсию.</p>
+
+      <div class="dyn-year-row">
+        <label>Горизонт:</label>
+        <div class="dyn-ybtns" id="dynYBtns">
+          <button type="button" data-y="5">5</button>
+          <button type="button" data-y="10" class="on">10</button>
+          <button type="button" data-y="15">15</button>
+          <button type="button" data-y="20">20</button>
+          <button type="button" data-y="25">25</button>
+          <button type="button" data-y="30">30</button>
+        </div>
+        <input type="range" id="dynSlider" class="dyn-slider" min="1" max="30" value="10" step="1">
+        <span class="dyn-year-val"><span id="dynYearVal">10</span> лет</span>
+      </div>
+
+      <div class="dyn-grid">
+        <div class="dyn-card">
+          <h4>Капитал родителей в депозите · на <span id="dynY">10</span>-й год</h4>
+          <div class="dyn-val" id="dynDep">—</div>
+          <div class="dyn-sub">
+            в ценах сегодня ≈ <span class="real" id="dynDepReal">—</span><br>
+            примерный доход с процентов ≈ <span class="inc" id="dynDepIncome">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dyn-tbl-wrap">
+        <table class="dyn-tbl" id="dynTable"></table>
+      </div>
+      <div class="dyn-note">Таблица показывает рост депозита родителей по годам в варианте Г при текущих параметрах. Выбранный год подсвечен. «В ценах сегодня» — депозит, обесцененный на накопленную инфляцию (дефлятор). Доход с процентов в карточке — ориентировочный (депозит × ставка вклада / 12), до вычета НДФЛ.</div>
     </div>
 
     <div class="panel sum-wrap reveal">
@@ -547,26 +572,19 @@ const pctf=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:1})+'%';
 const sgn=x=>(x>=0?'+':'−');
 
 const PRESETS=[
- {id:'aplus125',zhk:'ЖК «А плюс»',loc:'Академический',rate:12.5,term:20,price:4185000,pv:1813830,markup:null,
-  note:'Срок 20 лет · ПВ 1,81 млн · платёж 26 940 ₽/мес'},
- {id:'aplus187',zhk:'ЖК «А плюс»',loc:'Академический',rate:18.7,term:20,price:3904000,pv:1924140,markup:null,
-  note:'Срок 20 лет · ПВ 1,92 млн · платёж 31 626 ₽/мес'},
- {id:'sin139',zhk:'ЖК «Синица»',loc:'на Куйбышева',rate:13.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:8.5},
-  note:'Срок 15 лет · ПВ 2 млн · база 4,09 → цена 4,44 млн · платёж ≈32 300 ₽/мес'},
- {id:'sin129',zhk:'ЖК «Синица»',loc:'на Куйбышева',rate:12.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:11},
-  note:'Срок 15 лет · ПВ 2 млн · база 4,09 → цена 4,54 млн · платёж ≈31 969 ₽/мес'},
- {id:'eho',zhk:'ЖК «Эхо Леса»',loc:'Академический',rate:19,term:15,price:3827000,pv:2000000,markup:null,
-  note:'Срок 15 лет · ПВ 2 млн · платёж 30 746 ₽/мес'},
- {id:'razum',zhk:'ЖК «Разум»',loc:'на Матвеева · Академический',rate:12.5,term:20,base:3919000,pv:2000000,markup:{type:'credit',pct:14.5},
-  note:'Срок 20 лет · ПВ 2 млн · база 3,92 → цена 4,20 млн с удорожанием · платёж ≈24 964 ₽/мес'},
- {id:'park',zhk:'ЖК «Парк культуры»',loc:'Екатеринбург',rate:17.2,term:15,price:3749000,pv:2000000,markup:null,
-  note:'Срок 15 лет · ПВ 2 млн · акционная цена 3,75 млн · платёж 27 165 ₽/мес · ставка ≈17,2% выведена из платежа'}
+ {id:'aplus125',zhk:'ЖК «А плюс»',loc:'Академический',rate:12.5,term:20,price:4185000,pv:1813830,markup:null,note:'Срок 20 лет · ПВ 1,81 млн · платёж 26 940 ₽/мес'},
+ {id:'aplus187',zhk:'ЖК «А плюс»',loc:'Академический',rate:18.7,term:20,price:3904000,pv:1924140,markup:null,note:'Срок 20 лет · ПВ 1,92 млн · платёж 31 626 ₽/мес'},
+ {id:'sin139',zhk:'ЖК «Синица»',loc:'на Куйбышева',rate:13.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:8.5},note:'Срок 15 лет · ПВ 2 млн · база 4,09 → цена 4,44 млн · платёж ≈32 300 ₽/мес'},
+ {id:'sin129',zhk:'ЖК «Синица»',loc:'на Куйбышева',rate:12.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:11},note:'Срок 15 лет · ПВ 2 млн · база 4,09 → цена 4,54 млн · платёж ≈31 969 ₽/мес'},
+ {id:'eho',zhk:'ЖК «Эхо Леса»',loc:'Академический',rate:19,term:15,price:3827000,pv:2000000,markup:null,note:'Срок 15 лет · ПВ 2 млн · платёж 30 746 ₽/мес'},
+ {id:'razum',zhk:'ЖК «Разум»',loc:'на Матвеева · Академический',rate:12.5,term:20,base:3919000,pv:2000000,markup:{type:'credit',pct:14.5},note:'Срок 20 лет · ПВ 2 млн · база 3,92 → цена 4,20 млн с удорожанием · платёж ≈24 964 ₽/мес'},
+ {id:'park',zhk:'ЖК «Парк культуры»',loc:'Екатеринбург',rate:17.2,term:15,price:3749000,pv:2000000,markup:null,note:'Срок 15 лет · ПВ 2 млн · акционная цена 3,75 млн · платёж 27 165 ₽/мес · ставка ≈17,2%'}
 ];
 
 const state={price:4185000,pv:1813830,rate:12.5,term:20,markupType:null,markupPct:0,
  depRate:12.5,keyRate:13,infl:5.5,growth:6,m2:128,capital:700,ben:23,benYears:5,depSum:1500,
  creditPayoff:2063486,credit1Pay:40.3,credit1FreeMonth:57,credit2Pay:25.7,credit2FreeMonth:41,
- tax:true,presetId:'aplus125'};
+ tax:true,presetId:'aplus125',dynYear:10};
 
 function annuity(loan,rate,years){
  if(loan<=0)return 0;
@@ -609,10 +627,10 @@ function growPot(initial,monthlyAt,H,depRate,keyRate,tax){
  return {bal:Math.max(bal,0),dTax};
 }
 
-/* единый расчёт четырёх вариантов; горизонт = срок кредита */
-function computeAll(price,pv,rate,term,mType,mPct,s){
+function computeAll(price,pv,rate,term,mType,mPct,s,horizonOverride){
  const c=creditCalc(price,pv,rate,term,mType,mPct);
- const horizon=term, H=horizon*12, nA=Math.round(term*12);
+ const horizon=(horizonOverride!=null?horizonOverride:term);
+ const H=horizon*12, nA=Math.round(term*12);
  const onufVal=47*s.m2*1000, yuraOwn=s.capital*1000, depTarget=s.depSum*1000;
  const ben=s.ben*1000;
  const benMonthsAll=Math.min(Math.round(s.benYears*12),H);
@@ -622,7 +640,6 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const aptNew=c.price*Math.pow(g,horizon);
  const onufGrown=onufVal*Math.pow(g,horizon);
 
- /* высвободившиеся платежи кредитов родителей */
  const credit1PayRub=s.credit1Pay*1000;
  const credit2PayRub=s.credit2Pay*1000;
  const credit1FreeM=Math.round(s.credit1FreeMonth);
@@ -630,7 +647,6 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const freedScheduled=m=>(m>=credit2FreeM?credit2PayRub:0)+(m>=credit1FreeM?credit1PayRub:0);
  const freedImmediate=m=>credit1PayRub+credit2PayRub;
 
- /* А: ипотека на Юру */
  const pvNeed=Math.min(pv,onufVal+yuraOwn);
  const yuraPV=Math.min(yuraOwn,pvNeed);
  const topUpA=Math.max(0,pvNeed-yuraPV);
@@ -652,7 +668,6 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const helpA=topUpA+parentsMtgExtra;
  const totalA=yuraA+parA;
 
- /* Б: без кредита */
  const yuraBuy=Math.min(yuraOwn,c.price);
  const grossB=Math.max(0,c.price-yuraBuy);
  const afterBuyB=onufVal-grossB;
@@ -664,14 +679,12 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const helpB=grossB-benFull;
  const totalB=yuraB+parB;
 
- /* В: Онуфриева Юре */
  const depGrowV=growPot(0,freedScheduled,H,...growArgs).bal;
  const yuraC=onufGrown;
  const parC=yuraOwn+benNomAll+depGrowV;
  const helpC=onufVal-yuraOwn-benFull;
  const totalC=yuraC+parC;
 
- /* Г: дубль Б + досрочное погашение кредитов */
  const creditPayoffRub=s.creditPayoff;
  const afterCreditG=Math.max(0,afterBuyB-creditPayoffRub);
  const creditShortG=Math.max(0,creditPayoffRub-afterBuyB);
@@ -689,6 +702,16 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
   yuraBuy,grossB,afterBuyB,depositB,livingB,depGrowB,yuraB,parB,helpB,totalB,
   depGrowV,yuraC,parC,helpC,totalC,
   creditPayoffRub,afterCreditG,creditShortG,livingG,depGrowG,yuraG,parG,helpG,totalG};
+}
+
+/* депозит родителей в варианте Г на произвольный год */
+function computeG_deposit(price,pv,rate,term,mType,mPct,s,years){
+ const H=years*12;
+ const growArgs=[s.depRate,s.keyRate,s.tax];
+ const credit1PayRub=s.credit1Pay*1000;
+ const credit2PayRub=s.credit2Pay*1000;
+ const freedImmediate=m=>credit1PayRub+credit2PayRub;
+ return growPot(0,freedImmediate,H,...growArgs).bal;
 }
 
 const CTLS=['price','pv','rate','term','markup','depRate','keyRate','infl','growth','m2','capital','ben','benYears','depSum','creditPayoff','credit1Pay','credit1FreeMonth','credit2Pay','credit2FreeMonth'];
@@ -768,6 +791,45 @@ function drawSummary(rows){
  $('sumTable').innerHTML=h+'</tbody>';
 }
 
+/* селектор года в блоке динамики */
+function setDynYear(y){
+ state.dynYear=Math.max(1,Math.min(30,y));
+ $('dynSlider').value=state.dynYear;
+ $('dynYearVal').textContent=state.dynYear;
+ document.querySelectorAll('#dynYBtns button').forEach(b=>{
+   b.classList.toggle('on',parseInt(b.dataset.y,10)===state.dynYear);
+ });
+ updateDyn();
+}
+document.querySelectorAll('#dynYBtns button').forEach(b=>{
+ b.addEventListener('click',()=>setDynYear(parseInt(b.dataset.y,10)));
+});
+$('dynSlider').addEventListener('input',()=>setDynYear(parseInt($('dynSlider').value,10)));
+
+function updateDyn(){
+ const s=state;
+ const years=state.dynYear;
+ const dep=computeG_deposit(s.price,s.pv,s.rate,s.term,s.markupType,s.markupPct,s,years);
+ const defl=Math.pow(1+s.infl/100,years);
+ const real=dep/defl;
+ const income=dep*(s.depRate/100)/12;
+
+ $('dynY').textContent=years;
+ animateVal($('dynDep'),dep,mln);
+ $('dynDepReal').textContent=mln(real);
+ $('dynDepIncome').textContent=rub(income)+' / мес (при ставке '+pctf(s.depRate)+')';
+
+ const maxYears=Math.max(30,s.term,years);
+ let html='<thead><tr><th>Год</th><th>Капитал в депозите</th><th>В ценах сегодня</th></tr></thead><tbody>';
+ for(let y=1;y<=maxYears;y++){
+   const d=computeG_deposit(s.price,s.pv,s.rate,s.term,s.markupType,s.markupPct,s,y);
+   const dd=Math.pow(1+s.infl/100,y);
+   const cur=(y===years)?' class="row-cur"':'';
+   html+='<tr'+cur+'><td>'+y+'-й год</td><td>'+mln(d)+'</td><td>'+mln(d/dd)+'</td></tr>';
+ }
+ $('dynTable').innerHTML=html+'</tbody>';
+}
+
 function update(){
  const s=state;
  const r=computeAll(s.price,s.pv,s.rate,s.term,s.markupType,s.markupPct,s);
@@ -799,7 +861,6 @@ function update(){
  const freedLineSched=fl('Высвобожденные платежи кредитов → в депозит',(r.credit2PayRub/1000).toLocaleString('ru-RU')+' т.₽/мес с '+r.credit2FreeM+'-го мес · '+(r.credit1PayRub/1000).toLocaleString('ru-RU')+' т.₽/мес с '+r.credit1FreeM+'-го мес','g');
  const freedLineImm=fl('Высвобожденные платежи → в депозит (кредиты погашены)',((r.credit1PayRub+r.credit2PayRub)/1000).toLocaleString('ru-RU')+' т.₽/мес × '+r.H+' мес','g');
 
- /* карточка А */
  $('flowA').innerHTML=
    fl('Продажа Онуфриева (родители)',mln(r.onufVal),'c')+
    fl('Юрин капитал → в ПВ',mln(r.yuraPV),'g')+
@@ -824,7 +885,6 @@ function update(){
  animateVal($('totalA'),r.totalA,mln);
  $('footA').textContent='Юра: квартира '+mln(r.aptNew)+' − выплаты из доходов '+mln(r.yuraOwnPaymentsA)+' · родители: депозит '+mln(r.depGrowA)+' + жизнь '+mln(r.livingA)+' − доплата в ипотеку '+mln(r.parentsMtgExtra);
 
- /* карточка Б */
  let flowB=
    fl('Продажа Онуфриева (родители)',mln(r.onufVal),'c')+
    fl('Юрин капитал → в покупку',mln(r.yuraBuy),'g')+
@@ -843,7 +903,6 @@ function update(){
  animateVal($('totalB'),r.totalB,mln);
  $('footB').textContent='Юра: квартира '+mln(r.aptNew)+' · родители: депозит '+mln(r.depGrowB)+' + жизнь '+mln(r.livingB)+' + пособия '+mln(r.benNomAll);
 
- /* карточка В */
  $('flowC').innerHTML=
    fl('Онуфриева → Юре (без продажи)',mln(r.onufVal),'v')+
    fl('Юрин капитал 700 т.₽ → родителям',mln(r.yuraOwn),'c')+
@@ -860,7 +919,6 @@ function update(){
  animateVal($('totalC'),r.totalC,mln);
  $('footC').textContent='Юра: только Онуфриева '+mln(r.onufGrown)+' · родители: депозит '+mln(r.depGrowV)+' + '+mln(r.yuraOwn)+' + пособия '+mln(r.benNomAll);
 
- /* карточка Г */
  let flowG=
    fl('Продажа Онуфриева (родители)',mln(r.onufVal),'c')+
    fl('Юрин капитал → в покупку',mln(r.yuraBuy),'g')+
@@ -879,7 +937,7 @@ function update(){
  $('parG_ben').textContent=mln(r.benNomAll);
  animateVal($('helpG'),r.helpG,mln);
  animateVal($('totalG'),r.totalG,mln);
- $('footG').textContent='Юра: квартира '+mln(r.aptNew)+' · родители: депозит '+mln(r.depGrowG)+' (66 т.₽/мес × '+r.H+' мес) + жизнь '+mln(r.livingG)+' + пособия '+mln(r.benNomAll);
+ $('footG').textContent='Юра: квартира '+mln(r.aptNew)+' · родители: депозит '+mln(r.depGrowG)+' + жизнь '+mln(r.livingG)+' + пособия '+mln(r.benNomAll);
 
  const totals={A:r.totalA,B:r.totalB,C:r.totalC,G:r.totalG};
  const maxT=Math.max(r.totalA,r.totalB,r.totalC,r.totalG,1);
@@ -903,7 +961,6 @@ function update(){
    {label:'Итого семья',vals:totals,win:winners.fam,wcls:'w-fam'}
  ]);
 
- /* оптимальный ЖК = минимальная полная стоимость */
  let bestId=null,bestVal=Infinity;
  PRESETS.forEach(p=>{
    const cc=creditCalc(p.markup?p.base:p.price,p.pv,p.rate,p.term,p.markup?p.markup.type:null,p.markup?p.markup.pct:0);
@@ -914,20 +971,21 @@ function update(){
 
  $('scenTitle').textContent='Кто что получает к закрытию ипотеки (через '+s.term+' лет)';
 
- /* выводы */
+ updateDyn();
+
  const v=[];
  const yuras={A:r.yuraA,B:r.yuraB,C:r.yuraC,G:r.yuraG};
  const pars={A:r.parA,B:r.parB,C:r.parC,G:r.parG};
  const names={A:'«ипотека на Юру»',B:'«без кредита»',C:'«Онуфриева Юре, деньги родителям»',G:'«без кредита + досрочное погашение кредитов»'};
  const letter={A:'А',B:'Б',C:'В',G:'Г'};
- v.push(['v-good','Максимум у Юры — вариант '+names[winners.yur]+': '+mln(yuras[winners.yur])+' к закрытию кредита (А: '+mln(r.yuraA)+' · Б: '+mln(r.yuraB)+' · В: '+mln(r.yuraC)+' · Г: '+mln(r.yuraG)+'). В варианте А из капитала Юры вычтены его выплаты из собственных доходов '+mln(r.yuraOwnPaymentsA)+'.']);
- v.push(['v-info','Для семьи в целом эффективнее вариант '+letter[winners.fam]+': суммарно '+mln(totals[winners.fam])+' (А: '+mln(r.totalA)+', Б: '+mln(r.totalB)+', В: '+mln(r.totalC)+', Г: '+mln(r.totalG)+').']);
+ v.push(['v-good','Максимум у Юры — вариант '+names[winners.yur]+': '+mln(yuras[winners.yur])+' к закрытию кредита.']);
+ v.push(['v-info','Для семьи в целом эффективнее вариант '+letter[winners.fam]+': суммарно '+mln(totals[winners.fam])+'.']);
  v.push(['v-info','Баланс интересов (минимум из капиталов Юры и родителей максимален) — в варианте '+letter[winners.bal]+'.']);
  v.push(['v-info','Чистый вклад родителей: А '+sgn(r.helpA)+mln(Math.abs(r.helpA))+', Б '+sgn(r.helpB)+mln(Math.abs(r.helpB))+', В '+sgn(r.helpC)+mln(Math.abs(r.helpC))+', Г '+sgn(r.helpG)+mln(Math.abs(r.helpG))+'. Наибольший — в варианте '+letter[winners.con]+'.']);
- v.push(['v-info','Вариант Г: родители гасят кредиты досрочно на '+mln(r.creditPayoffRub)+', остаток '+mln(r.livingG)+' идёт «на жизнь», а высвободившиеся 66 т.₽/мес пополняют депозит с 1-го месяца — к концу срока депозит '+mln(r.depGrowG)+'. В вариантах А/Б/В те же платежи приходят в депозит позже (с '+r.credit2FreeM+'-го и '+r.credit1FreeM+'-го месяцев), поэтому депозит меньше.']);
- v.push(['v-info','Эффективнее для родителей — вариант '+letter[winners.par]+': их капитал '+mln(pars[winners.par])+' (А: '+mln(r.parA)+' · Б: '+mln(r.parB)+' · В: '+mln(r.parC)+' · Г: '+mln(r.parG)+').']);
+ v.push(['v-info','Вариант Г: родители гасят кредиты досрочно на '+mln(r.creditPayoffRub)+', остаток '+mln(r.livingG)+' идёт «на жизнь», а высвободившиеся 66 т.₽/мес пополняют депозит с 1-го месяца — динамику депозита по годам смотрите в блоке «Приоритетный вариант».']);
+ v.push(['v-info','Эффективнее для родителей — вариант '+letter[winners.par]+': их капитал '+mln(pars[winners.par])+'.']);
  if(winners.yur!==winners.fam) v.push(['v-warn','Интересы расходятся: семье выгоднее '+letter[winners.fam]+', а Юре — '+names[winners.yur]+'. Если цель — личный капитал Юры, ориентируйтесь на его цифры, а не на семейный итог.']);
- v.push(['v-warn','Все суммы номинальны; в ценах сегодня семейный итог: А ≈ '+mln(r.totalA/defl)+', Б ≈ '+mln(r.totalB/defl)+', В ≈ '+mln(r.totalC/defl)+', Г ≈ '+mln(r.totalG/defl)+' (дефлятор — инфляция '+pctf(s.infl)+'). Вывод чувствителен к цене Онуфриева, ставке депозита, росту жилья и сроку кредита.']);
+ v.push(['v-warn','Все суммы номинальны; в ценах сегодня семейный итог: А ≈ '+mln(r.totalA/defl)+', Б ≈ '+mln(r.totalB/defl)+', В ≈ '+mln(r.totalC/defl)+', Г ≈ '+mln(r.totalG/defl)+' (дефлятор — инфляция '+pctf(s.infl)+').']);
  v.push(['v-bad','Риски: ставки по вкладам снижаются вслед за ключевой; после '+s.benYears+' лет пособие заканчивается и платёж '+rub(r.pmtA)+' полностью ложится на доход Юры; оформление ипотеки на получателя пособий и передачу Онуфриева согласуйте с юристом и опекой.']);
  $('verdictList').innerHTML=v.map(x=>'<li class="'+x[0]+'"><span class="vdot"></span><div>'+x[1]+'</div></li>').join('');
 }
@@ -966,7 +1024,6 @@ function buildTable(){
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.08});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-/* навигация по сценариям: кнопки + колесо мыши */
 const scenGrid=$('scenGrid');
 function scenStep(){
  const card=scenGrid.querySelector('.scen-card');
