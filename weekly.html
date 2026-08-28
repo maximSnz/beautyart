@@ -261,9 +261,6 @@ function cmpCell(v,prev){
 function planDaily(pid){ const pq=PLAN_QTY[pid]||0; return pq>0? pq/daysInMonth(MONTH):0; }
 function planPieces(pid){ return planDaily(pid)*T_REPORT; }
 function planCost(pid){ return planPieces(pid)*(COST[pid]||0); }
-// Рекомендация по кластеру: какую производительность нужно обеспечить,
-// чтобы при текущем остатке кластера выйти на целевую оборачиваемость T дней.
-// требуемая = остаток/T; сравниваем с текущей (продажи за последний день).
 function recText(pid,cs,c1,T){
   if(cs<=0)return null;
   const req=cs/T;
@@ -293,20 +290,20 @@ function render(){
       entries.push({o,pid:r.product_id,name:r.name,cost,stock,sum,s1,s2,s3,s4,cluster:WHCLUSTER[wh]||'Прочее',wh,matrix:matrixOf(o)});
     });
   }
-  const buildClusters=(p)=>{
-    const td=planDaily(p.pid), tstock=planPieces(p.pid);
-    let out=`<div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Цель, шт</th><th>Цель, шт/день</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr></thead>`;
-    [...p.clusters.entries()].map(([c,a])=>({
-      c,arr:a,
-      cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0),
-      c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
-    })).sort((a,b)=>b.csum-a.csum).forEach(g=>{
-      const rec=recText(p.pid,g.cs,g.c1,T_REPORT);
+  const toClArr=(p)=>[...p.clusters.entries()].map(([c,a])=>({
+    c,arr:a,
+    cs:a.reduce((s,e)=>s+e.stock,0), csum:a.reduce((s,e)=>s+e.sum,0),
+    c1:a.reduce((s,e)=>s+e.s1,0), c2:a.reduce((s,e)=>s+e.s2,0), c3:a.reduce((s,e)=>s+e.s3,0), c4:a.reduce((s,e)=>s+e.s4,0)
+  })).map(g=>{ g.rec=recText(p.pid,g.cs,g.c1,T_REPORT); g.dir=g.rec?(g.rec.cls==='r'?'up':g.rec.cls==='g'?'down':0):0; return g; }).sort((a,b)=>b.csum-a.csum);
+  const buildClusters=(p,dir)=>{
+    const list=dir? p.clArr.filter(g=>g.dir===dir) : p.clArr;
+    let out=`<div class="tablewrap"><table><thead><tr><th>Кластер / Склад</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr></thead>`;
+    list.forEach(g=>{
       out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-        <td><span class="caret">▾</span>${esc(g.c)}${rec?`<span class="rec ${rec.cls}">${rec.txt}</span>`:''}</td>
-        <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td><td class="num">${fmt(tstock)}</td><td class="num">${f1(td)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`;
+        <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
+        <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`;
       g.arr.sort((a,b)=>b.sum-a.sum).forEach(e=>{
-        out+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td><td class="n">—</td><td class="n">—</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s3,e.s4)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s1,e.s2)}</tr>`;
+        out+=`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s3,e.s4)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s1,e.s2)}</tr>`;
       });
       out+=`</tbody>`;
     });
@@ -323,27 +320,26 @@ function render(){
       if(!p.clusters.has(e.cluster))p.clusters.set(e.cluster,[]);
       p.clusters.get(e.cluster).push(e);
     });
-    const prods=[...prodAgg.values()].map(p=>{p.plan=planCost(p.pid);p.pieces=planPieces(p.pid);p.delta=p.sum-p.plan;return p;});
+    const prods=[...prodAgg.values()].map(p=>{p.plan=planCost(p.pid);p.pieces=planPieces(p.pid);p.delta=p.sum-p.plan;p.clArr=toClArr(p);return p;});
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    const devGroup=(title,list)=>{
+    const prodNode=(p,dir)=>`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.sum)} ₽ • ${fmt(p.stock)} шт (план: ${fmt(p.plan)} ₽ • ${fmt(p.pieces)} шт) • Δ ${p.delta>0?'+':''}${fmt(p.delta)} ₽</span></summary>`+buildClusters(p,dir)+`</details>`;
+    const section=(title,list,dir)=>{
       if(!list.length)return '';
       const sd=list.reduce((s,p)=>s+p.delta,0);
       let out=`<details class="sup"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Δ ${sd>0?'+':''}${fmt(sd)} ₽</span></summary><div class="supbody">`;
-      list.forEach(p=>{
-        out+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.stock)} шт • ${fmt(p.sum)} ₽ (план: ${fmt(p.plan)} ₽ • ${fmt(p.pieces)} шт) • Δ ${p.delta>0?'+':''}${fmt(p.delta)} ₽</span></summary>`+buildClusters(p)+`</details>`;
-      });
+      out+=list.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).map(p=>prodNode(p,dir)).join('');
       out+=`</div></details>`;
       return out;
     };
     [...byMatrix.keys()].sort().forEach(mk=>{
       const arr=byMatrix.get(mk);
-      const deficit=arr.filter(p=>p.delta<0).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
-      const over=arr.filter(p=>p.delta>=0).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
-      const mSum=arr.reduce((s,p)=>s+p.sum,0), mPlan=arr.reduce((s,p)=>s+p.plan,0), mDelta=arr.reduce((s,p)=>s+p.delta,0);
-      html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ (план: ${fmt(mPlan)}) • Δ ${mDelta>0?'+':''}${fmt(mDelta)} ₽</span></summary><div class="matrixbody">`;
-      html+=devGroup('⛔ Дефицит',deficit);
-      html+=devGroup('📦 Перетар',over);
+      const sup=arr.filter(p=>p.clArr.some(g=>g.dir==='up'));
+      const def=arr.filter(p=>p.clArr.some(g=>g.dir==='down'));
+      const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0), mPlan=arr.reduce((s,p)=>s+p.plan,0), mDelta=arr.reduce((s,p)=>s+p.delta,0);
+      html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт (план: ${fmt(mPlan)} ₽) • Δ ${mDelta>0?'+':''}${fmt(mDelta)} ₽</span></summary><div class="matrixbody">`;
+      html+=section('📦 Профицит (увеличить продажи)',sup,'up');
+      html+=section('⛔ Дефицит (снизить продажи)',def,'down');
       html+=`</div></details>`;
     });
   }else if(MODE==='products'){
@@ -356,21 +352,21 @@ function render(){
     });
     const prods=[...prodMap.values()].map(p=>{
       let tS=0,tM=0;p.clusters.forEach(a=>a.forEach(e=>{tS+=e.stock;tM+=e.sum;}));
-      p.total=tS;p.sum=tM;p.plan=planCost(p.pid);p.pieces=planPieces(p.pid);p.supplier=(SUPPLIER[p.pid]||'')||'Без поставщика';return p;
+      p.total=tS;p.sum=tM;p.plan=planCost(p.pid);p.pieces=planPieces(p.pid);p.clArr=toClArr(p);p.supplier=(SUPPLIER[p.pid]||'')||'Без поставщика';return p;
     });
     const matrixMap=new Map();
     prods.forEach(p=>{if(!matrixMap.has(p.matrix))matrixMap.set(p.matrix,[]);matrixMap.get(p.matrix).push(p);});
     [...matrixMap.keys()].sort().forEach(mk=>{
       const arr=matrixMap.get(mk);
       const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.total,0), mPlan=arr.reduce((s,p)=>s+p.plan,0);
-      html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mStock)} шт • ${fmt(mSum)} ₽ (план: ${fmt(mPlan)} ₽)</span></summary><div class="matrixbody">`;
+      html+=`<details class="matrix"><summary><span class="clname">${MATRIX_NAME[mk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт (план: ${fmt(mPlan)} ₽)</span></summary><div class="matrixbody">`;
       const supMap2=new Map();
       arr.forEach(p=>{if(!supMap2.has(p.supplier))supMap2.set(p.supplier,[]);supMap2.get(p.supplier).push(p);});
       const sups2=[...supMap2.entries()].map(([s,a])=>({s,a,stock:a.reduce((x,p)=>x+p.total,0),sum:a.reduce((x,p)=>x+p.sum,0),plan:a.reduce((x,p)=>x+p.plan,0)})).sort((a,b)=>b.sum-a.sum);
       sups2.forEach(sp=>{
-        html+=`<details class="sup"><summary><span class="clname">${esc(sp.s)}</span><span class="cltot">${fmt(sp.stock)} шт • ${fmt(sp.sum)} ₽ (план: ${fmt(sp.plan)} ₽)</span></summary><div class="supbody">`;
+        html+=`<details class="sup"><summary><span class="clname">${esc(sp.s)}</span><span class="cltot">${fmt(sp.sum)} ₽ • ${fmt(sp.stock)} шт (план: ${fmt(sp.plan)} ₽)</span></summary><div class="supbody">`;
         sp.arr.sort((a,b)=>b.sum-a.sum).forEach(p=>{
-          html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.total)} шт • ${fmt(p.sum)} ₽ (план: ${fmt(p.plan)} ₽ • ${fmt(p.pieces)} шт)</span></summary>`+buildClusters(p)+`</details>`;
+          html+=`<details class="cluster"><summary><span class="clname">${esc(p.name)}</span><span class="cltot">${fmt(p.sum)} ₽ • ${fmt(p.total)} шт (план: ${fmt(p.plan)} ₽ • ${fmt(p.pieces)} шт)</span></summary>`+buildClusters(p,null)+`</details>`;
         });
         html+=`</div></details>`;
       });
@@ -387,10 +383,10 @@ function render(){
     const whBlock=(w,inFire)=>{
       const btn=inFire?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`:`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
       const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
-      return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.total)} шт • ${fmt(w.sum)} ₽</span></summary>
+      return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.sum)} ₽ • ${fmt(w.total)} шт</span></summary>
         <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
     };
-    const clusterBlock=(o,inFire)=>`<details class="cluster"><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт • ${fmt(o.sum)} ₽</span></summary>`+o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
+    const clusterBlock=(o,inFire)=>`<details class="cluster"><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.sum,0))} ₽ • ${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт</span></summary>`+o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
     const fireList=sortC(fireC), mainList=sortC(mainC);
     if(fireList.length)html+=`<details class="fire"><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`;
     html+=mainList.map(o=>clusterBlock(o,false)).join('');
@@ -402,7 +398,7 @@ function render(){
     grandEl.style.display='';
     const tStock=entries.reduce((s,e)=>s+e.stock,0);
     const tSum=entries.reduce((s,e)=>s+e.sum,0);
-    grandEl.innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tStock)} шт • ${fmt(tSum)} ₽</span>`;
+    grandEl.innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tSum)} ₽ • ${fmt(tStock)} шт</span>`;
   }
 }
 </script></body></html>
