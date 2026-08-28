@@ -89,12 +89,13 @@ input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:
 .stat span{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
 .sp-note{font-size:.72rem;color:var(--dim);margin-top:.6rem;line-height:1.5}
 .scen-lead{font-size:.8rem;color:var(--mut);margin-bottom:.9rem;max-width:95ch;line-height:1.55}
-.scen-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.85rem}
-.scen-card{position:relative;border:1px solid var(--line);background:#0b1722;border-radius:10px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.7rem;transition:border-color .3s,box-shadow .3s;min-width:0;overflow-wrap:anywhere}
+.scen-scroll-wrap{position:relative}
+.scen-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,1fr);gap:.85rem;overflow-x:auto;padding:10px 2px 12px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.scen-card{scroll-snap-align:start;position:relative;border:1px solid var(--line);background:#0b1722;border-radius:10px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.7rem;transition:border-color .3s,box-shadow .3s;min-width:0;overflow-wrap:anywhere}
 .scen-card.anyplate{border-color:#3a5570}
 .scen-top{display:flex;gap:.7rem;align-items:flex-start}
 .scen-letter{flex:none;width:32px;height:32px;display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:.92rem;border-radius:7px;background:#12222f;border:1px solid var(--line)}
-.lA{color:var(--amber)} .lB{color:var(--cyan)} .lC{color:var(--violet)}
+.lA{color:var(--amber)} .lB{color:var(--cyan)} .lC{color:var(--violet)} .lG{color:#e09a4c}
 .scen-top b{font-size:.9rem;display:block}
 .scen-ess{font-size:.72rem;color:var(--dim);line-height:1.5;display:block;margin-top:.2rem}
 .scen-plates{display:flex;flex-wrap:wrap;gap:.35rem;min-height:24px}
@@ -132,7 +133,9 @@ input[type=range]{width:100%;margin-top:.45rem;accent-color:var(--amber);cursor:
 .barA i{background:linear-gradient(90deg,#8a6420,var(--amber))}
 .barB i{background:linear-gradient(90deg,#2a6d86,var(--cyan))}
 .barC i{background:linear-gradient(90deg,#6a4a9a,var(--violet))}
+.barG i{background:linear-gradient(90deg,#9a6428,#e09a4c)}
 .scen-foot{font-size:.68rem;color:var(--dim);font-family:var(--mono);line-height:1.6;border-top:1px solid rgba(28,52,70,.6);padding-top:.5rem}
+.scen-swipe{font-size:.66rem;color:var(--dim);font-family:var(--mono);text-align:right;margin-top:.2rem}
 .sum-wrap{display:flex;flex-direction:column;gap:1rem}
 .sum-table{width:100%;border-collapse:collapse;font-size:.8rem}
 .sum-table th{font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);text-align:right;padding:.45rem .6rem;border-bottom:1px solid var(--line)}
@@ -179,7 +182,6 @@ tr.tr-sel td:first-child{border-left:3px solid var(--amber)}
 footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);font-size:.72rem;color:var(--dim);line-height:1.7}
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}
 .reveal.in{opacity:1;transform:none}
-@media(max-width:1200px){.scen-grid{grid-template-columns:1fr}}
 @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{position:static;max-height:none}}
 @media(max-width:640px){.zgrid{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -193,7 +195,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
     <div>четверг · 27.08.2026</div>
   </div>
   <h1>Квартира для <em>Юры</em>: кто что получает в каждом варианте</h1>
-  <p class="lead">Калькулятор для родителей: три способа обеспечить Юру жильём и итоговый капитал <b>Юры</b> и <b>родителей</b> к моменту закрытия ипотеки. Ресурсы: квартира на Онуфриева, 14 (родительская), Юрин капитал 700 тыс. ₽ и его пособие 23 т.₽/мес ещё 5 лет. В варианте А пособие идёт в счёт ипотеки (Юрины деньги), родители доплачивают только недостачу платежа, а после пособий платит Юра из своих доходов.</p>
+  <p class="lead">Калькулятор для родителей: четыре способа обеспечить Юру жильём и итоговый капитал <b>Юры</b> и <b>родителей</b> к моменту закрытия ипотеки. Ресурсы: квартира на Онуфриева, 14 (родительская), Юрин капитал 700 тыс. ₽, его пособие 23 т.₽/мес ещё 5 лет и два актуальных кредита родителей. Во всех вариантах после погашения кредитов высвободившиеся платежи идут в депозит. Варианты листаются влево/вправо.</p>
   <div class="chips">
     <div class="chip"><b id="chipOnuf">—</b><span>Онуфриева, 14 · 47 м² (родители)</span></div>
     <div class="chip"><b id="chipCapital">—</b><span>Юрин капитал (накопленные пособия)</span></div>
@@ -290,7 +292,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
 
     <details class="grp" id="grp4">
       <summary>
-        <div><div class="po">Шаг 4 · Ресурсы семьи и Юры</div><div class="pt">Онуфриева, капитал, пособия</div></div>
+        <div><div class="po">Шаг 4 · Ресурсы семьи и кредиты</div><div class="pt">Онуфриева, капитал, пособия, кредиты</div></div>
         <span class="grp-info"><span id="grp4info"></span><i class="chev"></i></span>
       </summary>
       <div class="grp-body">
@@ -322,7 +324,37 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
           <div class="ctl-head"><label for="depSum">Депозит родителей из выручки</label>
             <div class="ctl-num"><input type="number" id="depSum" step="50" min="0" max="6000"><span class="u">т.₽</span></div></div>
           <input type="range" id="depSumR" min="0" max="6000" step="50">
-          <div class="ctl-hint">по умолчанию 1,5 млн · остаток после ПВ/покупки — «на жизнь» (варианты А и Б)</div>
+          <div class="ctl-hint">по умолчанию 1,5 млн · варианты А и Б</div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="creditPayoff">Погашение кредитов досрочно (вариант Г)</label>
+            <div class="ctl-num"><input type="number" id="creditPayoff" step="1000" min="0" max="20000000"><span class="u">₽</span></div></div>
+          <input type="range" id="creditPayoffR" min="0" max="20000000" step="1000">
+          <div class="ctl-hint">по умолчанию 2 063 486 ₽</div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="credit1Pay">Кредит 1 · платёж (до 22.04.2031)</label>
+            <div class="ctl-num"><input type="number" id="credit1Pay" step="0.1" min="0" max="500"><span class="u">т.₽/мес</span></div></div>
+          <input type="range" id="credit1PayR" min="0" max="500" step="0.1">
+          <div class="ctl-hint">по умолчанию 40,3 т.₽/мес</div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="credit1FreeMonth">Кредит 1 · месяц высвобождения платежа</label>
+            <div class="ctl-num"><input type="number" id="credit1FreeMonth" step="1" min="1" max="360"><span class="u">мес</span></div></div>
+          <input type="range" id="credit1FreeMonthR" min="1" max="360" step="1">
+          <div class="ctl-hint">по умолчанию 57-й месяц (май 2031) · далее в депозит</div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="credit2Pay">Кредит 2 · платёж (до 11.12.2029)</label>
+            <div class="ctl-num"><input type="number" id="credit2Pay" step="0.1" min="0" max="500"><span class="u">т.₽/мес</span></div></div>
+          <input type="range" id="credit2PayR" min="0" max="500" step="0.1">
+          <div class="ctl-hint">по умолчанию 25,7 т.₽/мес</div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="credit2FreeMonth">Кредит 2 · месяц высвобождения платежа</label>
+            <div class="ctl-num"><input type="number" id="credit2FreeMonth" step="1" min="1" max="360"><span class="u">мес</span></div></div>
+          <input type="range" id="credit2FreeMonthR" min="1" max="360" step="1">
+          <div class="ctl-hint">по умолчанию 41-й месяц (январь 2030) · далее в депозит</div>
         </div>
         <label class="taxrow"><input type="checkbox" id="taxOn" checked> Учитывать НДФЛ 13% на проценты по вкладам (лимит: 1 млн ₽ × макс. КС)</label>
       </div>
@@ -347,76 +379,100 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
     <div class="panel reveal">
       <div class="po">Сравнение вариантов</div>
       <div class="pt" id="scenTitle">Кто что получает к закрытию ипотеки</div>
-      <p class="scen-lead">Все суммы — к моменту закрытия ипотеки (горизонт = срок кредита выбранного ЖК), номинально. В варианте А из капитала Юры вычитаются все его выплаты из собственных доходов после окончания пособий — иначе было бы нечестно сравнивать с вариантами Б и В, где Юра из своих доходов за жильё не платит. Капитал родителей раскладывается на депозит, «на жизнь сейчас» и «на жизнь от пособий».</p>
+      <p class="scen-lead">Все суммы — к моменту закрытия ипотеки (горизонт = срок кредита выбранного ЖК), номинально. В варианте А из капитала Юры вычитаются его выплаты из собственных доходов после окончания пособий. В варианте Г остаток от продажи гасит кредиты родителей досрочно, остаток после кредитов идёт «на жизнь», а высвободившиеся платежи — в депозит с 1-го месяца. В вариантах А, Б и В высвободившиеся платежи поступают в депозит после планового погашения каждого кредита.</p>
 
-      <div class="scen-grid">
-        <div class="scen-card" id="cardA">
-          <div class="scen-plates" id="platesA"></div>
-          <div class="scen-top"><span class="scen-letter lA">А</span>
-            <div><b>Ипотека на Юру</b>
-            <span class="scen-ess">Продаём Онуфриева, покупаем недвижимость в ипотеку на Юру; родители «добивают» ПВ, остаток — депозит и «на жизнь»; 5 лет ипотеку гасит пособие + доплата родителей, далее платит Юра из своих доходов</span></div>
+      <div class="scen-scroll-wrap">
+        <div class="scen-grid">
+          <div class="scen-card" id="cardA">
+            <div class="scen-plates" id="platesA"></div>
+            <div class="scen-top"><span class="scen-letter lA">А</span>
+              <div><b>Ипотека на Юру</b>
+              <span class="scen-ess">Продаём Онуфриева, покупаем недвижимость в ипотеку на Юру; родители «добивают» ПВ, остаток — депозит и «на жизнь»; 5 лет ипотеку гасит пособие + доплата родителей, далее платит Юра из своих доходов</span></div>
+            </div>
+            <div class="scen-flow" id="flowA"></div>
+            <div class="metrics">
+              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraA">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">квартира (рост)</span><span class="metric-val" id="yuraA_apt">—</span></div>
+              <div class="metric sub neg"><span class="metric-lbl">− выплаты Юры из доходов</span><span class="metric-val" id="yuraA_paid">—</span></div>
+              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parA">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parA_dep">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parA_liv">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parA_ben">—</span></div>
+              <div class="metric sub info"><span class="metric-lbl">пособия → в ипотеку (Юрины деньги)</span><span class="metric-val" id="parA_benInfo">—</span></div>
+              <div class="metric sub neg"><span class="metric-lbl">доплата родителей в ипотеку (недостача)</span><span class="metric-val" id="parA_mtg">—</span></div>
+              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpA">—</span></div>
+              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalA">—</span></div>
+            </div>
+            <div class="scen-bar barA"><i id="barA"></i></div>
+            <div class="scen-foot" id="footA"></div>
           </div>
-          <div class="scen-flow" id="flowA"></div>
-          <div class="metrics">
-            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraA">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">квартира (рост)</span><span class="metric-val" id="yuraA_apt">—</span></div>
-            <div class="metric sub neg"><span class="metric-lbl">− выплаты Юры из доходов</span><span class="metric-val" id="yuraA_paid">—</span></div>
-            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parA">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parA_dep">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parA_liv">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parA_ben">—</span></div>
-            <div class="metric sub info"><span class="metric-lbl">пособия → в ипотеку (Юрины деньги)</span><span class="metric-val" id="parA_benInfo">—</span></div>
-            <div class="metric sub neg"><span class="metric-lbl">доплата родителей в ипотеку (недостача)</span><span class="metric-val" id="parA_mtg">—</span></div>
-            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpA">—</span></div>
-            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalA">—</span></div>
-          </div>
-          <div class="scen-bar barA"><i id="barA"></i></div>
-          <div class="scen-foot" id="footA"></div>
-        </div>
 
-        <div class="scen-card" id="cardB">
-          <div class="scen-plates" id="platesB"></div>
-          <div class="scen-top"><span class="scen-letter lB">Б</span>
-            <div><b>Без кредита</b>
-            <span class="scen-ess">Продаём Онуфриева и покупаем недвижимость сразу: Юра даёт свой капитал, родители доплачивают, остаток — депозит и «на жизнь»; пособия — родителям</span></div>
+          <div class="scen-card" id="cardB">
+            <div class="scen-plates" id="platesB"></div>
+            <div class="scen-top"><span class="scen-letter lB">Б</span>
+              <div><b>Без кредита</b>
+              <span class="scen-ess">Продаём Онуфриева и покупаем недвижимость сразу: Юра даёт свой капитал, родители доплачивают, остаток — депозит и «на жизнь»; пособия — родителям</span></div>
+            </div>
+            <div class="scen-flow" id="flowB"></div>
+            <div class="metrics">
+              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraB">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraB_apt">—</span></div>
+              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parB">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parB_dep">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parB_liv">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parB_ben">—</span></div>
+              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpB">—</span></div>
+              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalB">—</span></div>
+            </div>
+            <div class="scen-bar barB"><i id="barB"></i></div>
+            <div class="scen-foot" id="footB"></div>
           </div>
-          <div class="scen-flow" id="flowB"></div>
-          <div class="metrics">
-            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraB">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraB_apt">—</span></div>
-            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parB">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parB_dep">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас</span><span class="metric-val" id="parB_liv">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parB_ben">—</span></div>
-            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpB">—</span></div>
-            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalB">—</span></div>
-          </div>
-          <div class="scen-bar barB"><i id="barB"></i></div>
-          <div class="scen-foot" id="footB"></div>
-        </div>
 
-        <div class="scen-card" id="cardC">
-          <div class="scen-plates" id="platesC"></div>
-          <div class="scen-top"><span class="scen-letter lC">В</span>
-            <div><b>Онуфриева Юре, деньги родителям</b>
-            <span class="scen-ess">Ничего не продаём и не покупаем: Онуфриева отходит Юре и дорожает, его 700 т.₽ и пособия забирают родители «на жизнь» (без депозита)</span></div>
+          <div class="scen-card" id="cardC">
+            <div class="scen-plates" id="platesC"></div>
+            <div class="scen-top"><span class="scen-letter lC">В</span>
+              <div><b>Онуфриева Юре, деньги родителям</b>
+              <span class="scen-ess">Ничего не продаём и не покупаем: Онуфриева отходит Юре и дорожает, его 700 т.₽ и пособия забирают родители «на жизнь»; высвободившиеся платежи кредитов — в депозит</span></div>
+            </div>
+            <div class="scen-flow" id="flowC"></div>
+            <div class="metrics">
+              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraC">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">Онуфриева (рост)</span><span class="metric-val" id="yuraC_apt">—</span></div>
+              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parC">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">депозит (высвободившиеся платежи)</span><span class="metric-val" id="parC_dep">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (Юрины 700 т.₽)</span><span class="metric-val" id="parC_liv">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parC_ben">—</span></div>
+              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpC">—</span></div>
+              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalC">—</span></div>
+            </div>
+            <div class="scen-bar barC"><i id="barC"></i></div>
+            <div class="scen-foot" id="footC"></div>
           </div>
-          <div class="scen-flow" id="flowC"></div>
-          <div class="metrics">
-            <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraC">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">Онуфриева (рост)</span><span class="metric-val" id="yuraC_apt">—</span></div>
-            <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parC">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">депозит</span><span class="metric-val" id="parC_dep">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (Юрины 700 т.₽)</span><span class="metric-val" id="parC_liv">—</span></div>
-            <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parC_ben">—</span></div>
-            <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpC">—</span></div>
-            <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalC">—</span></div>
+
+          <div class="scen-card" id="cardG">
+            <div class="scen-plates" id="platesG"></div>
+            <div class="scen-top"><span class="scen-letter lG">Г</span>
+              <div><b>Без кредита + досрочное погашение кредитов</b>
+              <span class="scen-ess">Как Б: продаём Онуфриева и покупаем без ипотеки; остаток гасит кредиты родителей досрочно, остаток после кредитов — «на жизнь», а высвободившиеся платежи — в депозит с 1-го месяца</span></div>
+            </div>
+            <div class="scen-flow" id="flowG"></div>
+            <div class="metrics">
+              <div class="metric hero-m yura"><span class="metric-lbl">Капитал Юры</span><span class="metric-val" id="yuraG">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">квартира (рост), без кредита</span><span class="metric-val" id="yuraG_apt">—</span></div>
+              <div class="metric par"><span class="metric-lbl">Капитал родителей</span><span class="metric-val" id="parG">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">депозит (высвободившиеся платежи)</span><span class="metric-val" id="parG_dep">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь сейчас (остаток после кредитов)</span><span class="metric-val" id="parG_liv">—</span></div>
+              <div class="metric sub"><span class="metric-lbl">на жизнь от пособий</span><span class="metric-val" id="parG_ben">—</span></div>
+              <div class="metric help"><span class="metric-lbl">Чистый вклад родителей</span><span class="metric-val" id="helpG">—</span></div>
+              <div class="metric tot"><span class="metric-lbl">Итого семья</span><span class="metric-val" id="totalG">—</span></div>
+            </div>
+            <div class="scen-bar barG"><i id="barG"></i></div>
+            <div class="scen-foot" id="footG"></div>
           </div>
-          <div class="scen-bar barC"><i id="barC"></i></div>
-          <div class="scen-foot" id="footC"></div>
         </div>
+        <div class="scen-swipe">← листайте варианты →</div>
       </div>
-      <div class="sp-note">Полоса под каждым вариантом — итоговый капитал семьи относительно лучшего. Пособия 23 т.₽/мес заканчиваются через <span id="benNote">5</span> лет.</div>
+      <div class="sp-note">Полоса под каждым вариантом — итоговый капитал семьи относительно лучшего. Пособия 23 т.₽/мес заканчиваются через <span id="benNote">5</span> лет. Кредит 2 гасится в месяц <span id="c2Note">40</span>, кредит 1 — в месяц <span id="c1Note">56</span>; далее их платежи пополняют депозит.</div>
     </div>
 
     <div class="panel sum-wrap reveal">
@@ -424,7 +480,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
         <div class="po">Сводка</div>
         <div class="pt">Кто выигрывает по каждому показателю</div>
         <div class="tbl-wrap"><table class="sum-table" id="sumTable"></table></div>
-        <div class="sum-note">Чистый вклад родителей = собственные вложения в жильё Юры минус то, что Юра передаёт им обратно (пособия; в варианте В также 700 т.₽ капитала). В варианте А пособие идёт в ипотеку (Юрины деньги), поэтому в вклад родителей входит только их доплата‑недостача по платежу, а из капитала Юры вычтены его выплаты из собственных доходов. «Баланс» = сценарий, где минимум из капиталов Юры и родителей максимален.</div>
+        <div class="sum-note">Чистый вклад родителей = собственные вложения в жильё Юры минус то, что Юра передаёт им обратно (пособия; в варианте В также 700 т.₽ капитала). В варианте А пособие идёт в ипотеку (Юрины деньги), поэтому в вклад родителей входит только их доплата‑недостача по платежу, а из капитала Юры вычтены его выплаты из собственных доходов. Досрочное погашение кредитов в варианте Г нейтрально для капитала родителей (деньги обменены на списание долга), но даёт депозиту пополнение на 66 т.₽/мес с 1-го месяца вместо месяцев 41/57 в остальных вариантах. «Баланс» = сценарий, где минимум из капиталов Юры и родителей максимален.</div>
       </div>
       <details class="verdict-details" id="verdictBox">
         <summary>Выводы по расчёту <i class="chev"></i></summary>
@@ -458,7 +514,7 @@ footer{margin:2.4rem 0 2rem;padding-top:1.2rem;border-top:1px solid var(--line);
       <div class="mcard"><div class="src s4">НДФЛ на проценты</div><p>Не облагается сумма в пределах 1 млн ₽ × максимальная ключевая ставка года (≈130–160 т.₽ процентов). Свыше — 13%. Учтено в симуляции.</p></div>
       <div class="mcard"><div class="src s2">Рынок Екатеринбурга</div><p>Вторичка Академического ≈120–140 т.₽/м²; квартира 47 м² на Онуфриева, 14 оценивается ≈6,0 млн ₽.</p></div>
     </div>
-    <div class="assume"><b>Допущения модели:</b> горизонт расчёта = срок ипотеки выбранного ЖК (сравниваем к моменту закрытия кредита). Вариант А: ПВ = Юрины 700 т.₽ + доплата родителей; остаток выручки → депозит родителей (по умолчанию 1,5 млн) → «на жизнь». Первые 5 лет ипотеку гасит пособие 23 т.₽/мес (Юрины деньги) плюс доплата родителей до суммы платежа; после пособий платит Юра из своих доходов — эти выплаты вычитаются из его капитала. Вариант Б: покупка без кредита, пособия идут родителям «на жизнь». Вариант В: Онуфриева отходит Юре, родители получают его 700 т.₽ и пособия «на жизнь» без депозита. Жильё растёт номинально по заданному темпу.</div>
+    <div class="assume"><b>Допущения модели:</b> горизонт расчёта = срок ипотеки выбранного ЖК (сравниваем к моменту закрытия кредита). Вариант А: ПВ = Юрины 700 т.₽ + доплата родителей; остаток выручки → депозит родителей (по умолчанию 1,5 млн) → «на жизнь». Первые 5 лет ипотеку гасит пособие 23 т.₽/мес (Юрины деньги) плюс доплата родителей до суммы платежа; после пособий платит Юра из своих доходов — эти выплаты вычитаются из его капитала. Вариант Б: покупка без кредита, пособия идут родителям «на жизнь». Вариант В: Онуфриева отходит Юре, родители получают его 700 т.₽ и пособия «на жизнь». Вариант Г: как Б, но остаток после покупки гасит кредиты родителей досрочно (по умолчанию 2 063 486 ₽), остаток после кредитов — «на жизнь», а высвободившиеся платежи (40,3 + 25,7 = 66 т.₽/мес) — в депозит с 1-го месяца. Во всех вариантах после планового погашения кредитов (кредит 2 до 11.12.2029 — 25,7 т.₽/мес, кредит 1 до 22.04.2031 — 40,3 т.₽/мес) их платежи пополняют депозит: в А/Б/В с месяцев 41 и 57, в Г — с 1-го месяца. Жильё растёт номинально по заданному темпу.</div>
   </div>
 </section>
 
@@ -478,24 +534,26 @@ const pctf=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:1})+'%';
 const sgn=x=>(x>=0?'+':'−');
 
 const PRESETS=[
- {id:'aplus125',zhk:'ЖК «А плюс»',loc:'Академический',variant:'Субсидия 12,5%',rate:12.5,term:20,price:4185000,pv:1813830,markup:null,
+ {id:'aplus125',zhk:'ЖК «А плюс»',loc:'Академический',rate:12.5,term:20,price:4185000,pv:1813830,markup:null,
   note:'Срок 20 лет · ПВ 1,81 млн · платёж 26 940 ₽/мес'},
- {id:'aplus187',zhk:'ЖК «А плюс»',loc:'Академический',variant:'Без субсидии 18,7%',rate:18.7,term:20,price:3904000,pv:1924140,markup:null,
+ {id:'aplus187',zhk:'ЖК «А плюс»',loc:'Академический',rate:18.7,term:20,price:3904000,pv:1924140,markup:null,
   note:'Срок 20 лет · ПВ 1,92 млн · платёж 31 626 ₽/мес'},
- {id:'sin139',zhk:'ЖК «Синица»',loc:'на Куйбышева',variant:'Ставка 13,9%',rate:13.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:8.5},
+ {id:'sin139',zhk:'ЖК «Синица»',loc:'на Куйбышева',rate:13.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:8.5},
   note:'Срок 15 лет · ПВ 2 млн · база 4,09 → цена 4,44 млн · платёж ≈32 300 ₽/мес'},
- {id:'sin129',zhk:'ЖК «Синица»',loc:'на Куйбышева',variant:'Ставка 12,9%',rate:12.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:11},
+ {id:'sin129',zhk:'ЖК «Синица»',loc:'на Куйбышева',rate:12.9,term:15,base:4090000,pv:2000000,markup:{type:'price',pct:11},
   note:'Срок 15 лет · ПВ 2 млн · база 4,09 → цена 4,54 млн · платёж ≈31 969 ₽/мес'},
- {id:'eho',zhk:'ЖК «Эхо Леса»',loc:'Академический',variant:'Рыночная 19%',rate:19,term:15,price:3827000,pv:2000000,markup:null,
+ {id:'eho',zhk:'ЖК «Эхо Леса»',loc:'Академический',rate:19,term:15,price:3827000,pv:2000000,markup:null,
   note:'Срок 15 лет · ПВ 2 млн · платёж 30 746 ₽/мес'},
- {id:'razum',zhk:'ЖК «Разум»',loc:'на Матвеева · Академический',variant:'Ставка 12,5%',rate:12.5,term:20,base:3919000,pv:2000000,markup:{type:'credit',pct:14.5},
+ {id:'razum',zhk:'ЖК «Разум»',loc:'на Матвеева · Академический',rate:12.5,term:20,base:3919000,pv:2000000,markup:{type:'credit',pct:14.5},
   note:'Срок 20 лет · ПВ 2 млн · база 3,92 → цена 4,20 млн с удорожанием · платёж ≈24 964 ₽/мес'},
- {id:'park',zhk:'ЖК «Парк культуры»',loc:'Екатеринбург',variant:'Акционная цена',rate:17.2,term:15,price:3749000,pv:2000000,markup:null,
+ {id:'park',zhk:'ЖК «Парк культуры»',loc:'Екатеринбург',rate:17.2,term:15,price:3749000,pv:2000000,markup:null,
   note:'Срок 15 лет · ПВ 2 млн · акционная цена 3,75 млн · платёж 27 165 ₽/мес · ставка ≈17,2% выведена из платежа'}
 ];
 
 const state={price:4185000,pv:1813830,rate:12.5,term:20,markupType:null,markupPct:0,
- depRate:12.5,keyRate:13,infl:5.5,growth:6,m2:128,capital:700,ben:23,benYears:5,depSum:1500,tax:true,presetId:'aplus125'};
+ depRate:12.5,keyRate:13,infl:5.5,growth:6,m2:128,capital:700,ben:23,benYears:5,depSum:1500,
+ creditPayoff:2063486,credit1Pay:40.3,credit1FreeMonth:57,credit2Pay:25.7,credit2FreeMonth:41,
+ tax:true,presetId:'aplus125'};
 
 function annuity(loan,rate,years){
  if(loan<=0)return 0;
@@ -538,7 +596,7 @@ function growPot(initial,monthlyAt,H,depRate,keyRate,tax){
  return {bal:Math.max(bal,0),dTax};
 }
 
-/* единый расчёт всех трёх вариантов; горизонт = срок кредита */
+/* единый расчёт четырёх вариантов; горизонт = срок кредита */
 function computeAll(price,pv,rate,term,mType,mPct,s){
  const c=creditCalc(price,pv,rate,term,mType,mPct);
  const horizon=term, H=horizon*12, nA=Math.round(term*12);
@@ -551,6 +609,14 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const aptNew=c.price*Math.pow(g,horizon);
  const onufGrown=onufVal*Math.pow(g,horizon);
 
+ /* высвободившиеся платежи кредитов родителей */
+ const credit1PayRub=s.credit1Pay*1000;
+ const credit2PayRub=s.credit2Pay*1000;
+ const credit1FreeM=Math.round(s.credit1FreeMonth);
+ const credit2FreeM=Math.round(s.credit2FreeMonth);
+ const freedScheduled=m=>(m>=credit2FreeM?credit2PayRub:0)+(m>=credit1FreeM?credit1PayRub:0);
+ const freedImmediate=m=>credit1PayRub+credit2PayRub;
+
  /* А: ипотека на Юру */
  const pvNeed=Math.min(pv,onufVal+yuraOwn);
  const yuraPV=Math.min(yuraOwn,pvNeed);
@@ -561,7 +627,7 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const loanA=Math.max(0,c.price-pvNeed);
  const pmtA=annuity(loanA,rate,term);
  const residualA=residualDebt(loanA,rate,term,horizon);
- const depGrowA=growPot(depositA,null,H,...growArgs).bal;
+ const depGrowA=growPot(depositA,freedScheduled,H,...growArgs).bal;
  const mtgMonthsA=Math.min(60,nA,H);
  const mtgPayA=pmtA*mtgMonthsA;
  const benToMtgA=Math.min(benNomAll,mtgPayA);
@@ -579,26 +645,40 @@ function computeAll(price,pv,rate,term,mType,mPct,s){
  const afterBuyB=onufVal-grossB;
  const depositB=Math.min(depTarget,Math.max(0,afterBuyB));
  const livingB=Math.max(0,afterBuyB-depositB);
- const depGrowB=growPot(depositB,null,H,...growArgs).bal;
+ const depGrowB=growPot(depositB,freedScheduled,H,...growArgs).bal;
  const yuraB=aptNew;
  const parB=depGrowB+livingB+benNomAll;
  const helpB=grossB-benFull;
  const totalB=yuraB+parB;
 
  /* В: Онуфриева Юре */
+ const depGrowV=growPot(0,freedScheduled,H,...growArgs).bal;
  const yuraC=onufGrown;
- const parC=yuraOwn+benNomAll;
+ const parC=yuraOwn+benNomAll+depGrowV;
  const helpC=onufVal-yuraOwn-benFull;
  const totalC=yuraC+parC;
 
- return {c,horizon,onufVal,yuraOwn,depTarget,ben,benMonthsAll,benNomAll,benFull,aptNew,onufGrown,nA,
+ /* Г: дубль Б + досрочное погашение кредитов */
+ const creditPayoffRub=s.creditPayoff;
+ const afterCreditG=Math.max(0,afterBuyB-creditPayoffRub);
+ const creditShortG=Math.max(0,creditPayoffRub-afterBuyB);
+ const livingG=afterCreditG; /* остаток после кредитов — на жизнь */
+ const depGrowG=growPot(0,freedImmediate,H,...growArgs).bal; /* депозит — только высвободившиеся платежи */
+ const yuraG=aptNew;
+ const parG=depGrowG+livingG+benNomAll;
+ const helpG=grossB-benFull;
+ const totalG=yuraG+parG;
+
+ return {c,horizon,H,onufVal,yuraOwn,depTarget,ben,benMonthsAll,benNomAll,benFull,aptNew,onufGrown,
+  credit1PayRub,credit2PayRub,credit1FreeM,credit2FreeM,
   yuraPV,topUpA,depositA,livingA,loanA,pmtA,residualA,depGrowA,mtgMonthsA,mtgPayA,benToMtgA,parentsMtgExtra,
   yuraPayMonthsA,yuraOwnPaymentsA,yuraA,parA,helpA,totalA,
-  yuraBuy,grossB,depositB,livingB,depGrowB,yuraB,parB,helpB,totalB,
-  yuraC,parC,helpC,totalC,afterBuyB};
+  yuraBuy,grossB,afterBuyB,depositB,livingB,depGrowB,yuraB,parB,helpB,totalB,
+  depGrowV,yuraC,parC,helpC,totalC,
+  creditPayoffRub,afterCreditG,creditShortG,livingG,depGrowG,yuraG,parG,helpG,totalG};
 }
 
-const CTLS=['price','pv','rate','term','markup','depRate','keyRate','infl','growth','m2','capital','ben','benYears','depSum'];
+const CTLS=['price','pv','rate','term','markup','depRate','keyRate','infl','growth','m2','capital','ben','benYears','depSum','creditPayoff','credit1Pay','credit1FreeMonth','credit2Pay','credit2FreeMonth'];
 const keyOf=id=>id==='markup'?'markupPct':id;
 function setCtl(id,v){$(id).value=v;$(id+'R').value=v;}
 CTLS.forEach(id=>{
@@ -652,8 +732,8 @@ const PLATES={
  bal:{cls:'p-bal',txt:'БАЛАНС'}
 };
 function drawPlates(winners){
- const map={A:'platesA',B:'platesB',C:'platesC'};
- ['A','B','C'].forEach(k=>{$(map[k]).innerHTML='';$('card'+k).classList.remove('anyplate');});
+ const map={A:'platesA',B:'platesB',C:'platesC',G:'platesG'};
+ ['A','B','C','G'].forEach(k=>{$(map[k]).innerHTML='';$('card'+k).classList.remove('anyplate');});
  for(const type in winners){
    const k=winners[type];
    const el=document.createElement('span');
@@ -665,11 +745,11 @@ function drawPlates(winners){
 }
 
 function drawSummary(rows){
- const heads={A:'А · Ипотека',B:'Б · Без кредита',C:'В · Онуфриева Юре'};
- let h='<thead><tr><th>Показатель</th><th>'+heads.A+'</th><th>'+heads.B+'</th><th>'+heads.C+'</th></tr></thead><tbody>';
+ const heads={A:'А · Ипотека',B:'Б · Без кредита',C:'В · Онуфриева Юре',G:'Г · Погашение кредитов'};
+ let h='<thead><tr><th>Показатель</th><th>'+heads.A+'</th><th>'+heads.B+'</th><th>'+heads.C+'</th><th>'+heads.G+'</th></tr></thead><tbody>';
  rows.forEach(r=>{
    h+='<tr><td>'+r.label+'</td>';
-   ['A','B','C'].forEach(k=>{h+='<td'+(k===r.win?' class="win '+r.wcls+'"':'')+'>'+mln(r.vals[k])+'</td>';});
+   ['A','B','C','G'].forEach(k=>{h+='<td'+(k===r.win?' class="win '+r.wcls+'"':'')+'>'+mln(r.vals[k])+'</td>';});
    h+='</tr>';
  });
  $('sumTable').innerHTML=h+'</tbody>';
@@ -687,10 +767,13 @@ function update(){
  $('chipDep').textContent=mln(r.depTarget);
  $('grp2info').textContent=pctf(s.rate)+' · '+s.term+' лет · '+mln(r.c.price);
  $('grp3info').textContent='вклад '+pctf(s.depRate)+' · инфл. '+pctf(s.infl)+' · рост '+pctf(s.growth);
- $('grp4info').textContent='Онуфриева '+mln(r.onufVal)+' · капитал '+mln(r.yuraOwn)+' · депозит '+mln(r.depTarget);
+ $('grp4info').textContent='Онуфриева '+mln(r.onufVal)+' · кредиты '+mln(s.creditPayoff)+' · '+(s.credit1Pay+s.credit2Pay).toLocaleString('ru-RU')+' т.₽/мес';
+ $('benNote').textContent=s.benYears;
+ $('c2Note').textContent=Math.max(0,r.credit2FreeM-1);
+ $('c1Note').textContent=Math.max(0,r.credit1FreeM-1);
 
  animateVal($('pmtVal'),r.c.pmt,rub);
- $('pmtSub').textContent=P.zhk+' · '+P.variant+' · срок '+s.term+' лет';
+ $('pmtSub').textContent=P.zhk+' · срок '+s.term+' лет';
  $('stPrice').textContent=mln(r.c.price);
  $('stLoan').textContent=mln(r.c.loan);
  $('stOver').textContent=mln(r.c.overpay);
@@ -699,7 +782,9 @@ function update(){
  $('pvPct').textContent='('+pctf(pvP)+' цены)';
  $('pvHint').textContent=pvP<15?'⚠ ПВ ниже 15% — большинство программ требуют от 20% · недостающее «добивают» родители':'банки обычно требуют ≥ 20% · недостающее «добивают» родители';
  $('pvHint').className='ctl-hint'+(pvP<15?' warn':'');
- $('benNote').textContent=s.benYears;
+
+ const freedLineSched=fl('Высвобожденные платежи кредитов → в депозит',(r.credit2PayRub/1000).toLocaleString('ru-RU')+' т.₽/мес с '+r.credit2FreeM+'-го мес · '+(r.credit1PayRub/1000).toLocaleString('ru-RU')+' т.₽/мес с '+r.credit1FreeM+'-го мес','g');
+ const freedLineImm=fl('Высвобожденные платежи → в депозит (кредиты погашены)',((r.credit1PayRub+r.credit2PayRub)/1000).toLocaleString('ru-RU')+' т.₽/мес × '+r.H+' мес','g');
 
  /* карточка А */
  $('flowA').innerHTML=
@@ -711,7 +796,8 @@ function update(){
    fl('Ипотека Юры',mln(r.loanA),'r')+
    fl('Пособия → в ипотеку (Юрины деньги)',rub(r.ben)+'/мес × '+r.benMonthsAll+' мес','g')+
    fl('Доплата родителей в ипотеку',rub(Math.max(0,r.pmtA-r.ben))+'/мес × '+r.mtgMonthsA+' мес','r')+
-   fl('Далее платит Юра из доходов',rub(r.pmtA)+'/мес × '+r.yuraPayMonthsA+' мес','c');
+   fl('Далее платит Юра из доходов',rub(r.pmtA)+'/мес × '+r.yuraPayMonthsA+' мес','c')+
+   freedLineSched;
  animateVal($('yuraA'),r.yuraA,mln);
  $('yuraA_apt').textContent=mln(r.aptNew);
  $('yuraA_paid').textContent='−'+mln(r.yuraOwnPaymentsA);
@@ -732,6 +818,7 @@ function update(){
    fl('Родители доплачивают в покупку',mln(r.grossB),'v');
  if(r.afterBuyB>=0){flowB+=fl('Депозит родителей',mln(r.depositB))+fl('«На жизнь» родителям',mln(r.livingB))+fl('Пособия → родителям на жизнь',rub(r.ben)+'/мес × '+r.benMonthsAll+' мес','c');}
  else{flowB+=fl('⚠ Онуфриева не хватает','−'+mln(-r.afterBuyB),'r');}
+ flowB+=freedLineSched;
  $('flowB').innerHTML=flowB;
  animateVal($('yuraB'),r.yuraB,mln);
  $('yuraB_apt').textContent=mln(r.aptNew);
@@ -741,42 +828,65 @@ function update(){
  $('parB_ben').textContent=mln(r.benNomAll);
  animateVal($('helpB'),r.helpB,mln);
  animateVal($('totalB'),r.totalB,mln);
- $('footB').textContent='Юра: квартира '+mln(r.aptNew)+' · без кредита и выплат из доходов · родители: депозит '+mln(r.depGrowB)+' + жизнь '+mln(r.livingB)+' + пособия '+mln(r.benNomAll);
+ $('footB').textContent='Юра: квартира '+mln(r.aptNew)+' · родители: депозит '+mln(r.depGrowB)+' + жизнь '+mln(r.livingB)+' + пособия '+mln(r.benNomAll);
 
  /* карточка В */
  $('flowC').innerHTML=
    fl('Онуфриева → Юре (без продажи)',mln(r.onufVal),'v')+
    fl('Юрин капитал 700 т.₽ → родителям',mln(r.yuraOwn),'c')+
    fl('Пособия '+s.benYears+' лет → родителям',rub(r.ben)+'/мес','c')+
-   fl('Депозита нет — всё «на жизнь»','фиксируется через '+s.benYears+' лет')+
+   freedLineSched+
    fl('Чистый вклад родителей',sgn(r.helpC)+mln(Math.abs(r.helpC))+' = '+m2s(r.onufVal)+' − '+m2s(r.yuraOwn)+' − '+m2s(r.benFull),'v');
  animateVal($('yuraC'),r.yuraC,mln);
  $('yuraC_apt').textContent=mln(r.onufGrown);
  animateVal($('parC'),r.parC,mln);
- $('parC_dep').textContent=mln(0);
+ $('parC_dep').textContent=mln(r.depGrowV);
  $('parC_liv').textContent=mln(r.yuraOwn);
  $('parC_ben').textContent=mln(r.benNomAll);
  animateVal($('helpC'),r.helpC,mln);
  animateVal($('totalC'),r.totalC,mln);
- $('footC').textContent='Юра: только Онуфриева '+mln(r.onufGrown)+' · родители: '+mln(r.parC)+' (700 т.₽ + пособия, без депозита)';
+ $('footC').textContent='Юра: только Онуфриева '+mln(r.onufGrown)+' · родители: депозит '+mln(r.depGrowV)+' + '+mln(r.yuraOwn)+' + пособия '+mln(r.benNomAll);
 
- const totals={A:r.totalA,B:r.totalB,C:r.totalC}, maxT=Math.max(r.totalA,r.totalB,r.totalC,1);
+ /* карточка Г */
+ let flowG=
+   fl('Продажа Онуфриева (родители)',mln(r.onufVal),'c')+
+   fl('Юрин капитал → в покупку',mln(r.yuraBuy),'g')+
+   fl('Родители доплачивают в покупку',mln(r.grossB),'v')+
+   fl('Досрочное погашение кредитов',mln(r.creditPayoffRub),'r')+
+   fl('Остаток после кредитов → на жизнь',mln(r.livingG));
+ if(r.creditShortG>0){flowG+=fl('⚠ на погашение кредитов не хватает','−'+mln(r.creditShortG),'r');}
+ flowG+=freedLineImm+
+   fl('Пособия → родителям на жизнь',rub(r.ben)+'/мес × '+r.benMonthsAll+' мес','c');
+ $('flowG').innerHTML=flowG;
+ animateVal($('yuraG'),r.yuraG,mln);
+ $('yuraG_apt').textContent=mln(r.aptNew);
+ animateVal($('parG'),r.parG,mln);
+ $('parG_dep').textContent=mln(r.depGrowG);
+ $('parG_liv').textContent=mln(r.livingG);
+ $('parG_ben').textContent=mln(r.benNomAll);
+ animateVal($('helpG'),r.helpG,mln);
+ animateVal($('totalG'),r.totalG,mln);
+ $('footG').textContent='Юра: квартира '+mln(r.aptNew)+' · родители: депозит '+mln(r.depGrowG)+' (66 т.₽/мес × '+r.H+' мес) + жизнь '+mln(r.livingG)+' + пособия '+mln(r.benNomAll);
+
+ const totals={A:r.totalA,B:r.totalB,C:r.totalC,G:r.totalG};
+ const maxT=Math.max(r.totalA,r.totalB,r.totalC,r.totalG,1);
  $('barA').style.width=Math.max(2,r.totalA/maxT*100)+'%';
  $('barB').style.width=Math.max(2,r.totalB/maxT*100)+'%';
  $('barC').style.width=Math.max(2,r.totalC/maxT*100)+'%';
+ $('barG').style.width=Math.max(2,r.totalG/maxT*100)+'%';
 
  const winners={
    fam:maxKey(totals),
-   con:maxKey({A:r.helpA,B:r.helpB,C:r.helpC}),
-   yur:maxKey({A:r.yuraA,B:r.yuraB,C:r.yuraC}),
-   par:maxKey({A:r.parA,B:r.parB,C:r.parC}),
-   bal:maxKey({A:Math.min(r.yuraA,r.parA),B:Math.min(r.yuraB,r.parB),C:Math.min(r.yuraC,r.parC)})
+   con:maxKey({A:r.helpA,B:r.helpB,C:r.helpC,G:r.helpG}),
+   yur:maxKey({A:r.yuraA,B:r.yuraB,C:r.yuraC,G:r.yuraG}),
+   par:maxKey({A:r.parA,B:r.parB,C:r.parC,G:r.parG}),
+   bal:maxKey({A:Math.min(r.yuraA,r.parA),B:Math.min(r.yuraB,r.parB),C:Math.min(r.yuraC,r.parC),G:Math.min(r.yuraG,r.parG)})
  };
  drawPlates(winners);
  drawSummary([
-   {label:'Капитал Юры',vals:{A:r.yuraA,B:r.yuraB,C:r.yuraC},win:winners.yur,wcls:'w-yur'},
-   {label:'Капитал родителей',vals:{A:r.parA,B:r.parB,C:r.parC},win:winners.par,wcls:'w-par'},
-   {label:'Чистый вклад родителей',vals:{A:r.helpA,B:r.helpB,C:r.helpC},win:winners.con,wcls:'w-con'},
+   {label:'Капитал Юры',vals:{A:r.yuraA,B:r.yuraB,C:r.yuraC,G:r.yuraG},win:winners.yur,wcls:'w-yur'},
+   {label:'Капитал родителей',vals:{A:r.parA,B:r.parB,C:r.parC,G:r.parG},win:winners.par,wcls:'w-par'},
+   {label:'Чистый вклад родителей',vals:{A:r.helpA,B:r.helpB,C:r.helpC,G:r.helpG},win:winners.con,wcls:'w-con'},
    {label:'Итого семья',vals:totals,win:winners.fam,wcls:'w-fam'}
  ]);
 
@@ -793,19 +903,18 @@ function update(){
 
  /* выводы */
  const v=[];
- const yuras={A:r.yuraA,B:r.yuraB,C:r.yuraC}, helps={A:r.helpA,B:r.helpB,C:r.helpC}, pars={A:r.parA,B:r.parB,C:r.parC};
- const names={A:'«ипотека на Юру»',B:'«без кредита»',C:'«Онуфриева Юре, деньги родителям»'};
- const letter={A:'А',B:'Б',C:'В'};
- v.push(['v-good','Максимум у Юры — вариант '+names[winners.yur]+': '+mln(yuras[winners.yur])+' к закрытию кредита (А: '+mln(r.yuraA)+' · Б: '+mln(r.yuraB)+' · В: '+mln(r.yuraC)+'). В варианте А из капитала Юры вычтены его выплаты из собственных доходов '+mln(r.yuraOwnPaymentsA)+' — поэтому А честнее сравнивать с Б и В.']);
- v.push(['v-info','Для семьи в целом эффективнее вариант '+letter[winners.fam]+': суммарно '+mln(totals[winners.fam])+' (А: '+mln(r.totalA)+', Б: '+mln(r.totalB)+', В: '+mln(r.totalC)+').']);
+ const yuras={A:r.yuraA,B:r.yuraB,C:r.yuraC,G:r.yuraG};
+ const pars={A:r.parA,B:r.parB,C:r.parC,G:r.parG};
+ const names={A:'«ипотека на Юру»',B:'«без кредита»',C:'«Онуфриева Юре, деньги родителям»',G:'«без кредита + досрочное погашение кредитов»'};
+ const letter={A:'А',B:'Б',C:'В',G:'Г'};
+ v.push(['v-good','Максимум у Юры — вариант '+names[winners.yur]+': '+mln(yuras[winners.yur])+' к закрытию кредита (А: '+mln(r.yuraA)+' · Б: '+mln(r.yuraB)+' · В: '+mln(r.yuraC)+' · Г: '+mln(r.yuraG)+'). В варианте А из капитала Юры вычтены его выплаты из собственных доходов '+mln(r.yuraOwnPaymentsA)+'.']);
+ v.push(['v-info','Для семьи в целом эффективнее вариант '+letter[winners.fam]+': суммарно '+mln(totals[winners.fam])+' (А: '+mln(r.totalA)+', Б: '+mln(r.totalB)+', В: '+mln(r.totalC)+', Г: '+mln(r.totalG)+').']);
  v.push(['v-info','Баланс интересов (минимум из капиталов Юры и родителей максимален) — в варианте '+letter[winners.bal]+'.']);
- v.push(['v-info','Чистый вклад родителей: А '+sgn(r.helpA)+mln(Math.abs(r.helpA))+', Б '+sgn(r.helpB)+mln(Math.abs(r.helpB))+', В '+sgn(r.helpC)+mln(Math.abs(r.helpC))+'. Наибольший — в варианте '+letter[winners.con]+'.']);
- v.push(['v-info','Вариант А: пособие '+rub(r.ben)+'/мес идёт в ипотеку как Юрины деньги ('+mln(r.benToMtgA)+' за 5 лет), родители доплачивают только недостачу '+rub(Math.max(0,r.pmtA-r.ben))+'/мес — всего '+mln(r.parentsMtgExtra)+', плюс «добивают» ПВ на '+mln(r.topUpA)+'. После пособий платит Юра из доходов.']);
- v.push(['v-info','Эффективнее для родителей — вариант '+letter[winners.par]+': их капитал '+mln(pars[winners.par])+' (А: '+mln(r.parA)+' · Б: '+mln(r.parB)+' · В: '+mln(r.parC)+'). В варианте В депозита нет — только 700 т.₽ и пособия «на жизнь».']);
+ v.push(['v-info','Чистый вклад родителей: А '+sgn(r.helpA)+mln(Math.abs(r.helpA))+', Б '+sgn(r.helpB)+mln(Math.abs(r.helpB))+', В '+sgn(r.helpC)+mln(Math.abs(r.helpC))+', Г '+sgn(r.helpG)+mln(Math.abs(r.helpG))+'. Наибольший — в варианте '+letter[winners.con]+'.']);
+ v.push(['v-info','Вариант Г: родители гасят кредиты досрочно на '+mln(r.creditPayoffRub)+', остаток '+mln(r.livingG)+' идёт «на жизнь», а высвободившиеся 66 т.₽/мес пополняют депозит с 1-го месяца — к концу срока депозит '+mln(r.depGrowG)+'. В вариантах А/Б/В те же платежи приходят в депозит позже (с '+r.credit2FreeM+'-го и '+r.credit1FreeM+'-го месяцев), поэтому депозит меньше.']);
+ v.push(['v-info','Эффективнее для родителей — вариант '+letter[winners.par]+': их капитал '+mln(pars[winners.par])+' (А: '+mln(r.parA)+' · Б: '+mln(r.parB)+' · В: '+mln(r.parC)+' · Г: '+mln(r.parG)+').']);
  if(winners.yur!==winners.fam) v.push(['v-warn','Интересы расходятся: семье выгоднее '+letter[winners.fam]+', а Юре — '+names[winners.yur]+'. Если цель — личный капитал Юры, ориентируйтесь на его цифры, а не на семейный итог.']);
- v.push(['v-info','Вариант Б: родители доплачивают в покупку '+mln(r.grossB)+' сверх Юриного капитала, держат депозит '+mln(r.depositB)+' и '+mln(r.livingB)+' «на жизнь»; пособия тоже родителям. Юра из своих доходов не платит.']);
- v.push(['v-info','Вариант В: Юра получает Онуфриева ('+mln(r.onufGrown)+' к концу горизонта), родители забирают его 700 т.₽ и пособия — итого '+mln(r.parC)+' «на жизнь», фиксируется через '+s.benYears+' лет.']);
- v.push(['v-warn','Все суммы номинальны; в ценах сегодня семейный итог: А ≈ '+mln(r.totalA/defl)+', Б ≈ '+mln(r.totalB/defl)+', В ≈ '+mln(r.totalC/defl)+' (дефлятор — инфляция '+pctf(s.infl)+'). Вывод чувствителен к цене Онуфриева, ставке депозита, росту жилья и сроку кредита.']);
+ v.push(['v-warn','Все суммы номинальны; в ценах сегодня семейный итог: А ≈ '+mln(r.totalA/defl)+', Б ≈ '+mln(r.totalB/defl)+', В ≈ '+mln(r.totalC/defl)+', Г ≈ '+mln(r.totalG/defl)+' (дефлятор — инфляция '+pctf(s.infl)+'). Вывод чувствителен к цене Онуфриева, ставке депозита, росту жилья и сроку кредита.']);
  v.push(['v-bad','Риски: ставки по вкладам снижаются вслед за ключевой; после '+s.benYears+' лет пособие заканчивается и платёж '+rub(r.pmtA)+' полностью ложится на доход Юры; оформление ипотеки на получателя пособий и передачу Онуфриева согласуйте с юристом и опекой.']);
  $('verdictList').innerHTML=v.map(x=>'<li class="'+x[0]+'"><span class="vdot"></span><div>'+x[1]+'</div></li>').join('');
 }
