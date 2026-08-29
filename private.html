@@ -20,12 +20,56 @@
         .error-message { display: none; color: #E33D78; font-size: 0.9em; margin-top: 15px; font-family: 'Forum', serif; }
         .protected-content { display: none; width: 100%; max-width: 1200px; margin: 0 auto; }
         .protected-content.visible { display: block; }
-        .header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding: 25px 30px; background: rgba(255,255,255,0.15); backdrop-filter: blur(20px); border-radius: 16px; border: 2px solid rgba(255,255,255,0.3); }
-        .header img { width: 80px; height: auto; }
-        .company-name { font-family: 'Forum', serif; font-size: 2.5em; color: white; letter-spacing: 2px; }
+
+        /* === ШАПКА (без backdrop-filter, чтобы blur работал в меню) === */
+        .header {
+            display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
+            padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
+            border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
+            position: relative; z-index: 200;
+        }
+        .logo-link { display: inline-block; flex: 0 0 auto; }
+        .logo {
+            width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            transition: transform .3s ease; display: block;
+        }
+        .logo-link:hover .logo { transform: scale(1.1); }
+        .company-name {
+            font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
+            text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
+        }
+
+        /* === МЕНЮ ВНУТРИ ШАПКИ === */
+        .header-nav { margin-left: auto; display: flex; gap: 10px; }
+        .nav-item { position: relative; }
+        .nav-btn {
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 10px; color: #fff; padding: 10px 16px;
+            font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; transition: all .3s;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+        .nav-btn .caret { font-size: .72em; transition: transform .2s; }
+        .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
+        .nav-menu {
+            position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
+            padding: 8px; display: none; z-index: 300;
+            box-shadow: 0 10px 30px rgba(28,13,46,.25);
+        }
+        .nav-item.open .nav-menu { display: block; }
+        .nav-menu a {
+            display: block; padding: 10px 14px; border-radius: 8px; color: #fff;
+            text-decoration: none; font-family: 'Forum', serif; font-size: .95em;
+            transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25);
+        }
+        .nav-menu a:hover { background: rgba(255,255,255,0.22); }
+
         h1 { color: white; text-align: center; margin-bottom: 30px; font-size: 2.2em; font-family: 'Forum', serif; }
-        .back-link { display: inline-block; color: white; font-family: 'Forum', serif; margin-bottom: 20px; text-decoration: none; font-size: 1.1em; }
-        .back-link:hover { opacity: 0.8; }
         .block { background: white; border-radius: 16px; padding: 30px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(28,13,46,0.3); border: 2px solid rgba(84,66,115,0.2); }
         .block-title { font-size: 1.8em; margin-bottom: 25px; color: #1C0D2E; display: flex; align-items: center; gap: 10px; font-family: 'Forum', serif; border-bottom: 3px solid #78A6C7; padding-bottom: 15px; }
         .icon { font-size: 1.5em; }
@@ -110,7 +154,7 @@
         .proto-input:focus { outline: none; border-color: #E33D78; }
         .proto-done-btn { background: #22c55e; color: white; border: none; border-radius: 8px; padding: 4px 10px; font-family: 'Forum', serif; cursor: pointer; }
         .chart-note { margin-top: 15px; font-size: 0.85em; color: #94a3b8; font-family: 'Forum', serif; }
-        @media (max-width: 700px) { .chart-toolbar, .dyn-toolbar { flex-direction: column; align-items: flex-start; } .groups-grid { grid-template-columns: 1fr; } .proto-row-label { flex: 1 1 100%; } .legend-bottom { flex-direction: column; } }
+        @media (max-width: 700px) { .chart-toolbar, .dyn-toolbar { flex-direction: column; align-items: flex-start; } .groups-grid { grid-template-columns: 1fr; } .proto-row-label { flex: 1 1 100%; } .legend-bottom { flex-direction: column; } .header { flex-wrap: wrap; } .header-nav { margin-left: 0; width: 100%; } }
     </style>
 </head>
 <body>
@@ -124,10 +168,27 @@
     </div>
 
     <div class="protected-content" id="protectedContent">
-        <a href="index.html" class="back-link">← Вернуться на главную</a>
         <div class="header">
-            <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo">
+            <a href="index.html" class="logo-link" title="На главную">
+                <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+            </a>
             <div class="company-name">Beauty Art</div>
+            <nav class="header-nav">
+                <div class="nav-item">
+                    <button class="nav-btn" onclick="toggleNav(this)">Управление продажами <span class="caret">▾</span></button>
+                    <div class="nav-menu">
+                        <a href="weekly.html">Управление остатками</a>
+                        <a href="plan.html">Реализация плана продаж</a>
+                        <a href="private.html">Сводный отчёт</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-btn" onclick="toggleNav(this)">Управление закупками <span class="caret">▾</span></button>
+                    <div class="nav-menu">
+                        <a href="products.html">База товаров</a>
+                    </div>
+                </div>
+            </nav>
         </div>
         <h1>Закрытый раздел</h1>
 
@@ -213,13 +274,25 @@
         const GROUP_NAMES = ['Уход для волос','Уход для лица','Маникюр и педикюр','Парфюмерия','Инструменты','Краска для волос','Аксессуары','SPA-уход','Наборы','Уход для тела'];
         const C_UP = '#16a34a', C_DOWN = '#dc2626';
 
-        // Группы относятся к разным категориям
         const GROUP_CATEGORY = {
             'Уход для волос': 'Волосы', 'Краска для волос': 'Волосы',
             'Уход для лица': 'Лицо и тело', 'Уход для тела': 'Лицо и тело', 'SPA-уход': 'Лицо и тело',
             'Маникюр и педикюр': 'Ногти', 'Инструменты': 'Ногти',
             'Парфюмерия': 'Парфюм и аксессуары', 'Аксессуары': 'Парфюм и аксессуары', 'Наборы': 'Парфюм и аксессуары'
         };
+
+        // === МЕНЮ ===
+        function toggleNav(btn) {
+            const item = btn.closest('.nav-item');
+            const wasOpen = item.classList.contains('open');
+            document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
+            if (!wasOpen) item.classList.add('open');
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-item')) {
+                document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
+            }
+        });
 
         async function loadSheetData() { if (!SHEET_CSV_URL) return; try { const r = await fetch(SHEET_CSV_URL); const t = await r.text(); console.log('CSV строк:', t.trim().split('\n').length); } catch (e) { console.warn('Sheets:', e); } }
 
@@ -265,7 +338,6 @@
         const signPct = (v, d = 1) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: d })}%`;
         function niceScale(maxValue, tickCount = 4) { if (maxValue <= 0) maxValue = 1; const rawStep = maxValue / tickCount; const mag = Math.pow(10, Math.floor(Math.log10(rawStep))); const norm = rawStep / mag; let step; if (norm <= 1) step = mag; else if (norm <= 2) step = 2 * mag; else if (norm <= 2.5) step = 2.5 * mag; else if (norm <= 5) step = 5 * mag; else step = 10 * mag; return { step, max: Math.ceil(maxValue / step) * step }; }
 
-        // Рост своей категории по заказам, % (для каждой группы — своя категория)
         function computeCategoryGrowthMap(nowG, prevG) {
             const catNow = {}, catPrev = {};
             nowG.forEach(g => { const c = GROUP_CATEGORY[g.name] || g.name; catNow[c] = (catNow[c] || 0) + (g.pcs || 0); });
@@ -420,7 +492,6 @@
 
         function buildForecast(cum, weeksCount, factCount, uptoIdx, seedBase) { const out = []; for (let i = 0; i <= uptoIdx; i++) { const closed = i < factCount; const lastClosed = Math.max(0, factCount - 1); const cumI = closed ? cum[i] : cum[lastClosed]; const used = closed ? (i + 1) : factCount; const avg = used ? cumI / used : 0; const remaining = weeksCount - (closed ? (i + 1) : factCount); const k = 0.85 + seededRandom(seedBase + i * 31)() * 0.3; out.push(Math.round(cumI + remaining * avg * k)); } return out; }
 
-        // Панели: Группа | Рост категории | пред | тек | Отклонение. Подсветка по сверхрезультату против своей категории.
         function dynPanels(rows, o, ctx) {
             const pos = rows.filter(r => r.dev >= 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
             const neg = rows.filter(r => r.dev < 0).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev));
