@@ -221,6 +221,13 @@ async function loadHistory(){
     DEVIATION_HISTORY=await r.json();
   }catch(e){DEVIATION_HISTORY=[];}
 }
+function upsertHistoryMemory(rows){
+  rows.forEach(r=>{
+    const i=DEVIATION_HISTORY.findIndex(x=>x.entity_type===r.entity_type&&x.entity_key===r.entity_key&&x.report_date===r.report_date);
+    if(i>=0) DEVIATION_HISTORY[i]=Object.assign({},DEVIATION_HISTORY[i],{deviation:r.deviation});
+    else DEVIATION_HISTORY.push({entity_type:r.entity_type,entity_key:r.entity_key,report_date:r.report_date,deviation:r.deviation});
+  });
+}
 async function saveHistory(rows){
   if(!rows.length)return;
   try{
@@ -351,27 +358,29 @@ function recText(pid,cs,c1,T){
   if(smooth>0)return {txt:`увеличить на ${f1(smooth)} шт/день (за ${SMOOTH_DAYS} дн, +${pct}%)`,cls:'r',change};
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
+// KPI: сравнение сегодняшнего |отклонения| со средним |отклонением| за N РАЗНЫХ предыдущих дней.
+// Если предыдущих дней меньше N — возвращаем null (прочерк).
 function kpiPctFromHistory(entityType, entityKey){
   const recs=DEVIATION_HISTORY.filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
   const todayISO=localISO(BASE);
-  const prev=recs.filter(r=>r.report_date<todayISO);
   const cur=recs.find(r=>r.report_date===todayISO);
-  const curAbs=cur?Math.abs(Number(cur.deviation)):null;
-  const avgN=(n)=>{
-    const last=prev.slice(-n);
-    if(!last.length)return null;
-    return last.reduce((s,r)=>s+Math.abs(Number(r.deviation)),0)/last.length;
+  const curAbs=cur!=null?Math.abs(Number(cur.deviation)):null;
+  const prevDays=[...new Set(recs.filter(r=>r.report_date<todayISO).map(r=>r.report_date))].sort();
+  const dayAbs=prevDays.map(d=>{
+    const r=recs.find(x=>x.report_date===d);
+    return r!=null?Math.abs(Number(r.deviation)):null;
+  }).filter(v=>v!=null);
+  const avgLast=(n)=>{
+    if(dayAbs.length<n) return null;
+    const last=dayAbs.slice(-n);
+    return last.reduce((s,v)=>s+v,0)/n;
   };
   const pct=(avgVal)=>{
-    if(curAbs==null||avgVal==null||avgVal<0.5)return null;
+    if(curAbs==null||avgVal==null||avgVal<0.5) return null;
     return (curAbs-avgVal)/avgVal*100;
   };
-  return [
-    pct(prev.length?Math.abs(Number(prev[prev.length-1].deviation)):null),
-    pct(avgN(3)),
-    pct(avgN(7))
-  ];
+  return [ pct(avgLast(1)), pct(avgLast(3)), pct(avgLast(7)) ];
 }
 function kpiCells(k){
   return k.map(v=>{
@@ -506,14 +515,28 @@ function render(){
     });
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
-    // Рыночные агрегаты сегодня
     const todayISO=localISO(BASE);
     const todayMkt={m1:{sup:0,def:0},m2:{sup:0,def:0}};
     prods.forEach(p=>{p.clArr.forEach(g=>{
       const t=todayMkt[p.matrix];
       if(g.dev>0) t.sup+=g.dev; else t.def+=g.dev;
     });});
-    // История рыночных рядов + сегодняшняя точка
+    // Собираем строки истории и кладём их в память ДО расчёта KPI/топов
+    const historyRows=[];
+    prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev}); });
+    const clAgg=new Map();
+    prods.forEach(p=>{p.clArr.forEach(g=>{
+      const k=p.matrix+'|'+g.c;
+      if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:g.c,dev:0});
+      clAgg.get(k).dev+=g.dev;
+    });});
+    clAgg.forEach(v=>{ historyRows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:todayISO,deviation:v.dev}); });
+    ['m1','m2'].forEach(mk=>{
+      historyRows.push({entity_type:'market',entity_key:mk+':sup',report_date:todayISO,deviation:todayMkt[mk].sup});
+      historyRows.push({entity_type:'market',entity_key:mk+':def',report_date:todayISO,deviation:todayMkt[mk].def});
+    });
+    upsertHistoryMemory(historyRows);
+    // Диаграмма из истории рыночных рядов + сегодняшняя точка
     const histMarket=DEVIATION_HISTORY.filter(r=>r.entity_type==='market');
     const histDays=[...new Set(histMarket.map(r=>r.report_date))].filter(d=>d!==todayISO).sort();
     const days=[...histDays, todayISO];
@@ -542,19 +565,6 @@ function render(){
         </div>
         <div>Цель — обе линии около нуля: остатки сбалансированы, корректировка минимальна. Рост линии = накопление несбалансированности.</div>
       </div></div>`;
-    const historyRows=[];
-    prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev}); });
-    const clAgg=new Map();
-    prods.forEach(p=>{p.clArr.forEach(g=>{
-      const k=p.matrix+'|'+g.c;
-      if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:g.c,dev:0});
-      clAgg.get(k).dev+=g.dev;
-    });});
-    clAgg.forEach(v=>{ historyRows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:todayISO,deviation:v.dev}); });
-    ['m1','m2'].forEach(mk=>{
-      historyRows.push({entity_type:'market',entity_key:mk+':sup',report_date:todayISO,deviation:todayMkt[mk].sup});
-      historyRows.push({entity_type:'market',entity_key:mk+':def',report_date:todayISO,deviation:todayMkt[mk].def});
-    });
     saveHistory(historyRows);
     const topBlock=(mkk,isProd)=>{
       let items=[];
