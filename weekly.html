@@ -263,6 +263,28 @@ async function saveHistory(rows){
     });
   }catch(e){console.warn('history save:',e);}
 }
+// Ежедневный срез остатков (для ретроспективы и точной сверки)
+async function saveStockSnapshot(){
+  const todayISO=localISO(BASE);
+  const rows=[];
+  for(const o in STOCK){
+    for(const wh in STOCK[o]){
+      const v=STOCK[o][wh];
+      if(v!=null) rows.push({report_date:todayISO,offer_id:o,warehouse_name:wh,stock:v});
+    }
+  }
+  if(!rows.length)return;
+  for(let i=0;i<rows.length;i+=500){
+    const part=rows.slice(i,i+500);
+    try{
+      await fetch(SUPABASE_URL+'/rest/v1/stock_history?on_conflict=report_date,offer_id,warehouse_name',{
+        method:'POST',
+        headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+        body:JSON.stringify(part)
+      });
+    }catch(e){console.warn('stock snapshot:',e);}
+  }
+}
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
   document.getElementById('progWrap').classList.remove('hide');
@@ -351,6 +373,7 @@ async function load(){
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
       document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       await loadHistory();
+      await saveStockSnapshot();
       render();
       return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
@@ -412,7 +435,7 @@ function kpiCells(k){
       const b=(o&&o.base!=null)?f1(o.base):'—';
       return `<span class="kpc n">—<i>${b}</i></span>`;
     }
-    const cls=Math.abs(o.pct)<=5?'n':(o.pct<0?'g':'r');
+    const cls=(o.pct<0)?'g':'r';
     return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
   }).join('');
 }
