@@ -44,20 +44,36 @@
  .charttitle{font-size:.9em;font-weight:700;color:#544273;flex:1}
  .chart-flex{display:flex;gap:12px;align-items:stretch}
  .chart-main{flex:3;min-width:0}
- .chart-side{flex:1;min-width:160px;display:flex;flex-direction:column;gap:10px}
+ .chart-side{flex:1.1;min-width:280px;display:flex;flex-direction:column;gap:12px}
  .chart-box{position:relative;width:100%}
  .chart-box svg{width:100%;height:auto;display:block}
  .chart-tooltip{position:absolute;display:none;pointer-events:none;background:#1C0D2E;color:#fff;padding:8px 12px;border-radius:8px;font-family:'Forum',serif;font-size:.85em;line-height:1.4;transform:translate(-50%,-100%);white-space:nowrap;box-shadow:0 4px 12px rgba(28,13,46,.4);z-index:5}
  .chart-tooltip strong{color:#E33D78;display:block}
  .chart-point{cursor:pointer}
- .donut{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:8px}
- .donut-title{font-size:.8em;font-weight:700;color:#544273;margin-bottom:4px}
- .donut-legend{font-size:.72em;color:#544273;display:flex;flex-direction:column;gap:2px;margin-top:4px}
- .donut-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
  .chart-note{margin-top:10px;font-size:.8em;color:#94a3b8;font-family:'Forum',serif;display:flex;flex-direction:column;gap:6px}
  .chart-note .legend-row{display:flex;gap:18px;flex-wrap:wrap}
  .legend-item{display:inline-flex;align-items:center;gap:6px;color:#544273}
  .sw{width:26px;height:3px;display:inline-block;border-radius:2px}
+ /* Pie / donut */
+ .piecard{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 12px}
+ .ptitle{font-size:.82em;color:#544273;font-weight:700;margin-bottom:6px}
+ .piebox{display:flex;gap:10px;align-items:center}
+ .pieWrap{position:relative;width:120px;height:120px;flex:0 0 auto}
+ svg.pie{width:100%;height:100%;display:block;animation:piein .5s ease}
+ @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
+ .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
+ .seg:hover,.seg.hl{transform:scale(1.08)}
+ svg.dim .seg:not(:hover):not(.hl){opacity:.35}
+ .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 14px}
+ .pcVal{font-size:.88em;font-weight:700;color:#1C0D2E;line-height:1.1}
+ .pcCap{font-size:.66em;color:#94a3b8;margin-top:2px}
+ .legend-pie{font-size:.74em;color:#544273;flex:1;min-width:0}
+ .lrow{display:flex;align-items:center;gap:6px;margin:3px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
+ .lrow:hover,.lrow.hl{background:rgba(120,166,199,.18)}
+ .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto}
+ .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
+ .lcnt{color:#94a3b8;font-size:.9em}
+ .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
  .topblock{flex:1;min-width:320px;max-height:230px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
  .topblock::-webkit-scrollbar{width:4px}
@@ -154,6 +170,7 @@
   </div>
   <div id="clusters"></div>
   <div class="grand" id="grand"></div>
+  <div class="tip" id="tip"></div>
 </div>
 <script>
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
@@ -400,46 +417,93 @@ function kpiCells(k){
     return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
   }).join('');
 }
-// Диаграмма доли товаров по покрытию остатком (<20 / 20-50 / >50 дней)
-function bucketCounts(prods,mk){
-  const c={low:0,mid:0,high:0};
+// === PIE / DONUT ===
+function arcPath(cx,cy,rO,rI,a0,a1){
+  const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
+  const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
+  const large=(a1-a0)>Math.PI?1:0;
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${rO} ${rO} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${rI} ${rI} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
+}
+function drawPie(ids,buckets,total,getValue,fmtTotal,caption){
+  const svg=document.getElementById(ids.svg);
+  const pcVal=document.getElementById(ids.val), pcCap=document.getElementById(ids.cap);
+  const legend=document.getElementById(ids.legend), tip=document.getElementById('tip');
+  if(!svg) return;
+  const CX=110,CY=110,RO=100,RI=62,PAD=0.02;
+  let html='';
+  if(total<=0){ html=`<circle cx="${CX}" cy="${CY}" r="${(RO+RI)/2}" fill="none" stroke="#e2e8f0" stroke-width="${RO-RI}"/>`; }
+  else{
+    let a=-Math.PI/2;
+    buckets.forEach((b,i)=>{
+      const v=getValue(b);
+      if(v<=0) return;
+      const ang=Math.min(v/total*Math.PI*2,Math.PI*2-0.0001);
+      const a0=a+PAD/2,a1=a+ang-PAD/2;
+      if(a1>a0) html+=`<path class="seg" data-i="${i}" d="${arcPath(CX,CY,RO,RI,a0,a1)}" fill="${b.color}"/>`;
+      a+=ang;
+    });
+  }
+  svg.innerHTML=html;
+  const setCenter=i=>{
+    if(i==null){ pcVal.textContent=fmtTotal(total); pcCap.textContent=caption; }
+    else{
+      const b=buckets[i];
+      const share=total>0?Math.round(getValue(b)/total*100):0;
+      pcVal.textContent=share+'%';
+      pcCap.textContent=b.label+' • '+b.cnt+' поз.';
+    }
+  };
+  setCenter(null);
+  const paths=[...svg.querySelectorAll('.seg')];
+  const hl=(i,on)=>{
+    svg.classList.toggle('dim',on);
+    paths.forEach(p=>p.classList.toggle('hl',on&&+p.dataset.i===i));
+    legend.querySelectorAll('.lrow').forEach(r=>r.classList.toggle('hl',on&&+r.dataset.i===i));
+    setCenter(on?i:null);
+  };
+  const showTip=(i,e)=>{
+    const b=buckets[i];
+    const v=getValue(b);
+    const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):0;
+    tip.innerHTML=`<b>${b.label}</b>: ${share}% • ${b.cnt} поз. • ${fmt(b.value)} ₽`;
+    tip.style.opacity=1;
+    moveTip(e);
+  };
+  const moveTip=e=>{ tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px'; };
+  const hideTip=()=>{ tip.style.opacity=0; };
+  paths.forEach(p=>{
+    const i=+p.dataset.i;
+    p.addEventListener('mouseenter',e=>{hl(i,true);showTip(i,e);});
+    p.addEventListener('mousemove',moveTip);
+    p.addEventListener('mouseleave',()=>{hl(i,false);hideTip();});
+  });
+  legend.innerHTML=buckets.map((b,i)=>{
+    const v=getValue(b);
+    const share=total>0?(v/total*100).toLocaleString('ru-RU',{maximumFractionDigits:1}):'0';
+    return `<div class="lrow" data-i="${i}"><span class="dot" style="background:${b.color}"></span>${b.label}<span class="lcnt">${b.cnt} поз.</span><span class="lval">${share}%</span></div>`;
+  }).join('');
+  legend.querySelectorAll('.lrow').forEach(r=>{
+    const i=+r.dataset.i;
+    r.addEventListener('mouseenter',()=>hl(i,true));
+    r.addEventListener('mouseleave',()=>hl(i,false));
+  });
+}
+// Покрытие остатком: <20 / 20-50 / >50 дней. Считаем по товару: stock / s1total
+function coverageBuckets(prods,mk){
+  const buckets=[
+    {label:'<20 дн',color:'#E33D78',cnt:0,value:0},
+    {label:'20–50 дн',color:'#16a34a',cnt:0,value:0},
+    {label:'>50 дн',color:'#d97706',cnt:0,value:0}
+  ];
   prods.forEach(p=>{
     if(p.matrix!==mk) return;
     if(p.stock<=0) return;
     const days=p.s1total>0 ? p.stock/p.s1total : Infinity;
-    if(days<20)c.low++; else if(days<=50)c.mid++; else c.high++;
+    const b=days<20?buckets[0]:(days<=50?buckets[1]:buckets[2]);
+    b.cnt++;
+    b.value+=p.sum;
   });
-  return c;
-}
-function pieSVG(c){
-  const total=c.low+c.mid+c.high;
-  const W=120,H=120,cx=60,cy=60,r=52;
-  if(total<=0) return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#e5e7eb"/></svg>`;
-  const segs=[['low',c.low,'#E33D78'],['mid',c.mid,'#16a34a'],['high',c.high,'#d97706']];
-  let a=-Math.PI/2, paths='';
-  segs.forEach(([k,v,col])=>{
-    if(v<=0)return;
-    const ang=v/total*2*Math.PI, a0=a, a1=a+ang;
-    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
-    const large=ang>Math.PI?1:0;
-    paths+=`<path d="M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z" fill="${col}"/>`;
-    a=a1;
-  });
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${paths}<circle cx="${cx}" cy="${cy}" r="26" fill="#fff"/></svg>`;
-}
-function donutBlock(prods,mk){
-  const c=bucketCounts(prods,mk);
-  const total=c.low+c.mid+c.high;
-  const pct=v=>total?Math.round(v/total*100):0;
-  return `<div class="donut">
-    <div class="donut-title">${MATRIX_NAME[mk]} • покрытие остатком</div>
-    ${pieSVG(c)}
-    <div class="donut-legend">
-      <span><i style="background:#E33D78"></i>&lt;20 дн: ${c.low} (${pct(c.low)}%)</span>
-      <span><i style="background:#16a34a"></i>20–50 дн: ${c.mid} (${pct(c.mid)}%)</span>
-      <span><i style="background:#d97706"></i>&gt;50 дн: ${c.high} (${pct(c.high)}%)</span>
-    </div>
-  </div>`;
+  return buckets;
 }
 function attachChart(box, tooltip){
   box.querySelectorAll('.chart-point').forEach(pt => {
@@ -608,10 +672,22 @@ function render(){
         }
       });
     });
+    const pieCard=(mk)=>{
+      return `<div class="piecard">
+        <div class="ptitle">${MATRIX_NAME[mk]} • покрытие остатком</div>
+        <div class="piebox">
+          <div class="pieWrap">
+            <svg class="pie" id="pie${mk}" viewBox="0 0 220 220"></svg>
+            <div class="pieCenter"><div class="pcVal" id="pcVal${mk}"></div><div class="pcCap" id="pcCap${mk}"></div></div>
+          </div>
+          <div class="legend-pie" id="legend${mk}"></div>
+        </div>
+      </div>`;
+    };
     html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам, шт/день • доля товаров по покрытию остатком</span></div>
       <div class="chart-flex">
         <div class="chart-main"><div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div></div>
-        <div class="chart-side">${donutBlock(prods,'m1')}${donutBlock(prods,'m2')}</div>
+        <div class="chart-side">${pieCard('m1')}${pieCard('m2')}</div>
       </div>
       <div class="chart-note">
         <div class="legend-row">
@@ -649,7 +725,7 @@ function render(){
           <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
           <span style="grid-column:2;grid-row:1/3"></span>
           <span style="grid-column:3;grid-row:1/3">Δ шт/день (к цели за 7 дн)</span>
-          <span style="grid-column:4/7;grid-row:1">Изменение результата к</span>
+          <span style="grid-column:4/7;grid-row:1">Изменение результата за</span>
           <span style="grid-column:4;grid-row:2">1д</span>
           <span style="grid-column:5;grid-row:2">3д</span>
           <span style="grid-column:6;grid-row:2">7д</span>
@@ -726,6 +802,14 @@ function render(){
       const box = document.getElementById('chartBox');
       const tip = document.getElementById('chartTip');
       if (box && tip) drawSplitChart(box, tip, days, series);
+      ['m1','m2'].forEach(mk=>{
+        const b=coverageBuckets(prods,mk);
+        const total=b.reduce((s,x)=>s+x.cnt,0);
+        drawPie(
+          {svg:'pie'+mk,legend:'legend'+mk,val:'pcVal'+mk,cap:'pcCap'+mk},
+          b, total, x=>x.cnt, v=>v+' поз.', 'позиций'
+        );
+      });
     }, 0);
   }else{
     const whMap=new Map();
