@@ -73,18 +73,22 @@
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
  .covdyn{margin-top:8px;border-top:1px dashed rgba(84,66,115,.15);padding-top:6px;display:flex;flex-direction:column;gap:4px}
- .covrow{display:flex;align-items:center;gap:6px;font-size:.72em;color:#544273;flex-wrap:wrap}
+ .covrow{display:grid;grid-template-columns:1fr auto 44px 44px 44px;align-items:center;gap:4px;font-size:.72em;color:#544273}
+ .covlab{display:flex;align-items:center;gap:6px}
  .covrow .dot{width:8px;height:8px}
- .covrow .shr{margin-left:auto;font-weight:700;color:#1C0D2E}
- .covrow .chips{display:flex;gap:3px}
- .covchip{font-size:.9em;font-weight:700;border-radius:4px;padding:1px 4px;background:rgba(148,163,184,.12)}
+ .covcnt{font-weight:700;color:#1C0D2E;text-align:right}
+ .covd{text-align:center;font-weight:700;border-radius:4px;padding:1px 2px;background:rgba(148,163,184,.12)}
+ .covhead{color:#94a3b8;font-size:.68em}
+ .covhead .covtitle{grid-column:1/3;text-align:left;font-weight:400}
+ .covhead .covd{background:none;font-weight:400}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
  .topblock{flex:1;min-width:320px;max-height:345px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
  .topblock::-webkit-scrollbar{width:4px}
  .topblock::-webkit-scrollbar-track{background:rgba(84,66,115,.1);border-radius:2px}
  .topblock::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#78A6C7,#E33D78);border-radius:2px}
- .toptitle{font-family:'Forum';font-weight:700;color:#E33D78;font-size:1em;margin-bottom:8px}
+ .toptitle{font-family:'Forum';font-weight:700;color:#E33D78;font-size:1em;margin-bottom:4px}
+ .topnote{font-size:.72em;color:#94a3b8;margin-bottom:6px}
  .tophead,.topitem{display:grid;grid-template-columns:minmax(140px,1fr) auto auto 56px 56px 56px;align-items:center;gap:6px}
  .tophead{font-size:.72em;color:#94a3b8;margin-bottom:4px}
  .tophead span:nth-child(n+4){text-align:center}
@@ -678,10 +682,10 @@ function render(){
       const r=DEVIATION_HISTORY.find(x=>x.entity_type==='coverage'&&x.entity_key===mk+':'+key&&x.report_date===t);
       return r!=null?Number(r.deviation):null;
     };
-    const covChip=(lab,d,goodWhenDown)=>{
-      if(d==null)return `<span class="covchip n">${lab} —</span>`;
-      const cls=d===0?'n':((goodWhenDown? d<0 : d>0)?'g':'r');
-      return `<span class="covchip ${cls}">${lab} ${d>0?'+':''}${d}</span>`;
+    const covDeltaCell=(d,gw)=>{
+      if(d==null)return `<span class="covd n">—</span>`;
+      const cls=d===0?'n':((gw? d<0 : d>0)?'g':'r');
+      return `<span class="covd ${cls}">${d>0?'+':''}${d}</span>`;
     };
     const historyRows=[];
     prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev,dev_up:p.up,dev_down:p.down}); });
@@ -718,11 +722,13 @@ function render(){
     });
     const pieCard=(mk)=>{
       const b=cov[mk]; const total=b.reduce((s,x)=>s+x.cnt,0);
-      const dyn=b.map(x=>{
-        const gw=x.key!=='b2050';
-        const share=total>0?Math.round(x.cnt/total*100):0;
-        return `<div class="covrow"><span class="dot" style="background:${x.color}"></span><span>${x.label}</span><span class="shr">${share}%</span><span class="chips">${covChip('1д', x.cnt-covPast(mk,x.key,1), gw)}${covChip('3д', x.cnt-covPast(mk,x.key,3), gw)}${covChip('7д', x.cnt-covPast(mk,x.key,7), gw)}</span></div>`;
-      }).join('');
+      const dyn=`<div class="covrow covhead"><span class="covtitle">Изменение результата за</span><span class="covd">1д</span><span class="covd">3д</span><span class="covd">7д</span></div>`+
+        b.map(x=>{
+          const gw=x.key!=='b2050';
+          const p1=covPast(mk,x.key,1),p3=covPast(mk,x.key,3),p7=covPast(mk,x.key,7);
+          const d1=p1==null?null:x.cnt-p1, d3=p3==null?null:x.cnt-p3, d7=p7==null?null:x.cnt-p7;
+          return `<div class="covrow"><span class="covlab"><span class="dot" style="background:${x.color}"></span>${x.label}</span><span class="covcnt">${x.cnt}</span>${covDeltaCell(d1,gw)}${covDeltaCell(d3,gw)}${covDeltaCell(d7,gw)}</div>`;
+        }).join('');
       return `<div class="piecard">
         <div class="ptitle">${MATRIX_NAME[mk]} • покрытие остатком</div>
         <div class="piebox">
@@ -735,7 +741,7 @@ function render(){
         <div class="covdyn">${dyn}</div>
       </div>`;
     };
-    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам, шт/день • доля товаров по покрытию остатком</span></div>
+    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам • доля товаров по покрытию остатком</span></div>
       <div class="chart-flex">
         <div class="chart-main"><div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div></div>
         <div class="chart-side">${pieCard('m1')}${pieCard('m2')}</div>
@@ -747,7 +753,7 @@ function render(){
           <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр профицит</span>
           <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр дефицит</span>
         </div>
-        <div>Цель — обе линии около нуля. Диаграммы справа — доля товаров с покрытием остатком &lt;20 / 20–50 / &gt;50 дней; чипы 1д/3д/7д — изменение числа позиций.</div>
+        <div>Цель — обе линии около нуля. Диаграммы справа — распределение товаров по покрытию остатком; ниже — число позиций и изменение за 1/3/7 дн.</div>
       </div></div>`;
     saveHistory(historyRows);
     const topBlock=(mkk,isProd)=>{
@@ -772,6 +778,7 @@ function render(){
       items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
       if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="meta">нет позиций</div></div>`;
       return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
+        <div class="topnote">База ≥ ${MATERIAL} шт/день → %; база &lt; ${MATERIAL} → абсолютное изменение (шт/день)</div>
         <div class="tophead">
           <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
           <span style="grid-column:2;grid-row:1/3"></span>
