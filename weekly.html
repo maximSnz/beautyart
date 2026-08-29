@@ -216,7 +216,7 @@ async function go(){
 async function loadHistory(){
   try{
     const since=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-30));
-    const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation&order=report_date.asc`,{headers:HD});
+    const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation,dev_up,dev_down&order=report_date.asc`,{headers:HD});
     if(!r.ok){DEVIATION_HISTORY=[];return;}
     DEVIATION_HISTORY=await r.json();
   }catch(e){DEVIATION_HISTORY=[];}
@@ -224,8 +224,8 @@ async function loadHistory(){
 function upsertHistoryMemory(rows){
   rows.forEach(r=>{
     const i=DEVIATION_HISTORY.findIndex(x=>x.entity_type===r.entity_type&&x.entity_key===r.entity_key&&x.report_date===r.report_date);
-    if(i>=0) DEVIATION_HISTORY[i]=Object.assign({},DEVIATION_HISTORY[i],{deviation:r.deviation});
-    else DEVIATION_HISTORY.push({entity_type:r.entity_type,entity_key:r.entity_key,report_date:r.report_date,deviation:r.deviation});
+    if(i>=0) DEVIATION_HISTORY[i]=Object.assign({},DEVIATION_HISTORY[i],r);
+    else DEVIATION_HISTORY.push(Object.assign({},r));
   });
 }
 async function saveHistory(rows){
@@ -358,22 +358,26 @@ function recText(pid,cs,c1,T){
   if(smooth>0)return {txt:`увеличить на ${f1(smooth)} шт/день (за ${SMOOTH_DAYS} дн, +${pct}%)`,cls:'r',change};
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
-// KPI: сравнение сегодняшнего |отклонения| со средним |отклонением| за N РАЗНЫХ предыдущих дней.
-// Если предыдущих дней меньше N — возвращаем null (прочерк).
-function kpiPctFromHistory(entityType, entityKey){
+// KPI по направлению: сравниваем величину ТОГО ЖЕ направления (dev_up или dev_down),
+// что показана в топе, — сравнимые величины.
+function kpiPctFromHistory(entityType, entityKey, dir){
   const recs=DEVIATION_HISTORY.filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
   const todayISO=localISO(BASE);
-  const cur=recs.find(r=>r.report_date===todayISO);
-  const curAbs=cur!=null?Math.abs(Number(cur.deviation)):null;
+  const val=(r)=>{
+    const v=(dir==='up')?r.dev_up:r.dev_down;
+    return v!=null?Math.abs(Number(v)):null;
+  };
+  const curRec=recs.find(r=>r.report_date===todayISO);
+  const curAbs=curRec?val(curRec):null;
   const prevDays=[...new Set(recs.filter(r=>r.report_date<todayISO).map(r=>r.report_date))].sort();
-  const dayAbs=prevDays.map(d=>{
+  const dayVals=prevDays.map(d=>{
     const r=recs.find(x=>x.report_date===d);
-    return r!=null?Math.abs(Number(r.deviation)):null;
+    return r?val(r):null;
   }).filter(v=>v!=null);
   const avgLast=(n)=>{
-    if(dayAbs.length<n) return null;
-    const last=dayAbs.slice(-n);
+    if(dayVals.length<n) return null;
+    const last=dayVals.slice(-n);
     return last.reduce((s,v)=>s+v,0)/n;
   };
   const pct=(avgVal)=>{
@@ -510,7 +514,9 @@ function render(){
     }).sort((a,b)=>b.csum-a.csum);
     const prods=[...prodAgg.values()].map(p=>{
       p.clArr=toClArr(p);
-      p.totalDev=p.clArr.reduce((s,g)=>s+g.dev,0);
+      let up=0,down=0;
+      p.clArr.forEach(g=>{ if(g.dir==='up')up+=g.change; else if(g.dir==='down')down+=g.change; });
+      p.up=up; p.down=down; p.totalDev=up-down;
       return p;
     });
     const byMatrix=new Map();
@@ -521,22 +527,21 @@ function render(){
       const t=todayMkt[p.matrix];
       if(g.dev>0) t.sup+=g.dev; else t.def+=g.dev;
     });});
-    // Собираем строки истории и кладём их в память ДО расчёта KPI/топов
     const historyRows=[];
-    prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev}); });
+    prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev,dev_up:p.up,dev_down:p.down}); });
     const clAgg=new Map();
     prods.forEach(p=>{p.clArr.forEach(g=>{
       const k=p.matrix+'|'+g.c;
-      if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:g.c,dev:0});
-      clAgg.get(k).dev+=g.dev;
+      if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:g.c,dev:0,up:0,down:0});
+      const o=clAgg.get(k); o.dev+=g.dev;
+      if(g.dir==='up')o.up+=g.change; else if(g.dir==='down')o.down+=g.change;
     });});
-    clAgg.forEach(v=>{ historyRows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:todayISO,deviation:v.dev}); });
+    clAgg.forEach(v=>{ historyRows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:todayISO,deviation:v.dev,dev_up:v.up,dev_down:v.down}); });
     ['m1','m2'].forEach(mk=>{
       historyRows.push({entity_type:'market',entity_key:mk+':sup',report_date:todayISO,deviation:todayMkt[mk].sup});
       historyRows.push({entity_type:'market',entity_key:mk+':def',report_date:todayISO,deviation:todayMkt[mk].def});
     });
     upsertHistoryMemory(historyRows);
-    // Диаграмма из истории рыночных рядов + сегодняшняя точка
     const histMarket=DEVIATION_HISTORY.filter(r=>r.entity_type==='market');
     const histDays=[...new Set(histMarket.map(r=>r.report_date))].filter(d=>d!==todayISO).sort();
     const days=[...histDays, todayISO];
@@ -570,8 +575,7 @@ function render(){
       let items=[];
       if(isProd){
         byMatrix.get(mkk)?.forEach(p=>{
-          let up=0,down=0; p.clArr.forEach(g=>{ if(g.dir==='up')up+=g.change; else if(g.dir==='down')down+=g.change; });
-          const dir=down>=up?'down':'up'; const mag=Math.max(up,down);
+          const dir=p.down>=p.up?'down':'up'; const mag=Math.max(p.up,p.down);
           if(mag>0) items.push({label:p.o,ttl:p.name,dir,mag,jumpId:`prod:${p.o}`,histKey:p.o,histType:'product'});
         });
       }else{
@@ -592,7 +596,7 @@ function render(){
         <div class="tophead"><span>Наименование</span><span></span><span>шт/день</span><span>1д</span><span>3д</span><span>7д</span></div>`+
         items.map(x=>{
           const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
-          const kpi=kpiPctFromHistory(x.histType,x.histKey);
+          const kpi=kpiPctFromHistory(x.histType,x.histKey,x.dir);
           return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
         }).join('')+`</div>`;
     };
