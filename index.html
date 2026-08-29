@@ -15,7 +15,7 @@
         }
         .container { max-width: 1200px; margin: 0 auto; }
 
-        /* === ШАПКА (без backdrop-filter, чтобы список мог blur'ить фон) === */
+        /* === ШАПКА (без blur, blur только у выпадающего меню) === */
         .header {
             display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
             padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
@@ -530,9 +530,7 @@
                 <div class="metrics-header">
                     <span>Ключевые показатели месяца:</span>
                 </div>
-                <div class="metrics-grid" id="metricsGrid">
-                    <!-- Заполняется через JS -->
-                </div>
+                <div class="metrics-grid" id="metricsGrid"></div>
                 <a href="private.html" class="private-section-link">🔒 Закрытый раздел — детальная аналитика</a>
             </div>
 
@@ -613,9 +611,6 @@
     </div>
 
     <script>
-        // ============================================================
-        // МЕНЮ В ШАПКЕ (раскрывающиеся списки)
-        // ============================================================
         function toggleNav(btn) {
             const item = btn.closest('.nav-item');
             const wasOpen = item.classList.contains('open');
@@ -628,9 +623,6 @@
             }
         });
 
-        // ============================================================
-        // ДАННЫЕ МЕТРИК
-        // ============================================================
         const METRICS = {
             margin_percent: { label: 'Маржинальность', value: 25.3, unit: '%', change: +2.1, changeLabel: 'к пред. месяцу' },
             margin_value:   { label: 'Маржа', value: 152400, unit: '₽', change: +12300, changeLabel: 'к пред. месяцу' },
@@ -664,7 +656,6 @@
             });
         }
 
-        // === СТРЕЛКИ ГОРИЗОНТАЛЬНОГО СКРОЛЛА ===
         function updateArrows(container) {
             const wrapper = container.closest('.scroll-wrapper');
             if (!wrapper) return;
@@ -687,7 +678,6 @@
             renderMetrics();
         });
 
-        // === ТАЙМЛАЙН НЕДЕЛИ ===
         function updateDashboard() {
             const now = new Date();
             const day = now.getDay();
