@@ -72,6 +72,12 @@
  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
+ .covdyn{margin-top:8px;border-top:1px dashed rgba(84,66,115,.15);padding-top:6px;display:flex;flex-direction:column;gap:4px}
+ .covrow{display:flex;align-items:center;gap:6px;font-size:.72em;color:#544273;flex-wrap:wrap}
+ .covrow .dot{width:8px;height:8px}
+ .covrow .shr{margin-left:auto;font-weight:700;color:#1C0D2E}
+ .covrow .chips{display:flex;gap:3px}
+ .covchip{font-size:.9em;font-weight:700;border-radius:4px;padding:1px 4px;background:rgba(148,163,184,.12)}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
  .topblock{flex:1;min-width:320px;max-height:345px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
@@ -182,6 +188,7 @@ let importing=false, MODE='summary', INCLUDE_FIRE=false;
 let T_REPORT=11;
 let DEVIATION_HISTORY=[];
 const SMOOTH_DAYS=7;
+const MATERIAL=10;
 const MATRIX_NAME={m1:'Алекс',m2:'Александр'};
 const C_M1='#E33D78', C_M2='#78A6C7';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -263,7 +270,6 @@ async function saveHistory(rows){
     });
   }catch(e){console.warn('history save:',e);}
 }
-// Ежедневный срез остатков (для ретроспективы и точной сверки)
 async function saveStockSnapshot(){
   const todayISO=localISO(BASE);
   const rows=[];
@@ -421,19 +427,25 @@ function kpiPctFromHistory(entityType, entityKey, dir){
   const dayVals=prevDays.map(d=>{const r=recs.find(x=>x.report_date===d);return r?val(r):null;}).filter(v=>v!=null);
   const mk=(n)=>{
     if(cur==null) return null;
-    if(dayVals.length<n) return {pct:null,cur:cur,base:null};
+    if(dayVals.length<n) return {pct:null,cur:cur,base:null,abs:null,small:false};
     const last=dayVals.slice(-n);
     const base=last.reduce((s,v)=>s+v,0)/n;
-    if(base<0.5) return {pct:null,cur:cur,base:base};
-    return {pct:(cur-base)/base*100, cur:cur, base:base};
+    const abs=cur-base;
+    if(base<MATERIAL) return {pct:null,cur:cur,base:base,abs:abs,small:true};
+    let pct=(cur-base)/base*100;
+    pct=Math.max(-999,Math.min(999,pct));
+    return {pct:pct,cur:cur,base:base,abs:abs,small:false};
   };
   return [mk(1),mk(3),mk(7)];
 }
 function kpiCells(k){
   return k.map(o=>{
-    if(o==null || o.pct==null){
-      const b=(o&&o.base!=null)?f1(o.base):'—';
-      return `<span class="kpc n">—<i>${b}</i></span>`;
+    if(o==null) return `<span class="kpc n">—<i>—</i></span>`;
+    const baseStr=(o.base!=null)?f1(o.base):'—';
+    if(o.pct==null && !o.small) return `<span class="kpc n">—<i>${baseStr}</i></span>`;
+    if(o.small){
+      const cls=(o.abs<0)?'g':'r';
+      return `<span class="kpc ${cls}" title="база мала — показано абс. изменение, шт/день">${o.abs>0?'+':''}${f1(o.abs)}<i>${baseStr}</i></span>`;
     }
     const cls=(o.pct<0)?'g':'r';
     return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
@@ -511,9 +523,9 @@ function drawPie(ids,buckets,total,getValue,fmtTotal,caption){
 }
 function coverageBuckets(prods,mk){
   const buckets=[
-    {label:'<20 дн',color:'#E33D78',cnt:0,value:0},
-    {label:'20–50 дн',color:'#16a34a',cnt:0,value:0},
-    {label:'>50 дн',color:'#d97706',cnt:0,value:0}
+    {key:'lt20',label:'<20 дн',color:'#E33D78',cnt:0,value:0},
+    {key:'b2050',label:'20–50 дн',color:'#16a34a',cnt:0,value:0},
+    {key:'gt50',label:'>50 дн',color:'#d97706',cnt:0,value:0}
   ];
   prods.forEach(p=>{
     if(p.matrix!==mk) return;
@@ -660,6 +672,17 @@ function render(){
       const t=todayMkt[p.matrix];
       if(g.dev>0) t.sup+=g.dev; else t.def+=g.dev;
     });});
+    const cov={m1:coverageBuckets(prods,'m1'),m2:coverageBuckets(prods,'m2')};
+    const covPast=(mk,key,n)=>{
+      const t=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-n));
+      const r=DEVIATION_HISTORY.find(x=>x.entity_type==='coverage'&&x.entity_key===mk+':'+key&&x.report_date===t);
+      return r!=null?Number(r.deviation):null;
+    };
+    const covChip=(lab,d,goodWhenDown)=>{
+      if(d==null)return `<span class="covchip n">${lab} —</span>`;
+      const cls=d===0?'n':((goodWhenDown? d<0 : d>0)?'g':'r');
+      return `<span class="covchip ${cls}">${lab} ${d>0?'+':''}${d}</span>`;
+    };
     const historyRows=[];
     prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev,dev_up:p.up,dev_down:p.down}); });
     const clAgg=new Map();
@@ -673,6 +696,7 @@ function render(){
     ['m1','m2'].forEach(mk=>{
       historyRows.push({entity_type:'market',entity_key:mk+':sup',report_date:todayISO,deviation:todayMkt[mk].sup});
       historyRows.push({entity_type:'market',entity_key:mk+':def',report_date:todayISO,deviation:todayMkt[mk].def});
+      cov[mk].forEach(b=>{ historyRows.push({entity_type:'coverage',entity_key:mk+':'+b.key,report_date:todayISO,deviation:b.cnt}); });
     });
     upsertHistoryMemory(historyRows);
     const histMarket=DEVIATION_HISTORY.filter(r=>r.entity_type==='market');
@@ -693,6 +717,12 @@ function render(){
       });
     });
     const pieCard=(mk)=>{
+      const b=cov[mk]; const total=b.reduce((s,x)=>s+x.cnt,0);
+      const dyn=b.map(x=>{
+        const gw=x.key!=='b2050';
+        const share=total>0?Math.round(x.cnt/total*100):0;
+        return `<div class="covrow"><span class="dot" style="background:${x.color}"></span><span>${x.label}</span><span class="shr">${share}%</span><span class="chips">${covChip('1д', x.cnt-covPast(mk,x.key,1), gw)}${covChip('3д', x.cnt-covPast(mk,x.key,3), gw)}${covChip('7д', x.cnt-covPast(mk,x.key,7), gw)}</span></div>`;
+      }).join('');
       return `<div class="piecard">
         <div class="ptitle">${MATRIX_NAME[mk]} • покрытие остатком</div>
         <div class="piebox">
@@ -702,6 +732,7 @@ function render(){
           </div>
           <div class="legend-pie" id="legend${mk}"></div>
         </div>
+        <div class="covdyn">${dyn}</div>
       </div>`;
     };
     html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам, шт/день • доля товаров по покрытию остатком</span></div>
@@ -716,7 +747,7 @@ function render(){
           <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр профицит</span>
           <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр дефицит</span>
         </div>
-        <div>Цель — обе линии около нуля. Диаграммы справа — доля товаров с покрытием остатком &lt;20 / 20–50 / &gt;50 дней.</div>
+        <div>Цель — обе линии около нуля. Диаграммы справа — доля товаров с покрытием остатком &lt;20 / 20–50 / &gt;50 дней; чипы 1д/3д/7д — изменение числа позиций.</div>
       </div></div>`;
     saveHistory(historyRows);
     const topBlock=(mkk,isProd)=>{
@@ -823,7 +854,7 @@ function render(){
       const tip = document.getElementById('chartTip');
       if (box && tip) drawSplitChart(box, tip, days, series);
       ['m1','m2'].forEach(mk=>{
-        const b=coverageBuckets(prods,mk);
+        const b=cov[mk];
         const total=b.reduce((s,x)=>s+x.cnt,0);
         drawPie(
           {svg:'pie'+mk,legend:'legend'+mk,val:'pcVal'+mk,cap:'pcCap'+mk},
