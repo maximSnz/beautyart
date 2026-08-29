@@ -14,7 +14,33 @@
             padding: 40px 20px;
         }
         .container { max-width: 1200px; margin: 0 auto; }
-        
+
+        /* === ВЕРХНЕЕ МЕНЮ === */
+        .topnav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav-item { position: relative; }
+        .nav-btn {
+            padding: 12px 20px; background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3); border-radius: 10px;
+            color: white; font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
+            transition: all .3s; display: inline-flex; align-items: center; gap: 8px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+        .nav-btn .caret { transition: transform .2s; font-size: .8em; }
+        .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
+        .nav-menu {
+            position: absolute; top: calc(100% + 8px); left: 0; min-width: 260px;
+            background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(28,13,46,.3);
+            border: 2px solid rgba(84,66,115,0.2); padding: 8px; display: none; z-index: 100;
+        }
+        .nav-item.open .nav-menu { display: block; }
+        .nav-menu a {
+            display: block; padding: 10px 14px; border-radius: 8px; color: #333;
+            text-decoration: none; font-family: 'Forum', serif; font-size: .95em; transition: background .2s;
+        }
+        .nav-menu a:hover { background: rgba(120,166,199,.15); color: #7D3673; }
+
         /* === ШАПКА === */
         .header {
             display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
@@ -28,7 +54,7 @@
             font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
             text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
         }
-        
+
         /* === БЕГУЩАЯ СТРОКА === */
         .marquee-wrapper {
             overflow: hidden; background: rgba(255, 255, 255, 0.15);
@@ -65,7 +91,7 @@
 
         /* === ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ СО СТРЕЛКАМИ === */
         .scroll-wrapper { position: relative; }
-        
+
         .scroll-container {
             display: flex; overflow-x: auto; gap: 20px; padding-bottom: 12px;
             scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
@@ -172,7 +198,7 @@
         .metric-trend.up { color: #22c55e; }
         .metric-trend.down { color: #E33D78; }
         .metric-trend.neutral { color: #94a3b8; }
-        
+
         .private-section-link {
             display: inline-flex; align-items: center; gap: 8px;
             margin-top: 15px; padding: 12px 20px;
@@ -193,7 +219,7 @@
         }
         .timeline-status-text { color: #E33D78; font-size: 1em; font-weight: 600; animation: status-blink 1.5s infinite alternate; }
         @keyframes status-blink { from { opacity: 0.8; text-shadow: 0 0 5px rgba(227, 61, 120, 0.3); } to { opacity: 1; text-shadow: 0 0 15px rgba(227, 61, 120, 0.8); } }
-        
+
         .timeline-track { position: relative; height: 70px; background: #e5e7eb; border-radius: 35px; overflow: hidden; display: flex; }
         .timeline-track-dates { height: 60px; margin-top: 10px; }
         .timeline-stage {
@@ -245,12 +271,30 @@
 </head>
 <body>
     <div class="container">
+        <!-- ВЕРХНЕЕ МЕНЮ -->
+        <nav class="topnav">
+            <div class="nav-item">
+                <button class="nav-btn" onclick="toggleNav(this)">💼 Управление продажами <span class="caret">▾</span></button>
+                <div class="nav-menu">
+                    <a href="weekly.html">📦 Управление остатками</a>
+                    <a href="plan.html">📊 Реализация плана продаж</a>
+                    <a href="private.html">🔒 Сводный отчёт</a>
+                </div>
+            </div>
+            <div class="nav-item">
+                <button class="nav-btn" onclick="toggleNav(this)">🚚 Управление закупками <span class="caret">▾</span></button>
+                <div class="nav-menu">
+                    <a href="products.html">🗂 База товаров</a>
+                </div>
+            </div>
+        </nav>
+
         <!-- ШАПКА -->
         <div class="header">
             <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
             <div class="company-name">Beauty Art</div>
         </div>
-        
+
         <!-- БЕГУЩАЯ СТРОКА -->
         <div class="marquee-wrapper">
             <div class="marquee-track">
@@ -270,7 +314,7 @@
         </div>
 
         <h1>Панель управления компанией</h1>
-        
+
         <!-- БЛОК 1: Управление компанией -->
         <div class="block">
             <div class="block-title"><span class="icon">🎯</span> Управление компанией</div>
@@ -333,7 +377,7 @@
         <!-- БЛОК 2: Логистика и доставка -->
         <div class="block">
             <div class="block-title"><span class="icon">🚚</span> Логистика и доставка</div>
-            
+
             <!-- Десктопный таймлайн -->
             <div class="timeline-container">
                 <div class="timeline-header">
@@ -469,7 +513,7 @@
         <!-- БЛОК 3: Коммерческая деятельность -->
         <div class="block">
             <div class="block-title"><span class="icon">💼</span> Коммерческая деятельность</div>
-            
+
             <!-- БЛОК МЕТРИК -->
             <div class="metrics-container">
                 <div class="metrics-header">
@@ -559,6 +603,21 @@
 
     <script>
         // ============================================================
+        // ВЕРХНЕЕ МЕНЮ (раскрывающиеся списки)
+        // ============================================================
+        function toggleNav(btn) {
+            const item = btn.closest('.nav-item');
+            const wasOpen = item.classList.contains('open');
+            document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
+            if (!wasOpen) item.classList.add('open');
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-item')) {
+                document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
+            }
+        });
+
+        // ============================================================
         // ДАННЫЕ МЕТРИК
         // Обновляйте значения вручную при каждом коммите.
         // invert: true — для показателей, где рост = негатив (расходы)
@@ -574,22 +633,19 @@
             const grid = document.getElementById('metricsGrid');
             if (!grid) return;
             grid.innerHTML = '';
-            
+
             Object.values(METRICS).forEach(metric => {
                 const card = document.createElement('div');
                 card.className = 'metric-card';
-                
-                // Направление стрелки
+
                 const directionIcon = metric.change > 0 ? '↑' : metric.change < 0 ? '↓' : '→';
-                // Цвет: зелёный = хорошо, розовый = плохо
                 const isGood = metric.invert ? metric.change < 0 : metric.change > 0;
                 const colorClass = metric.change === 0 ? 'neutral' : (isGood ? 'up' : 'down');
-                // Формат значения и изменения
                 const sign = metric.change > 0 ? '+' : metric.change < 0 ? '−' : '';
                 const absChange = Math.abs(metric.change);
                 const formattedValue = metric.unit === '%' ? metric.value.toFixed(1) : metric.value.toLocaleString('ru-RU');
                 const formattedChange = metric.unit === '%' ? absChange.toFixed(1) + '%' : absChange.toLocaleString('ru-RU') + ' ' + metric.unit;
-                
+
                 card.innerHTML = `
                     <div class="metric-label">${metric.label}</div>
                     <div class="metric-value">${formattedValue} ${metric.unit}</div>
@@ -629,23 +685,23 @@
             const date = now.getDate();
             const month = now.getMonth();
             const year = now.getFullYear();
-            
+
             const currentMonday = new Date(now);
             if (day === 0) currentMonday.setDate(date - 6);
             else currentMonday.setDate(date - (day - 1));
-            
+
             const nextMonday = new Date(currentMonday);
             nextMonday.setDate(currentMonday.getDate() + 7);
-            
+
             const formatFull = (d) => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
             const workingDate = (day === 1) ? nextMonday : currentMonday;
-            
+
             document.getElementById('date-value-1').textContent = formatFull(nextMonday);
             document.getElementById('date-value-2').textContent = formatFull(currentMonday);
             document.getElementById('date-value-3').textContent = formatFull(currentMonday);
             document.getElementById('date-value-4').textContent = '-';
             document.getElementById('date-value-5').textContent = '-';
-            
+
             const isWeekendOrFri = (day === 5 || day === 6 || day === 0);
             document.getElementById('mobile-work-date').textContent = isWeekendOrFri ? '-' : formatFull(workingDate);
 
@@ -655,28 +711,28 @@
             const mobileDay = document.getElementById('mobile-day');
             const mobileTask = document.getElementById('mobile-task');
             const mobileAlert = document.getElementById('mobile-alert');
-            
-            for(let i=1; i<=4; i++) { 
-                const el = document.getElementById(`alert-stage-${i}`); 
-                if(el) el.style.display='none'; 
+
+            for(let i=1; i<=4; i++) {
+                const el = document.getElementById(`alert-stage-${i}`);
+                if(el) el.style.display='none';
             }
             stages.forEach(el => el && el.classList.remove('active','passed'));
             dateStages.forEach(el => el && el.classList.remove('active','passed'));
 
             let msg="", idx=-1, dName="", tName="";
-            
+
             if(day===1){
                 stages[0].classList.add('active'); dateStages[0].classList.add('active');
                 msg="Формирование еженедельной заявки"; idx=0; dName="ПОНЕДЕЛЬНИК"; tName="Формирование заявки";
             } else if(day===2||day===3){
                 stages[0].classList.add('passed'); stages[1].classList.add('active');
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('active');
-                msg="Согласование заявки с поставщиком"; idx=1; 
+                msg="Согласование заявки с поставщиком"; idx=1;
                 dName=day===2?"ВТОРНИК":"СРЕДА"; tName="Согласование заявки с поставщиком";
             } else if(day===4){
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('active');
                 dateStages[0].classList.add('passed'); dateStages[1].classList.add('passed'); dateStages[2].classList.add('active');
-                msg="Корректировка заявки в т.ч. с учетом наполняемости паллет"; idx=2; 
+                msg="Корректировка заявки в т.ч. с учетом наполняемости паллет"; idx=2;
                 dName="ЧЕТВЕРГ"; tName="Корректировка заявки в т.ч. с учетом наполняемости паллет";
             } else if(day===5){
                 stages[0].classList.add('passed'); stages[1].classList.add('passed'); stages[2].classList.add('passed'); stages[3].classList.add('active');
@@ -687,7 +743,7 @@
                 dateStages.forEach((el,i)=>{ if(i<4) el.classList.add('passed'); else el.classList.add('active'); });
                 msg="Выходные дни"; idx=4; dName=day===0?"ВОСКРЕСЕНЬЕ":"СУББОТА"; tName="Выходные";
             }
-            
+
             if(statusText) statusText.textContent = msg;
             if(mobileDay) mobileDay.textContent = dName;
             if(mobileTask) mobileTask.textContent = tName;
