@@ -486,7 +486,6 @@ function drawPie(ids,buckets,total,getValue,fmtTotal,caption){
     r.addEventListener('mouseleave',()=>hl(i,false));
   });
 }
-// Покрытие остатком по ТОВАРАМ: stock / s1total (текущая логика)
 function coverageBuckets(prods,mk){
   const buckets=[
     {label:'<20 дн',color:'#E33D78',cnt:0,value:0},
@@ -524,7 +523,7 @@ function attachChart(box, tooltip){
 }
 function drawSplitChart(boxEl, tipEl, days, series) {
   const n = days.length;
-  const W = 900, H = 240, padL = 64, padR = 14, padT = 18, padB = 40;
+  const W = 900, H = 460, padL = 64, padR = 14, padT = 24, padB = 50;
   const innerW = W - padL - padR, innerH = H - padT - padB;
   const midY = padT + innerH / 2;
   let maxAbs = 1;
