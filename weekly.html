@@ -42,11 +42,11 @@
  .chartcard{position:relative;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
  .charthead{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
  .charttitle{font-size:.9em;font-weight:700;color:#544273;flex:1}
- .chart-flex{display:flex;gap:12px;align-items:stretch}
- .chart-main{flex:3;min-width:0}
+ .chart-flex{display:flex;gap:12px;align-items:stretch;min-height:420px}
+ .chart-main{flex:3;min-width:0;display:flex;flex-direction:column}
+ .chart-main .chart-box{flex:1;position:relative;width:100%}
+ .chart-main .chart-box svg{width:100%;height:100%;display:block}
  .chart-side{flex:1.1;min-width:280px;display:flex;flex-direction:column;gap:12px}
- .chart-box{position:relative;width:100%}
- .chart-box svg{width:100%;height:auto;display:block}
  .chart-tooltip{position:absolute;display:none;pointer-events:none;background:#1C0D2E;color:#fff;padding:8px 12px;border-radius:8px;font-family:'Forum',serif;font-size:.85em;line-height:1.4;transform:translate(-50%,-100%);white-space:nowrap;box-shadow:0 4px 12px rgba(28,13,46,.4);z-index:5}
  .chart-tooltip strong{color:#E33D78;display:block}
  .chart-point{cursor:pointer}
@@ -54,10 +54,9 @@
  .chart-note .legend-row{display:flex;gap:18px;flex-wrap:wrap}
  .legend-item{display:inline-flex;align-items:center;gap:6px;color:#544273}
  .sw{width:26px;height:3px;display:inline-block;border-radius:2px}
- /* Pie / donut */
- .piecard{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 12px}
+ .piecard{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:10px 12px;flex:1;display:flex;flex-direction:column}
  .ptitle{font-size:.82em;color:#544273;font-weight:700;margin-bottom:6px}
- .piebox{display:flex;gap:10px;align-items:center}
+ .piebox{display:flex;gap:10px;align-items:center;flex:1}
  .pieWrap{position:relative;width:120px;height:120px;flex:0 0 auto}
  svg.pie{width:100%;height:100%;display:block;animation:piein .5s ease}
  @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
@@ -75,7 +74,7 @@
  .lcnt{color:#94a3b8;font-size:.9em}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
  .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
- .topblock{flex:1;min-width:320px;max-height:230px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
+ .topblock{flex:1;min-width:320px;max-height:345px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
  .topblock::-webkit-scrollbar{width:4px}
  .topblock::-webkit-scrollbar-track{background:rgba(84,66,115,.1);border-radius:2px}
  .topblock::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#78A6C7,#E33D78);border-radius:2px}
@@ -136,7 +135,7 @@
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
    .mode{margin-left:0}
-   .chart-flex{flex-direction:column}
+   .chart-flex{flex-direction:column;min-height:auto}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.78em;min-width:900px}
    th,td{padding:5px 6px}
@@ -417,7 +416,6 @@ function kpiCells(k){
     return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
   }).join('');
 }
-// === PIE / DONUT ===
 function arcPath(cx,cy,rO,rI,a0,a1){
   const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
   const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
@@ -488,7 +486,7 @@ function drawPie(ids,buckets,total,getValue,fmtTotal,caption){
     r.addEventListener('mouseleave',()=>hl(i,false));
   });
 }
-// Покрытие остатком: <20 / 20-50 / >50 дней. Считаем по товару: stock / s1total
+// Покрытие остатком по ТОВАРАМ: stock / s1total (текущая логика)
 function coverageBuckets(prods,mk){
   const buckets=[
     {label:'<20 дн',color:'#E33D78',cnt:0,value:0},
@@ -537,7 +535,7 @@ function drawSplitChart(boxEl, tipEl, days, series) {
   const scale = niceScale(maxAbs, 3);
   const x = i => padL + (n === 1 ? innerW / 2 : innerW * i / (n - 1));
   const y = v => midY - (v / scale.max) * (innerH / 2);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">`;
   [-1, -0.5, 0, 0.5, 1].forEach(f => {
     const v = scale.max * f, yy = y(v);
     svg += `<line x1="${padL-4}" y1="${yy}" x2="${padL}" y2="${yy}" stroke="#94a3b8" stroke-width="1.5"/>`;
