@@ -42,11 +42,18 @@
  .chartcard{position:relative;border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
  .charthead{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
  .charttitle{font-size:.9em;font-weight:700;color:#544273;flex:1}
+ .chart-flex{display:flex;gap:12px;align-items:stretch}
+ .chart-main{flex:3;min-width:0}
+ .chart-side{flex:1;min-width:160px;display:flex;flex-direction:column;gap:10px}
  .chart-box{position:relative;width:100%}
  .chart-box svg{width:100%;height:auto;display:block}
  .chart-tooltip{position:absolute;display:none;pointer-events:none;background:#1C0D2E;color:#fff;padding:8px 12px;border-radius:8px;font-family:'Forum',serif;font-size:.85em;line-height:1.4;transform:translate(-50%,-100%);white-space:nowrap;box-shadow:0 4px 12px rgba(28,13,46,.4);z-index:5}
  .chart-tooltip strong{color:#E33D78;display:block}
  .chart-point{cursor:pointer}
+ .donut{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:8px}
+ .donut-title{font-size:.8em;font-weight:700;color:#544273;margin-bottom:4px}
+ .donut-legend{font-size:.72em;color:#544273;display:flex;flex-direction:column;gap:2px;margin-top:4px}
+ .donut-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
  .chart-note{margin-top:10px;font-size:.8em;color:#94a3b8;font-family:'Forum',serif;display:flex;flex-direction:column;gap:6px}
  .chart-note .legend-row{display:flex;gap:18px;flex-wrap:wrap}
  .legend-item{display:inline-flex;align-items:center;gap:6px;color:#544273}
@@ -113,6 +120,7 @@
    h2{font-size:1.15em}
    .toolbar{flex-direction:column;align-items:stretch}
    .mode{margin-left:0}
+   .chart-flex{flex-direction:column}
    button{padding:10px 14px;font-size:1em}
    table{font-size:.78em;min-width:900px}
    th,td{padding:5px 6px}
@@ -359,8 +367,6 @@ function recText(pid,cs,c1,T){
   if(smooth>0)return {txt:`увеличить на ${f1(smooth)} шт/день (за ${SMOOTH_DAYS} дн, +${pct}%)`,cls:'r',change};
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
-// KPI по направлению: сравниваем сопоставимые величины (dev_up или dev_down).
-// Возвращает для окон 1/3/7: {pct, cur, base}. base — среднее за окно (абсолют, шт/день).
 function kpiPctFromHistory(entityType, entityKey, dir){
   const recs=DEVIATION_HISTORY.filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
@@ -393,6 +399,47 @@ function kpiCells(k){
     const cls=Math.abs(o.pct)<=5?'n':(o.pct<0?'g':'r');
     return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
   }).join('');
+}
+// Диаграмма доли товаров по покрытию остатком (<20 / 20-50 / >50 дней)
+function bucketCounts(prods,mk){
+  const c={low:0,mid:0,high:0};
+  prods.forEach(p=>{
+    if(p.matrix!==mk) return;
+    if(p.stock<=0) return;
+    const days=p.s1total>0 ? p.stock/p.s1total : Infinity;
+    if(days<20)c.low++; else if(days<=50)c.mid++; else c.high++;
+  });
+  return c;
+}
+function pieSVG(c){
+  const total=c.low+c.mid+c.high;
+  const W=120,H=120,cx=60,cy=60,r=52;
+  if(total<=0) return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#e5e7eb"/></svg>`;
+  const segs=[['low',c.low,'#E33D78'],['mid',c.mid,'#16a34a'],['high',c.high,'#d97706']];
+  let a=-Math.PI/2, paths='';
+  segs.forEach(([k,v,col])=>{
+    if(v<=0)return;
+    const ang=v/total*2*Math.PI, a0=a, a1=a+ang;
+    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const large=ang>Math.PI?1:0;
+    paths+=`<path d="M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z" fill="${col}"/>`;
+    a=a1;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${paths}<circle cx="${cx}" cy="${cy}" r="26" fill="#fff"/></svg>`;
+}
+function donutBlock(prods,mk){
+  const c=bucketCounts(prods,mk);
+  const total=c.low+c.mid+c.high;
+  const pct=v=>total?Math.round(v/total*100):0;
+  return `<div class="donut">
+    <div class="donut-title">${MATRIX_NAME[mk]} • покрытие остатком</div>
+    ${pieSVG(c)}
+    <div class="donut-legend">
+      <span><i style="background:#E33D78"></i>&lt;20 дн: ${c.low} (${pct(c.low)}%)</span>
+      <span><i style="background:#16a34a"></i>20–50 дн: ${c.mid} (${pct(c.mid)}%)</span>
+      <span><i style="background:#d97706"></i>&gt;50 дн: ${c.high} (${pct(c.high)}%)</span>
+    </div>
+  </div>`;
 }
 function attachChart(box, tooltip){
   box.querySelectorAll('.chart-point').forEach(pt => {
@@ -515,6 +562,7 @@ function render(){
     }).sort((a,b)=>b.csum-a.csum);
     const prods=[...prodAgg.values()].map(p=>{
       p.clArr=toClArr(p);
+      p.s1total=p.clArr.reduce((s,g)=>s+g.c1,0);
       let up=0,down=0;
       p.clArr.forEach(g=>{ if(g.dir==='up')up+=g.change; else if(g.dir==='down')down+=g.change; });
       p.up=up; p.down=down; p.totalDev=up-down;
@@ -560,8 +608,11 @@ function render(){
         }
       });
     });
-    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам: профицит и дефицит, шт/день (динамика работы с остатками)</span></div>
-      <div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div>
+    html+=`<div class="chartcard"><div class="charthead"><span class="charttitle">📈 Суммарное отклонение по рынкам, шт/день • доля товаров по покрытию остатком</span></div>
+      <div class="chart-flex">
+        <div class="chart-main"><div class="chart-box" id="chartBox"><div class="chart-tooltip" id="chartTip"></div></div></div>
+        <div class="chart-side">${donutBlock(prods,'m1')}${donutBlock(prods,'m2')}</div>
+      </div>
       <div class="chart-note">
         <div class="legend-row">
           <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс профицит</span>
@@ -569,7 +620,7 @@ function render(){
           <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр профицит</span>
           <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр дефицит</span>
         </div>
-        <div>Цель — обе линии около нуля: остатки сбалансированы, корректировка минимальна. Рост линии = накопление несбалансированности.</div>
+        <div>Цель — обе линии около нуля. Диаграммы справа — доля товаров с покрытием остатком &lt;20 / 20–50 / &gt;50 дней.</div>
       </div></div>`;
     saveHistory(historyRows);
     const topBlock=(mkk,isProd)=>{
@@ -594,7 +645,15 @@ function render(){
       items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
       if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="meta">нет позиций</div></div>`;
       return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
-        <div class="tophead"><span>Наименование</span><span></span><span>шт/день</span><span>1д</span><span>3д</span><span>7д</span></div>`+
+        <div class="tophead">
+          <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
+          <span style="grid-column:2;grid-row:1/3"></span>
+          <span style="grid-column:3;grid-row:1/3">Δ шт/день (к цели за 7 дн)</span>
+          <span style="grid-column:4/7;grid-row:1">Изменение результата к</span>
+          <span style="grid-column:4;grid-row:2">1д</span>
+          <span style="grid-column:5;grid-row:2">3д</span>
+          <span style="grid-column:6;grid-row:2">7д</span>
+        </div>`+
         items.map(x=>{
           const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
           const kpi=kpiPctFromHistory(x.histType,x.histKey,x.dir);
