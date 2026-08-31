@@ -318,12 +318,20 @@ async function setFireWh(wh,on){
     await fetch(SUPABASE_URL+'/rest/v1/fire_wh?warehouse_name=eq.'+encodeURIComponent(wh),{method:'DELETE',headers:HD});
   }
 }
+// === ЗАГРУЗКА ИСТОРИИ ПОСТРАНИЧНО (без ограничения 1000 строк) ===
 async function loadHistory(){
   try{
     const since=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-30));
-    const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation,dev_up,dev_down,fire&order=report_date.asc`,{headers:HD});
-    if(!r.ok){DEVIATION_HISTORY=[];return;}
-    DEVIATION_HISTORY=await r.json();
+    let out=[],off=0;
+    while(true){
+      const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation,dev_up,dev_down,fire&order=report_date.asc&limit=1000&offset=${off}`,{headers:HD});
+      if(!r.ok){break;}
+      const j=await r.json();
+      out=out.concat(j);
+      if(j.length<1000)break;
+      off+=1000;
+    }
+    DEVIATION_HISTORY=out;
   }catch(e){DEVIATION_HISTORY=[];}
 }
 function histRows(){ return DEVIATION_HISTORY.filter(r=>(r.fire===true)===INCLUDE_FIRE); }
