@@ -456,10 +456,13 @@ async function importFile(file){
     setP(15,'Разбор строк…');
     const rows=parseCSV(text);
     const agg=new Map(); let skipped=0;
+    const nowD=new Date();
+    const YEST=localISO(new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate()-1));
     for(const r of rows){
       if(/отмен/i.test((r[4]||'').trim())){skipped++;continue;}
       const dt=(r[2]||'').trim().slice(0,10);
       if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){skipped++;continue;}
+      if(dt>YEST){skipped++;continue;}   // строки текущего (незавершённого) дня не импортируем
       const offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
       if(!offer||!wh||!isFinite(qty)){skipped++;continue;}
       const k=dt+'|'+offer+'|'+wh;
