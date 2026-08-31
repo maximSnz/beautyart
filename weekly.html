@@ -151,7 +151,14 @@
  .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
  .nav-btn .caret { font-size: .72em; transition: transform .2s; }
  .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
- .nav-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px; background: rgba(255,255,255,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 8px; display: none; z-index: 300; box-shadow: 0 10px 30px rgba(28,13,46,.25); }
+ .nav-menu {
+   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+   background: rgba(255,255,255,0.22);
+   backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
+   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
+   padding: 8px; display: none; z-index: 300;
+   box-shadow: 0 10px 30px rgba(28,13,46,.25);
+ }
  .nav-item.open .nav-menu { display: block; }
  .nav-menu a { display: block; padding: 10px 14px; border-radius: 8px; color: #fff; text-decoration: none; font-family: 'Forum', serif; font-size: .95em; transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25); }
  .nav-menu a:hover { background: rgba(255,255,255,0.22); }
@@ -350,8 +357,8 @@ async function saveStockSnapshot(){
     }catch(e){console.warn('stock snapshot:',e);}
   }
 }
-// === Дневная история: считается и сохраняется ВСЕГДА, независимо от режима и поиска.
-// === ВАЖНО: у всех строк одинаковый набор ключей (иначе PostgREST PGRST102).
+// === Дневная история: сохраняется ВСЕГДА, независимо от режима и поиска.
+// === У всех строк одинаковый набор ключей (иначе PostgREST PGRST102).
 function dailyHistory(){
   const tISO=localISO(BASE);
   const pAgg=new Map();
@@ -694,7 +701,7 @@ function drawSplitChart(boxEl, tipEl, days, series) {
   svg += `<text x="${padL-8}" y="${padT-6}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">шт/день</text>`;
   svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+innerH}" stroke="#94a3b8" stroke-width="1.5"/>`;
   svg += `<line x1="${padL}" y1="${padT+innerH}" x2="${W-padR}" y2="${padT+innerH}" stroke="#94a3b8" stroke-width="1.5"/>`;
-  days.forEach((d, i) => { if (i % 2 === 0 || i===n-1) svg += `<text x="${x(i)}" y="${padT+innerH+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(5)}</text>`; });
+  days.forEach((d, i) => { svg += `<text x="${x(i)}" y="${padT+innerH+16}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Forum">${d.slice(8,10)}.${d.slice(5,7)}</text>`; });
   svg += `<text x="${W-padR}" y="${padT+innerH+30}" text-anchor="end" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">дни</text>`;
   const mkPath = (vals, col, dashed) => {
     if (vals.length < 2) return '';
@@ -855,7 +862,7 @@ function render(){
       if(isProd){
         byMatrix.get(mkk)?.forEach(p=>{
           const dir=p.down>=p.up?'down':'up'; const mag=Math.max(p.up,p.down);
-          if(mag>0) items.push({label:p.o,ttl:p.name,dir,mag,jumpId:`prod:${p.o}`,histKey:p.o,histType:'product'});
+          if(mag>0) items.push({label:p.o,ttl:p.name,dir,mag,jumpId:`prod:${p.o}:${dir}`,histKey:p.o,histType:'product'});
         });
       }else{
         const clMap=new Map();
@@ -893,7 +900,7 @@ function render(){
       const prodNode=(p,dir)=>{
         const cl=p.clArr.filter(g=>g.dir===dir);
         const ch=cl.reduce((s,g)=>s+g.change,0);
-        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}"><summary><span class="clname" title="${esc(p.name)}">${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
+        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}:${dir}"><summary><span class="clname" title="${esc(p.name)}">${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         cl.forEach(g=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
