@@ -373,8 +373,7 @@ function computeDay(tISO, includeFire, stockMap){
     const o=r.offer_id;
     const whs=new Set([...Object.keys(stockMap[o]||{}),...Object.keys(SALES[o]||{})]);
     whs.forEach(wh=>{
-      if(includeFire===false&&FIRE.has(wh))return;
-      if(includeFire===true&&!FIRE.size){} // с пожаром: все склады
+      if(includeFire===false&&FIRE.has(wh))return;   // без пожара: исключаем склады из fire_wh
       const stock=stockMap[o]?.[wh]||0;
       const s1=SALES[o]?.[wh]?.[tISO]||0;
       if(stock===0&&s1===0)return;
@@ -420,7 +419,7 @@ function computeDay(tISO, includeFire, stockMap){
   });
   return rows;
 }
-// Разовый пересчёт прошлых дней из фиксированных остатков (вызвать из консоли при необходимости)
+// Разовый пересчёт прошлых дней из фиксированных остатков (вызывать из консоли при необходимости)
 async function recomputePast(daysArr){
   for(const d of daysArr){
     if(!STOCK_ALL[d]){ console.warn('нет остатков за',d); continue; }
@@ -466,7 +465,6 @@ async function importFile(file){
       const r=await fetch(SUPABASE_URL+'/rest/v1/product_sales?on_conflict=sale_date,offer_id,warehouse_name',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
       if(!r.ok)throw new Error('HTTP '+r.status);
     }
-    // обновляем продажи в памяти
     out.forEach(x=>{
       DATES.add(x.sale_date);
       ((SALES[x.offer_id]=SALES[x.offer_id]||{})[x.warehouse_name]=SALES[x.offer_id][x.warehouse_name]||{});
@@ -474,7 +472,6 @@ async function importFile(file){
     });
     const D=out.reduce((m,x)=>x.sale_date>m?x.sale_date:m,'');
     setP(85,`✔ Импортировано строк: ${out.length}. Фиксирую день ${D}…`);
-    // ФИКСАЦИЯ: остатки на конец D (текущие product_stocks) + продажи за D, оба варианта fire
     await saveStockDay(D, STOCK_NOW);
     const r0=computeDay(D,false,STOCK_NOW);
     const r1=computeDay(D,true,STOCK_NOW);
@@ -525,7 +522,6 @@ async function load(){
         if(!max||x.sale_date>max)max=x.sale_date;
       });
       SALESCOUNT=rl.length;
-      // STOCK_ALL: фиксированные остатки по дням; BASE = последний фиксированный день
       STOCK_ALL={};
       rsh.forEach(h=>{
         if(!STOCK_ALL[h.report_date])STOCK_ALL[h.report_date]={};
@@ -578,7 +574,7 @@ function recText(pid,cs,c1,T){
 function histDom(o,date){
   const r=histRows().find(x=>x.entity_type==='product'&&x.entity_key===o&&x.report_date===date);
   if(!r)return null;
-  const up=r.dev_up!=null?+r.dev_up:0, dn=r.dev_down!=null?+r.dev_down:0;
+  const up=r.dev_up!=null?+r.dev_up:0, down=r.dev_down!=null?+r.dev_down:0;
   return {up,down};
 }
 function kpiPctFromHistory(entityType, entityKey, dir){
@@ -779,6 +775,7 @@ function drawSplitChart(boxEl, tipEl, days, series) {
   attachChart(boxEl, tipEl);
 }
 function render(){
+  if(!BASE){return;}   // защита: не рисуем, пока load() не выставил BASE
   const q=document.getElementById('q').value.toLowerCase();
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
   const d1=localISO(BASE);
