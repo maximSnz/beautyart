@@ -140,54 +140,21 @@
  td.whcell{padding-left:30px;color:#544273}
  .wact{padding:2px 7px;font-size:.95em;margin:0}
  .grand{margin-top:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(120,166,199,.2),rgba(227,61,120,.15));font-weight:700;color:#1C0D2E;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-
- /* === ШАПКА (на градиенте) === */
- .header {
-   max-width: 1200px; margin: 20px auto 20px;
-   display: flex; align-items: center; gap: 20px;
-   padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
-   border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
-   box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
-   position: relative; z-index: 200;
- }
+ .header { max-width: 1200px; margin: 20px auto 20px; display: flex; align-items: center; gap: 20px; padding: 25px 30px; background: rgba(255,255,255,0.15); border-radius: 16px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 8px 32px rgba(28,13,46,0.2); position: relative; z-index: 200; }
  .logo-link { display: inline-block; flex: 0 0 auto; }
- .logo {
-   width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-   transition: transform .3s ease; display: block;
- }
+ .logo { width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); transition: transform .3s ease; display: block; }
  .logo-link:hover .logo { transform: scale(1.1); }
- .company-name {
-   font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
-   text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
- }
+ .company-name { font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white; text-shadow: 0 2px 8px rgba(28,13,46,0.4); letter-spacing: 2px; }
  .header-nav { margin-left: auto; display: flex; gap: 10px; }
  .nav-item { position: relative; }
- .nav-btn {
-   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
-   border-radius: 10px; color: #fff; padding: 10px 16px;
-   font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
-   display: inline-flex; align-items: center; gap: 8px; transition: all .3s;
-   text-shadow: 0 1px 3px rgba(0,0,0,0.25);
- }
+ .nav-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: #fff; padding: 10px 16px; font-family: 'Forum', serif; font-size: 1em; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .3s; text-shadow: 0 1px 3px rgba(0,0,0,0.25); }
  .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
  .nav-btn .caret { font-size: .72em; transition: transform .2s; }
  .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
- .nav-menu {
-   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
-   background: rgba(255,255,255,0.18);
-   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
-   padding: 8px; display: none; z-index: 300;
-   box-shadow: 0 10px 30px rgba(28,13,46,.25);
- }
+ .nav-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px; background: rgba(255,255,255,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 8px; display: none; z-index: 300; box-shadow: 0 10px 30px rgba(28,13,46,.25); }
  .nav-item.open .nav-menu { display: block; }
- .nav-menu a {
-   display: block; padding: 10px 14px; border-radius: 8px; color: #fff;
-   text-decoration: none; font-family: 'Forum', serif; font-size: .95em;
-   transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25);
- }
+ .nav-menu a { display: block; padding: 10px 14px; border-radius: 8px; color: #fff; text-decoration: none; font-family: 'Forum', serif; font-size: .95em; transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25); }
  .nav-menu a:hover { background: rgba(255,255,255,0.22); }
-
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -354,11 +321,12 @@ function upsertHistoryMemory(rows){
 async function saveHistory(rows){
   if(!rows.length)return;
   try{
-    await fetch(SUPABASE_URL+'/rest/v1/deviation_history?on_conflict=entity_type,entity_key,report_date',{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/deviation_history?on_conflict=entity_type,entity_key,report_date',{
       method:'POST',
       headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
       body:JSON.stringify(rows)
     });
+    if(!r.ok) console.warn('history save HTTP', r.status);
   }catch(e){console.warn('history save:',e);}
 }
 async function saveStockSnapshot(){
@@ -381,6 +349,61 @@ async function saveStockSnapshot(){
       });
     }catch(e){console.warn('stock snapshot:',e);}
   }
+}
+// === Дневная история: считается и сохраняется ВСЕГДА, независимо от режима и поиска.
+// === ВАЖНО: у всех строк одинаковый набор ключей (иначе PostgREST PGRST102).
+function dailyHistory(){
+  const tISO=localISO(BASE);
+  const pAgg=new Map();
+  for(const r of ROWS){
+    const o=r.offer_id;
+    const whs=new Set([...Object.keys(STOCK[o]||{}),...Object.keys(SALES[o]||{})]);
+    whs.forEach(wh=>{
+      const stock=STOCK[o]?.[wh]||0;
+      const s1=SALES[o]?.[wh]?.[tISO]||0;
+      if(stock===0&&s1===0)return;
+      const cost=COST[r.product_id]||0;
+      let p=pAgg.get(o);
+      if(!p){p={o:o,pid:r.product_id,matrix:matrixOf(o),stock:0,sum:0,clusters:new Map()};pAgg.set(o,p);}
+      p.stock+=stock; p.sum+=stock*cost;
+      const cl=WHCLUSTER[wh]||'Прочее';
+      if(!p.clusters.has(cl))p.clusters.set(cl,{cs:0,c1:0});
+      const g=p.clusters.get(cl); g.cs+=stock; g.c1+=s1;
+    });
+  }
+  const rows=[];
+  const tMkt={m1:{sup:0,def:0},m2:{sup:0,def:0}};
+  const cov={m1:{lt20:0,b2050:0,gt50:0},m2:{lt20:0,b2050:0,gt50:0}};
+  const clAgg=new Map();
+  pAgg.forEach(p=>{
+    let up=0,down=0,total=0,s1total=0;
+    p.clusters.forEach((g,c)=>{
+      const dev=clusterDeviation(g.cs,g.c1);
+      total+=dev; s1total+=g.c1;
+      const dir=dev>0.01?'up':(dev<-0.01?'down':0);
+      const chg=Math.abs(dev);
+      if(dir==='up'){up+=chg; tMkt[p.matrix].sup+=dev;}
+      else if(dir==='down'){down+=chg; tMkt[p.matrix].def+=dev;}
+      const k=p.matrix+'|'+c;
+      if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:c,dev:0,up:0,down:0});
+      const o=clAgg.get(k); o.dev+=dev;
+      if(dir==='up')o.up+=chg; else if(dir==='down')o.down+=chg;
+    });
+    if(p.stock>0){
+      const days=s1total>0?p.stock/s1total:Infinity;
+      const b=days<20?'lt20':(days<=50?'b2050':'gt50');
+      cov[p.matrix][b]++;
+    }
+    rows.push({entity_type:'product',entity_key:p.o,report_date:tISO,deviation:total,dev_up:up,dev_down:down});
+  });
+  clAgg.forEach(v=>rows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:tISO,deviation:v.dev,dev_up:v.up,dev_down:v.down}));
+  ['m1','m2'].forEach(mk=>{
+    rows.push({entity_type:'market',entity_key:mk+':sup',report_date:tISO,deviation:tMkt[mk].sup,dev_up:null,dev_down:null});
+    rows.push({entity_type:'market',entity_key:mk+':def',report_date:tISO,deviation:tMkt[mk].def,dev_up:null,dev_down:null});
+    ['lt20','b2050','gt50'].forEach(b=>rows.push({entity_type:'coverage',entity_key:mk+':'+b,report_date:tISO,deviation:cov[mk][b],dev_up:null,dev_down:null}));
+  });
+  upsertHistoryMemory(rows);
+  saveHistory(rows);
 }
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
@@ -471,6 +494,7 @@ async function load(){
       document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       await loadHistory();
       await saveStockSnapshot();
+      dailyHistory();
       render();
       return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
@@ -774,22 +798,6 @@ function render(){
       const cls=d===0?'n':((gw? d<0 : d>0)?'g':'r');
       return `<span class="covd ${cls}">${d>0?'+':''}${d}</span>`;
     };
-    const historyRows=[];
-    prods.forEach(p=>{ historyRows.push({entity_type:'product',entity_key:p.o,report_date:todayISO,deviation:p.totalDev,dev_up:p.up,dev_down:p.down}); });
-    const clAgg=new Map();
-    prods.forEach(p=>{p.clArr.forEach(g=>{
-      const k=p.matrix+'|'+g.c;
-      if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:g.c,dev:0,up:0,down:0});
-      const o=clAgg.get(k); o.dev+=g.dev;
-      if(g.dir==='up')o.up+=g.change; else if(g.dir==='down')o.down+=g.change;
-    });});
-    clAgg.forEach(v=>{ historyRows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:todayISO,deviation:v.dev,dev_up:v.up,dev_down:v.down}); });
-    ['m1','m2'].forEach(mk=>{
-      historyRows.push({entity_type:'market',entity_key:mk+':sup',report_date:todayISO,deviation:todayMkt[mk].sup});
-      historyRows.push({entity_type:'market',entity_key:mk+':def',report_date:todayISO,deviation:todayMkt[mk].def});
-      cov[mk].forEach(b=>{ historyRows.push({entity_type:'coverage',entity_key:mk+':'+b.key,report_date:todayISO,deviation:b.cnt}); });
-    });
-    upsertHistoryMemory(historyRows);
     const histMarket=DEVIATION_HISTORY.filter(r=>r.entity_type==='market');
     const histDays=[...new Set(histMarket.map(r=>r.report_date))].filter(d=>d!==todayISO).sort();
     const days=[...histDays, todayISO];
@@ -842,7 +850,6 @@ function render(){
         </div>
         <div>Цель — обе линии около нуля. Диаграммы справа — распределение товаров по покрытию остатком; ниже — число позиций и изменение за 1/3/7 дн.</div>
       </div></div>`;
-    saveHistory(historyRows);
     const topBlock=(mkk,isProd)=>{
       let items=[];
       if(isProd){
