@@ -151,14 +151,7 @@
  .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
  .nav-btn .caret { font-size: .72em; transition: transform .2s; }
  .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
- .nav-menu {
-   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
-   background: rgba(255,255,255,0.22);
-   backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
-   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
-   padding: 8px; display: none; z-index: 300;
-   box-shadow: 0 10px 30px rgba(28,13,46,.25);
- }
+ .nav-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px; background: rgba(255,255,255,0.22); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 8px; display: none; z-index: 300; box-shadow: 0 10px 30px rgba(28,13,46,.25); }
  .nav-item.open .nav-menu { display: block; }
  .nav-menu a { display: block; padding: 10px 14px; border-radius: 8px; color: #fff; text-decoration: none; font-family: 'Forum', serif; font-size: .95em; transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25); }
  .nav-menu a:hover { background: rgba(255,255,255,0.22); }
@@ -247,8 +240,8 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],COST={},STOCK={},WHCLUSTER={},SALES={},SUPPLIER={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
-let FIRE=new Set(JSON.parse(localStorage.getItem('fire_wh')||'[]'));
+let ROWS=[],COST={},STOCK={},STOCK_NOW={},STOCK_ALL={},WHCLUSTER={},SALES={},SUPPLIER={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
+let FIRE=new Set();
 let importing=false, MODE='summary', INCLUDE_FIRE=false;
 let T_REPORT=11;
 let DEVIATION_HISTORY=[];
@@ -310,17 +303,33 @@ async function go(){
     alert('Ошибка входа: '+(e.message||'Web Crypto недоступен. Откройте страницу по HTTPS или localhost.'));
   }
 }
+async function loadFire(){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/fire_wh?select=warehouse_name',{headers:HD});
+    if(r.ok){ FIRE=new Set((await r.json()).map(x=>x.warehouse_name)); }
+  }catch(e){}
+}
+async function setFireWh(wh,on){
+  if(on){
+    FIRE.add(wh);
+    await fetch(SUPABASE_URL+'/rest/v1/fire_wh',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify([{warehouse_name:wh}])});
+  }else{
+    FIRE.delete(wh);
+    await fetch(SUPABASE_URL+'/rest/v1/fire_wh?warehouse_name=eq.'+encodeURIComponent(wh),{method:'DELETE',headers:HD});
+  }
+}
 async function loadHistory(){
   try{
     const since=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-30));
-    const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation,dev_up,dev_down&order=report_date.asc`,{headers:HD});
+    const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?report_date=gte.${since}&select=entity_type,entity_key,report_date,deviation,dev_up,dev_down,fire&order=report_date.asc`,{headers:HD});
     if(!r.ok){DEVIATION_HISTORY=[];return;}
     DEVIATION_HISTORY=await r.json();
   }catch(e){DEVIATION_HISTORY=[];}
 }
+function histRows(){ return DEVIATION_HISTORY.filter(r=>(r.fire===true)===INCLUDE_FIRE); }
 function upsertHistoryMemory(rows){
   rows.forEach(r=>{
-    const i=DEVIATION_HISTORY.findIndex(x=>x.entity_type===r.entity_type&&x.entity_key===r.entity_key&&x.report_date===r.report_date);
+    const i=DEVIATION_HISTORY.findIndex(x=>x.entity_type===r.entity_type&&x.entity_key===r.entity_key&&x.report_date===r.report_date&&x.fire===r.fire);
     if(i>=0) DEVIATION_HISTORY[i]=Object.assign({},DEVIATION_HISTORY[i],r);
     else DEVIATION_HISTORY.push(Object.assign({},r));
   });
@@ -328,7 +337,7 @@ function upsertHistoryMemory(rows){
 async function saveHistory(rows){
   if(!rows.length)return;
   try{
-    const r=await fetch(SUPABASE_URL+'/rest/v1/deviation_history?on_conflict=entity_type,entity_key,report_date',{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/deviation_history?on_conflict=entity_type,entity_key,report_date,fire',{
       method:'POST',
       headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
       body:JSON.stringify(rows)
@@ -336,13 +345,12 @@ async function saveHistory(rows){
     if(!r.ok) console.warn('history save HTTP', r.status);
   }catch(e){console.warn('history save:',e);}
 }
-async function saveStockSnapshot(){
-  const todayISO=localISO(BASE);
+async function saveStockDay(tISO, stockMap){
   const rows=[];
-  for(const o in STOCK){
-    for(const wh in STOCK[o]){
-      const v=STOCK[o][wh];
-      if(v!=null) rows.push({report_date:todayISO,offer_id:o,warehouse_name:wh,stock:v});
+  for(const o in stockMap){
+    for(const wh in stockMap[o]){
+      const v=stockMap[o][wh];
+      if(v!=null) rows.push({report_date:tISO,offer_id:o,warehouse_name:wh,stock:v});
     }
   }
   if(!rows.length)return;
@@ -354,19 +362,20 @@ async function saveStockSnapshot(){
         headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
         body:JSON.stringify(part)
       });
-    }catch(e){console.warn('stock snapshot:',e);}
+    }catch(e){console.warn('stock save:',e);}
   }
 }
-// === Дневная история: сохраняется ВСЕГДА, независимо от режима и поиска.
-// === У всех строк одинаковый набор ключей (иначе PostgREST PGRST102).
-function dailyHistory(){
-  const tISO=localISO(BASE);
+// === Фиксация дня D: остатки из stockMap, продажи за D из SALES. fire=includeFire.
+function computeDay(tISO, includeFire, stockMap){
+  const T=DOW_TARGET[parseISO(tISO).getDay()];
   const pAgg=new Map();
   for(const r of ROWS){
     const o=r.offer_id;
-    const whs=new Set([...Object.keys(STOCK[o]||{}),...Object.keys(SALES[o]||{})]);
+    const whs=new Set([...Object.keys(stockMap[o]||{}),...Object.keys(SALES[o]||{})]);
     whs.forEach(wh=>{
-      const stock=STOCK[o]?.[wh]||0;
+      if(includeFire===false&&FIRE.has(wh))return;
+      if(includeFire===true&&!FIRE.size){} // с пожаром: все склады
+      const stock=stockMap[o]?.[wh]||0;
       const s1=SALES[o]?.[wh]?.[tISO]||0;
       if(stock===0&&s1===0)return;
       const cost=COST[r.product_id]||0;
@@ -385,7 +394,7 @@ function dailyHistory(){
   pAgg.forEach(p=>{
     let up=0,down=0,total=0,s1total=0;
     p.clusters.forEach((g,c)=>{
-      const dev=clusterDeviation(g.cs,g.c1);
+      const dev=(g.cs/T - g.c1)/SMOOTH_DAYS;
       total+=dev; s1total+=g.c1;
       const dir=dev>0.01?'up':(dev<-0.01?'down':0);
       const chg=Math.abs(dev);
@@ -401,16 +410,27 @@ function dailyHistory(){
       const b=days<20?'lt20':(days<=50?'b2050':'gt50');
       cov[p.matrix][b]++;
     }
-    rows.push({entity_type:'product',entity_key:p.o,report_date:tISO,deviation:total,dev_up:up,dev_down:down});
+    rows.push({entity_type:'product',entity_key:p.o,report_date:tISO,deviation:total,dev_up:up,dev_down:down,fire:includeFire});
   });
-  clAgg.forEach(v=>rows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:tISO,deviation:v.dev,dev_up:v.up,dev_down:v.down}));
+  clAgg.forEach(v=>rows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:tISO,deviation:v.dev,dev_up:v.up,dev_down:v.down,fire:includeFire}));
   ['m1','m2'].forEach(mk=>{
-    rows.push({entity_type:'market',entity_key:mk+':sup',report_date:tISO,deviation:tMkt[mk].sup,dev_up:null,dev_down:null});
-    rows.push({entity_type:'market',entity_key:mk+':def',report_date:tISO,deviation:tMkt[mk].def,dev_up:null,dev_down:null});
-    ['lt20','b2050','gt50'].forEach(b=>rows.push({entity_type:'coverage',entity_key:mk+':'+b,report_date:tISO,deviation:cov[mk][b],dev_up:null,dev_down:null}));
+    rows.push({entity_type:'market',entity_key:mk+':sup',report_date:tISO,deviation:tMkt[mk].sup,dev_up:null,dev_down:null,fire:includeFire});
+    rows.push({entity_type:'market',entity_key:mk+':def',report_date:tISO,deviation:tMkt[mk].def,dev_up:null,dev_down:null,fire:includeFire});
+    ['lt20','b2050','gt50'].forEach(b=>rows.push({entity_type:'coverage',entity_key:mk+':'+b,report_date:tISO,deviation:cov[mk][b],dev_up:null,dev_down:null,fire:includeFire}));
   });
-  upsertHistoryMemory(rows);
-  saveHistory(rows);
+  return rows;
+}
+// Разовый пересчёт прошлых дней из фиксированных остатков (вызвать из консоли при необходимости)
+async function recomputePast(daysArr){
+  for(const d of daysArr){
+    if(!STOCK_ALL[d]){ console.warn('нет остатков за',d); continue; }
+    const r0=computeDay(d,false,STOCK_ALL[d]);
+    const r1=computeDay(d,true,STOCK_ALL[d]);
+    upsertHistoryMemory(r0); upsertHistoryMemory(r1);
+    await saveHistory(r0); await saveHistory(r1);
+    console.log('пересчитан',d);
+  }
+  render();
 }
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
@@ -446,8 +466,22 @@ async function importFile(file){
       const r=await fetch(SUPABASE_URL+'/rest/v1/product_sales?on_conflict=sale_date,offer_id,warehouse_name',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
       if(!r.ok)throw new Error('HTTP '+r.status);
     }
-    setP(100,`✔ Готово! Импортировано строк: ${out.length} (пропущено: ${skipped}). Данные обновляются…`);
+    // обновляем продажи в памяти
+    out.forEach(x=>{
+      DATES.add(x.sale_date);
+      ((SALES[x.offer_id]=SALES[x.offer_id]||{})[x.warehouse_name]=SALES[x.offer_id][x.warehouse_name]||{});
+      SALES[x.offer_id][x.warehouse_name][x.sale_date]=(SALES[x.offer_id][x.warehouse_name][x.sale_date]||0)+x.qty;
+    });
+    const D=out.reduce((m,x)=>x.sale_date>m?x.sale_date:m,'');
+    setP(85,`✔ Импортировано строк: ${out.length}. Фиксирую день ${D}…`);
+    // ФИКСАЦИЯ: остатки на конец D (текущие product_stocks) + продажи за D, оба варианта fire
+    await saveStockDay(D, STOCK_NOW);
+    const r0=computeDay(D,false,STOCK_NOW);
+    const r1=computeDay(D,true,STOCK_NOW);
+    upsertHistoryMemory(r0); upsertHistoryMemory(r1);
+    await saveHistory(r0); await saveHistory(r1);
     await load();
+    setP(100,`✔ Готово! Импортировано строк: ${out.length} (пропущено: ${skipped}). День ${D} зафиксирован.`);
     setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000);
   }catch(e){
     setP(100,'Ошибка импорта: '+e.message,true);
@@ -458,29 +492,29 @@ async function importFile(file){
 }
 function toggleFire(id,ev){
   ev.preventDefault(); ev.stopPropagation();
-  if(FIRE.has(id))FIRE.delete(id); else FIRE.add(id);
-  localStorage.setItem('fire_wh',JSON.stringify([...FIRE]));
+  setFireWh(id, !FIRE.has(id));
   render();
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
     try{
-      const [rp,rc,rs,rl]=await Promise.all([
+      const [rp,rc,rs,rl,rsh]=await Promise.all([
         fetchAll('/rest/v1/products?select=product_id,offer_id,name,stock,supplier,archived,updated_at'),
         fetchAll('/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc'),
         fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present'),
-        fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty')
+        fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty'),
+        fetchAll('/rest/v1/stock_history?select=report_date,offer_id,warehouse_name,stock&order=report_date.desc')
       ]);
       ROWS=rp.filter(x=>!x.archived);
       OFFER_PID={}; const pidOffer={};
       rp.forEach(p=>{pidOffer[p.product_id]=p.offer_id; OFFER_PID[p.offer_id]=p.product_id;});
       COST={}; rc.forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
       SUPPLIER={}; rp.forEach(p=>{ SUPPLIER[p.product_id]=(p.supplier||'').trim(); });
-      STOCK={}; WHCLUSTER={};
+      STOCK_NOW={}; WHCLUSTER={};
       rs.forEach(s=>{
         const o=pidOffer[s.product_id]; if(!o)return;
-        (STOCK[o]=STOCK[o]||{}); STOCK[o][s.warehouse_name]=(STOCK[o][s.warehouse_name]||0)+(s.present||0);
+        (STOCK_NOW[o]=STOCK_NOW[o]||{}); STOCK_NOW[o][s.warehouse_name]=(STOCK_NOW[o][s.warehouse_name]||0)+(s.present||0);
         if(!WHCLUSTER[s.warehouse_name])WHCLUSTER[s.warehouse_name]=s.cluster||'Прочее';
       });
       SALES={}; DATES=new Set(); let max=null;
@@ -491,17 +525,24 @@ async function load(){
         if(!max||x.sale_date>max)max=x.sale_date;
       });
       SALESCOUNT=rl.length;
-      const now=new Date();
-      const yest=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
-      BASE=(DATES.has(localISO(yest)))?yest:(max?parseISO(max):yest);
+      // STOCK_ALL: фиксированные остатки по дням; BASE = последний фиксированный день
+      STOCK_ALL={};
+      rsh.forEach(h=>{
+        if(!STOCK_ALL[h.report_date])STOCK_ALL[h.report_date]={};
+        const o=h.offer_id;
+        (STOCK_ALL[h.report_date][o]=STOCK_ALL[h.report_date][o]||{});
+        STOCK_ALL[h.report_date][o][h.warehouse_name]=h.stock;
+      });
+      const fixedDays=Object.keys(STOCK_ALL).sort();
+      BASE=fixedDays.length?parseISO(fixedDays[fixedDays.length-1]):(max?parseISO(max):new Date());
+      STOCK=STOCK_ALL[localISO(BASE)]||{};
       T_REPORT=DOW_TARGET[BASE.getDay()];
+      await loadFire();
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день: ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день (фиксация): ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
       await loadHistory();
-      await saveStockSnapshot();
-      dailyHistory();
       render();
       return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
@@ -534,8 +575,14 @@ function recText(pid,cs,c1,T){
   if(smooth>0)return {txt:`увеличить на ${f1(smooth)} шт/день (за ${SMOOTH_DAYS} дн, +${pct}%)`,cls:'r',change};
   return {txt:`уменьшить на ${f1(-smooth)} шт/день (за ${SMOOTH_DAYS} дн, −${pct}%)`,cls:'g',change};
 }
+function histDom(o,date){
+  const r=histRows().find(x=>x.entity_type==='product'&&x.entity_key===o&&x.report_date===date);
+  if(!r)return null;
+  const up=r.dev_up!=null?+r.dev_up:0, dn=r.dev_down!=null?+r.dev_down:0;
+  return {up,down};
+}
 function kpiPctFromHistory(entityType, entityKey, dir){
-  const recs=DEVIATION_HISTORY.filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
+  const recs=histRows().filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
   const todayISO=localISO(BASE);
   const val=(r)=>{
@@ -714,8 +761,8 @@ function drawSplitChart(boxEl, tipEl, days, series) {
     svg += mkPath(series[mk].def, col, true);
     days.forEach((d, i) => {
       const tipVal = `Профицит: +${fmt(series[mk].sup[i])} шт/день • Дефицит: ${fmt(series[mk].def[i])} шт/день`;
-      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].sup[i])}" r="3.5" fill="${col}" data-label="${MATRIX_NAME[mk]}, ${d.slice(5)}" data-value="${tipVal}"/>`;
-      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].def[i])}" r="3.5" fill="#fff" stroke="${col}" stroke-width="2" data-label="${MATRIX_NAME[mk]}, ${d.slice(5)}" data-value="${tipVal}"/>`;
+      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].sup[i])}" r="3.5" fill="${col}" data-label="${MATRIX_NAME[mk]}, ${d.slice(8,10)}.${d.slice(5,7)}" data-value="${tipVal}"/>`;
+      svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].def[i])}" r="3.5" fill="#fff" stroke="${col}" stroke-width="2" data-label="${MATRIX_NAME[mk]}, ${d.slice(8,10)}.${d.slice(5,7)}" data-value="${tipVal}"/>`;
     });
   });
   svg += `</svg>`;
@@ -789,15 +836,10 @@ function render(){
     const byMatrix=new Map();
     prods.forEach(p=>{if(!byMatrix.has(p.matrix))byMatrix.set(p.matrix,[]);byMatrix.get(p.matrix).push(p);});
     const todayISO=localISO(BASE);
-    const todayMkt={m1:{sup:0,def:0},m2:{sup:0,def:0}};
-    prods.forEach(p=>{p.clArr.forEach(g=>{
-      const t=todayMkt[p.matrix];
-      if(g.dev>0) t.sup+=g.dev; else t.def+=g.dev;
-    });});
     const cov={m1:coverageBuckets(prods,'m1'),m2:coverageBuckets(prods,'m2')};
     const covPast=(mk,key,n)=>{
       const t=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-n));
-      const r=DEVIATION_HISTORY.find(x=>x.entity_type==='coverage'&&x.entity_key===mk+':'+key&&x.report_date===t);
+      const r=histRows().find(x=>x.entity_type==='coverage'&&x.entity_key===mk+':'+key&&x.report_date===t);
       return r!=null?Number(r.deviation):null;
     };
     const covDeltaCell=(d,gw)=>{
@@ -805,21 +847,15 @@ function render(){
       const cls=d===0?'n':((gw? d<0 : d>0)?'g':'r');
       return `<span class="covd ${cls}">${d>0?'+':''}${d}</span>`;
     };
-    const histMarket=DEVIATION_HISTORY.filter(r=>r.entity_type==='market');
-    const histDays=[...new Set(histMarket.map(r=>r.report_date))].filter(d=>d!==todayISO).sort();
-    const days=[...histDays, todayISO];
+    const histMarket=histRows().filter(r=>r.entity_type==='market');
+    const days=[...new Set(histMarket.map(r=>r.report_date))].sort();
     const series={m1:{sup:[],def:[]},m2:{sup:[],def:[]}};
     days.forEach(d=>{
       ['m1','m2'].forEach(mk=>{
-        if(d===todayISO){
-          series[mk].sup.push(todayMkt[mk].sup);
-          series[mk].def.push(todayMkt[mk].def);
-        }else{
-          const s=histMarket.find(r=>r.entity_key===mk+':sup'&&r.report_date===d);
-          const f=histMarket.find(r=>r.entity_key===mk+':def'&&r.report_date===d);
-          series[mk].sup.push(s?Number(s.deviation):0);
-          series[mk].def.push(f?Number(f.deviation):0);
-        }
+        const s=histMarket.find(r=>r.entity_key===mk+':sup'&&r.report_date===d);
+        const f=histMarket.find(r=>r.entity_key===mk+':def'&&r.report_date===d);
+        series[mk].sup.push(s?Number(s.deviation):0);
+        series[mk].def.push(f?Number(f.deviation):0);
       });
     });
     const pieCard=(mk)=>{
@@ -861,7 +897,8 @@ function render(){
       let items=[];
       if(isProd){
         byMatrix.get(mkk)?.forEach(p=>{
-          const dir=p.down>=p.up?'down':'up'; const mag=Math.max(p.up,p.down);
+          const h=histDom(p.o, todayISO); if(!h)return;
+          const dir=h.down>=h.up?'down':'up'; const mag=Math.max(h.up,h.down);
           if(mag>0) items.push({label:p.o,ttl:p.name,dir,mag,jumpId:`prod:${p.o}:${dir}`,histKey:p.o,histType:'product'});
         });
       }else{
