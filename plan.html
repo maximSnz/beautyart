@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Art — План продаж</title>
+<title>Beauty Art — Реализация плана продаж</title>
 <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 <style>
  body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
@@ -29,7 +29,7 @@
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
- .dateinp{padding:2px 4px;border:1px solid rgba(84,66,115,.25);border-radius:6px;font-size:.85em;color:#544273;background:#fff;width:120px}
+ .dateinp{padding:2px 4px;border:1px solid rgba(84,66,115,.25);border-radius:6px;font-size:.85em;color:#544273;background:#fff;width:88px}
  td.pname{cursor:pointer}
  td.pname:hover{color:#E33D78}
  tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
@@ -158,7 +158,7 @@
     </nav>
   </div>
   <div class="wrap">
-    <h2>📊 План продаж</h2>
+    <h2>📊 Реализация плана продаж</h2>
     <div class="meta" id="meta">загрузка…</div>
     <div class="err" id="err"></div>
     <div class="toolbar">
@@ -193,7 +193,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
@@ -213,6 +213,7 @@ const pad=n=>String(n).padStart(2,'0');
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
 const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
+const f1=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
 const fmtFor=(k,v)=>(k==='price'||k==='pct')?fmt2(v):fmt(v);
 const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -273,6 +274,12 @@ async function loadProto(){
   (await r1.json()).forEach(x=>{(PROTO[x.product_id]=PROTO[x.product_id]||[]).push(x);});
   (await r2.json()).forEach(x=>{(NOTES[x.product_id]=NOTES[x.product_id]||[]).push(x);});
 }
+async function loadDev(){
+  const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?entity_type=eq.product&fire=eq.false&select=entity_key,report_date,dev_up,dev_down&order=report_date.desc&limit=2000`,{headers:HD});
+  if(!r.ok){DEV={};return;}
+  DEV={};
+  (await r.json()).forEach(x=>{ if(DEV[x.entity_key]==null) DEV[x.entity_key]={up:+(x.dev_up||0),down:+(x.dev_down||0)}; });
+}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -283,14 +290,14 @@ async function load(){
       if(!rp.ok)throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto()]);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev()]);
       document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • недель: ${WEEKS.length}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -380,14 +387,13 @@ function forecastClose(p,key){
   return sumFact + lastFact*noFact;
 }
 function devFor(p,key){ return forecastClose(p,key)-monthlyPlan(p,key); }
-// === Расчётный прогноз по продажам (накопительный факт + экстраполяция на остаток ISO-периода) ===
 function calcForecastQty(p){
   if(!WEEKS.length) return null;
   const start=WEEKS[0];
   const end=weekEnd(WEEKS[WEEKS.length-1]);
   const T=daysBetween(start,end)+1;
   const today=new Date(); today.setHours(0,0,0,0);
-  const D=new Date(today); D.setDate(D.getDate()-1);   // последний загруженный день = вчера
+  const D=new Date(today); D.setDate(D.getDate()-1);
   let F=0,E=0,any=false;
   for(const w of WEEKS){
     const rec=getRec(p.product_id,'qty',localISO(w));
@@ -423,6 +429,29 @@ function recFor(pid,key){
   const d=nxtV-curV;
   const pct=curV!==0?(d/Math.abs(curV)*100):0;
   return {cw,nw,curV,nxtV,d,pct};
+}
+function recForV2(pid,key){
+  const mt=METRICS.find(m=>m.key===key);
+  if(!mt.add) return recFor(pid,key);
+  const cw=currentWeekISO();
+  if(!cw) return null;
+  const recC=getRec(pid,key,cw);
+  if(recC.fact==null) return null;
+  const w=parseW(cw);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const D=new Date(today); D.setDate(D.getDate()-1);
+  let E=daysBetween(w,D)+1; if(E<0)E=0; if(E>7)E=7;
+  if(E<=0) return null;
+  const r=recC.fact/E;
+  const cur=recC.fact + r*(7-E);
+  const nw=WEEKISO[WEEKISO.indexOf(cw)+1];
+  if(!nw) return null;
+  const recN=getRec(pid,key,nw);
+  const weeks=WEEKS.length||1;
+  const target=recN.forecast!=null?recN.forecast:monthlyPlan({product_id:pid},key)/weeks;
+  const d=target-cur;
+  const pct=cur!==0?(d/Math.abs(cur)*100):0;
+  return {cw,nw,curV:cur,nxtV:target,d,pct};
 }
 function recText(r){
   if(!r) return {text:'—',cls:'n'};
@@ -516,11 +545,19 @@ function renderSmartForm(pid){
 function renderRecs(pid){
   let h='';
   METRICS.forEach(m=>{
-    const r=recFor(pid,m.key);
+    const r=recForV2(pid,m.key);
     const rec=recText(r);
     if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}</b> <span class="n">нет данных</span></div>`; return; }
-    h+=`<div class="prec"><b>${MLBL[m.key]}</b> факт ${wlabel(parseW(r.cw))} = ${fmtFor(m.key,r.curV)} → прогноз ${wlabel(parseW(r.nw))} = ${fmtFor(m.key,r.nxtV)} • <span class="${rec.cls}">${rec.text}</span></div>`;
+    h+=`<div class="prec"><b>${MLBL[m.key]}</b> темп ${wlabel(parseW(r.cw))} = ${fmtFor(m.key,r.curV)} → цель ${wlabel(parseW(r.nw))} = ${fmtFor(m.key,r.nxtV)} • <span class="${rec.cls}">${rec.text}</span></div>`;
   });
+  const offer=(BYID[pid]||{}).offer_id;
+  const dv=DEV[offer];
+  if(dv&&(dv.up>0.01||dv.down>0.01)){
+    const parts=[];
+    if(dv.up>0.01) parts.push(`<span class="r">увеличить на ${f1(dv.up)} шт/д</span>`);
+    if(dv.down>0.01) parts.push(`<span class="g">уменьшить на ${f1(dv.down)} шт/д</span>`);
+    h+=`<div class="prec"><b>Остатки</b> ${parts.join(' • ')}</div>`;
+  }
   return h||'<div class="psub">нет данных</div>';
 }
 function renderNotes(pid){
@@ -623,7 +660,7 @@ function render(){
     const exp=EXP[mt.key];
     const span=3+(exp?WEEKS.length*2:0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
-    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub">Расчётный прогноз</th><th rowspan="2" class="sub wrap2">Расчётное<br>отклонение</th>`;
+    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub wrap2">Расчётный<br>прогноз</th><th rowspan="2" class="sub wrap2">Расчётное<br>отклонение</th>`;
     if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="2" class="whead">${wlabel(w)}</th>`; });
              WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
