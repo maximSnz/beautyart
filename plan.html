@@ -224,6 +224,7 @@ const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const f1=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
 const fmtFor=(k,v)=>(k==='price'||k==='pct')?fmt2(v):fmt(v);
+const wfmt=(k,v)=>{ if(k==='qty'){ const r=Math.round(v*100)/100; return Number.isInteger(r)?fmt(r):r.toLocaleString('ru-RU',{maximumFractionDigits:2}); } return fmtFor(k,v); };
 const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const daysBetween=(a,b)=>Math.round((b-a)/86400000);
 const ddmm=iso=>iso.slice(8,10)+'.'+iso.slice(5,7);
@@ -357,7 +358,7 @@ async function editWeek(pid,week,metric){
 async function resetWeek(ev,pid,week,metric){
   ev.stopPropagation();
   if(!confirm('Вернуть расчётное значение прогноза?'))return;
-  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?product_id=eq.${pid}&week=eq.${week}&metric=eq.${metric}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json'},body:JSON.stringify({forecast:null})});
+  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?product_id=eq.${pid}&week=eq.${week}&metric=eq.${metric}`,{method:'DELETE',headers:HD});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   if(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week]) WD[pid][metric][week].forecast=null;
   render();
@@ -371,6 +372,22 @@ function monthlyPlan(p,key){
   if(key==='price')return pl.price;
   return pl.margin_pct;
 }
+function calcForecast(p,key){
+  if(!WEEKS.length) return null;
+  const start=WEEKS[0]; const end=weekEnd(WEEKS[WEEKS.length-1]); const T=daysBetween(start,end)+1;
+  const today=new Date(); today.setHours(0,0,0,0); const D=new Date(today); D.setDate(D.getDate()-1);
+  let F=0,E=0,any=false;
+  for(const w of WEEKS){
+    const rec=getRec(p.product_id,key,localISO(w));
+    if(rec.fact==null) continue;
+    any=true; F+=rec.fact;
+    const we=weekEnd(w);
+    if(we<today){E+=7;} else {let d=daysBetween(w,D)+1; if(d<0)d=0; if(d>7)d=7; E+=d;}
+  }
+  if(!any||E<=0) return null;
+  const r=F/E; let R=T-E; if(R<0)R=0; return F+r*R;
+}
+const calcForecastQty=p=>calcForecast(p,'qty');
 function seriesFor(p,key){
   const P=monthlyPlan(p,key);
   const today=new Date(); today.setHours(0,0,0,0);
@@ -433,27 +450,6 @@ function forecastClose(p,key){
   return sumFact + lastFact*noFact;
 }
 function devFor(p,key){ return forecastClose(p,key)-monthlyPlan(p,key); }
-function calcForecastQty(p){
-  if(!WEEKS.length) return null;
-  const start=WEEKS[0];
-  const end=weekEnd(WEEKS[WEEKS.length-1]);
-  const T=daysBetween(start,end)+1;
-  const today=new Date(); today.setHours(0,0,0,0);
-  const D=new Date(today); D.setDate(D.getDate()-1);
-  let F=0,E=0,any=false;
-  for(const w of WEEKS){
-    const rec=getRec(p.product_id,'qty',localISO(w));
-    if(rec.fact==null) continue;
-    any=true; F+=rec.fact;
-    const we=weekEnd(w);
-    if(we<today){ E+=7; }
-    else { let d=daysBetween(w,D)+1; if(d<0)d=0; if(d>7)d=7; E+=d; }
-  }
-  if(!any||E<=0) return null;
-  const r=F/E;
-  let R=T-E; if(R<0)R=0;
-  return F + r*R;
-}
 function currentFact(pid,key){
   const cw=currentWeekISO();
   if(!cw) return monthlyPlan({product_id:pid},key);
@@ -716,14 +712,10 @@ function render(){
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
       let ffV, dev;
-      if(mt.key==='qty'){
-        const P=calcForecastQty(p);
-        ffV = P==null?null:P;
-        dev = P==null?null:P-planV;
-      } else {
-        ffV = collVal(p,mt.key);
-        dev = devFor(p,mt.key);
-      }
+      if(mt.key==='qty'){ const P=calcForecast(p,'qty'); ffV=P==null?null:P; dev=P==null?null:P-planV; }
+      else if(mt.key==='rev'){ const P=calcForecast(p,'rev'); ffV=P==null?null:P; dev=P==null?null:P-planV; }
+      else if(mt.key==='price'){ const qF=calcForecast(p,'qty'), rF=calcForecast(p,'rev'); ffV=(qF>0&&rF!=null)?rF/qF:null; dev=ffV==null?null:ffV-planV; }
+      else { ffV=collVal(p,mt.key); dev=devFor(p,mt.key); }
       const dcls=dev==null?'n':(dev>0?'g':dev<0?'r':'n');
       const editKey=mt.edit;
       h+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${pid},'${editKey}')"`:''}>${fmtFor(mt.key,planV)}</td>`;
@@ -736,17 +728,17 @@ function render(){
           if(mt.add){
             const s=series[i];
             if(s.locked){
-              h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${fmtFor(mt.key,s.forecast)}</td>`;
+              h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${wfmt(mt.key,s.forecast)}</td>`;
             }else{
               const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-              h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
+              h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
             }
           }else{
             const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
             const rst=rec.forecast!=null?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-            h+=`<td class="num wcell wedit ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}<span class="editbtn">✎</span>${rst}</td>`;
+            h+=`<td class="num wcell wedit ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,fc)}<span class="editbtn">✎</span>${rst}</td>`;
           }
-          h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
+          h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':wfmt(mt.key,rec.fact)}</td>`;
         });
       }
     });
