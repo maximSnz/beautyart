@@ -28,8 +28,13 @@
  .editable::after{content:" ✎";opacity:.3;font-size:.8em}
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
- .resetbtn{cursor:pointer;margin-left:4px;color:#94a3b8;font-size:.85em}
- .resetbtn:hover{color:#d97706}
+ td.okey{cursor:pointer}
+ td.okey:hover{color:#E33D78}
+ .wedit{cursor:pointer;white-space:nowrap}
+ .editbtn{opacity:.35;font-size:.8em;margin-left:4px;cursor:pointer}
+ .editbtn:hover{opacity:1;color:#E33D78}
+ .resetbtn{opacity:.55;font-size:.85em;margin-left:4px;cursor:pointer;color:#94a3b8}
+ .resetbtn:hover{opacity:1;color:#d97706}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
  .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
  .dateshort:hover{color:#E33D78}
@@ -352,7 +357,7 @@ async function editWeek(pid,week,metric){
 async function resetWeek(ev,pid,week,metric){
   ev.stopPropagation();
   if(!confirm('Вернуть расчётное значение прогноза?'))return;
-  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,forecast:null})});
+  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?product_id=eq.${pid}&week=eq.${week}&metric=eq.${metric}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json'},body:JSON.stringify({forecast:null})});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   if(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week]) WD[pid][metric][week].forecast=null;
   render();
@@ -706,7 +711,7 @@ function render(){
     const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const zp=(pl.plan_qty||0)===0;
     let h=`<tr${zp?' class="zeroplan"':''}>
-      <td class="num" title="${esc(p.name)}">${esc(p.offer_id)}</td>
+      <td class="num okey" title="${esc(p.name)} — открыть протокол" onclick="toggleProto(${pid})">${esc(p.offer_id)}</td>
       <td><span class="dateshort" title="Дата работы" onclick="openDate(${pid})">${wd?ddmm(wd):'—'}</span><input type="date" class="datehidden" id="dt_${pid}" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
@@ -734,12 +739,12 @@ function render(){
               h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${fmtFor(mt.key,s.forecast)}</td>`;
             }else{
               const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-              h+=`<td class="num editable wcell" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,s.forecast)}${rst}</td>`;
+              h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
             }
           }else{
             const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
             const rst=rec.forecast!=null?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-            h+=`<td class="num editable wcell ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}${rst}</td>`;
+            h+=`<td class="num wcell wedit ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}<span class="editbtn">✎</span>${rst}</td>`;
           }
           h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
         });
