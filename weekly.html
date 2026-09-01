@@ -449,10 +449,17 @@ function isoWeeksOfMonth(y,m){
 async function syncWeekFacts(weeks){
   for(const w of weeks){
     const e=parseISO(w); e.setDate(e.getDate()+6); const we=localISO(e);
-    const rows=await fetchAll(`/rest/v1/product_sales?sale_date=gte.${w}&sale_date=lte.${we}&select=offer_id,qty`);
+    const rows=await fetchAll(`/rest/v1/product_sales?sale_date=gte.${w}&sale_date=lte.${we}&select=offer_id,qty,revenue`);
     const per=new Map();
-    rows.forEach(r=>{ const pid=OFFER_PID[r.offer_id]; if(!pid)return; per.set(pid,(per.get(pid)||0)+Number(r.qty||0)); });
-    const body=[...per.entries()].map(([pid,sum])=>({product_id:pid,week:w,metric:'qty',fact:sum}));
+    rows.forEach(r=>{ const pid=OFFER_PID[r.offer_id]; if(!pid)return;
+      const cur=per.get(pid)||{q:0,r:0};
+      cur.q+=Number(r.qty||0); cur.r+=Number(r.revenue||0);
+      per.set(pid,cur); });
+    const body=[];
+    per.forEach((v,pid)=>{
+      body.push({product_id:pid,week:w,metric:'qty',fact:v.q});
+      body.push({product_id:pid,week:w,metric:'rev',fact:Math.round(v.r)});
+    });
     for(let i=0;i<body.length;i+=500){
       const part=body.slice(i,i+500);
       await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
@@ -484,12 +491,14 @@ async function importFile(file){
       const dt=(r[2]||'').trim().slice(0,10);
       if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){skipped++;continue;}
       if(dt>YEST){skipped++;continue;}
-      const offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
+      const offer=(r[11]||'').trim(), qty=Number(r[18]||0), price=Number(r[14]||0), wh=(r[29]||'').trim();
       if(!offer||!wh||!isFinite(qty)){skipped++;continue;}
       const k=dt+'|'+offer+'|'+wh;
-      agg.set(k,(agg.get(k)||0)+qty);
+      const cur=agg.get(k)||{qty:0,rev:0};
+      cur.qty+=qty; cur.rev+=qty*price;
+      agg.set(k,cur);
     }
-    const out=[...agg.entries()].map(([k,qty])=>{const [sale_date,offer_id,warehouse_name]=k.split('|');return {sale_date,offer_id,warehouse_name,qty};});
+    const out=[...agg.entries()].map(([k,v])=>{const [sale_date,offer_id,warehouse_name]=k.split('|');return {sale_date,offer_id,warehouse_name,qty:v.qty,revenue:Math.round(v.rev*100)/100};});
     if(!out.length){ setP(100,'В файле нет подходящих строк (все пропущены).',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
     for(let i=0;i<out.length;i+=500){
       const part=out.slice(i,i+500);
