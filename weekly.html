@@ -353,24 +353,15 @@ async function saveHistory(rows){
   }catch(e){console.warn('history save:',e);}
 }
 async function saveStockDay(tISO, stockMap){
+  await fetch(SUPABASE_URL+'/rest/v1/stock_history?report_date=eq.'+tISO,{method:'DELETE',headers:HD});
   const rows=[];
-  for(const o in stockMap){
-    for(const wh in stockMap[o]){
-      const v=stockMap[o][wh];
-      if(v!=null) rows.push({report_date:tISO,offer_id:o,warehouse_name:wh,stock:v});
-    }
-  }
+  for(const o in stockMap){ for(const wh in stockMap[o]){ const v=stockMap[o][wh];
+    if(v!=null) rows.push({report_date:tISO,offer_id:o,warehouse_name:wh,stock:v}); } }
   if(!rows.length)return;
-  for(let i=0;i<rows.length;i+=500){
-    const part=rows.slice(i,i+500);
-    try{
-      await fetch(SUPABASE_URL+'/rest/v1/stock_history?on_conflict=report_date,offer_id,warehouse_name',{
-        method:'POST',
-        headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
-        body:JSON.stringify(part)
-      });
-    }catch(e){console.warn('stock save:',e);}
-  }
+  for(let i=0;i<rows.length;i+=500){ const part=rows.slice(i,i+500);
+    await fetch(SUPABASE_URL+'/rest/v1/stock_history?on_conflict=report_date,offer_id,warehouse_name',{
+      method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+      body:JSON.stringify(part)}); }
 }
 function computeDay(tISO, includeFire, stockMap){
   const T=DOW_TARGET[parseISO(tISO).getDay()];
