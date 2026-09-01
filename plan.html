@@ -29,7 +29,9 @@
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
- .dateinp{padding:2px 4px;border:1px solid rgba(84,66,115,.25);border-radius:6px;font-size:.85em;color:#544273;background:#fff;width:88px}
+ .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
+ .dateshort:hover{color:#E33D78}
+ .datehidden{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;border:0;padding:0}
  td.pname{cursor:pointer}
  td.pname:hover{color:#E33D78}
  tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
@@ -218,6 +220,7 @@ const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+'
 const fmtFor=(k,v)=>(k==='price'||k==='pct')?fmt2(v):fmt(v);
 const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const daysBetween=(a,b)=>Math.round((b-a)/86400000);
+const ddmm=iso=>iso.slice(8,10)+'.'+iso.slice(5,7);
 function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
 function isoWeeksOfMonth(y,m){
   const out=[]; let d=new Date(y,m,1);
@@ -227,7 +230,7 @@ function isoWeeksOfMonth(y,m){
     d.setDate(d.getDate()+7); }
   return out;
 }
-const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${w.getDate()}.${w.getMonth()+1}–${e.getDate()}.${e.getMonth()+1}`;};
+const wlabel=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return `${pad(w.getDate())}.${pad(w.getMonth()+1)}–${pad(e.getDate())}.${pad(e.getMonth()+1)}`;};
 const weekEnd=w=>{const e=new Date(w);e.setDate(e.getDate()+6);return e;};
 function parseW(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 function fmtDateISO(iso){const [y,m,d]=iso.split('-');return `${d}.${m}`;}
@@ -236,6 +239,12 @@ function currentWeekISO(){
   const t=new Date(); t.setHours(0,0,0,0);
   for(let i=0;i<WEEKS.length;i++){ if(t>=WEEKS[i]&&t<=weekEnd(WEEKS[i])) return WEEKISO[i]; }
   return null;
+}
+function openDate(pid){
+  const inp=document.getElementById('dt_'+pid);
+  if(!inp)return;
+  try{ if(inp.showPicker){inp.showPicker();return;} }catch(e){}
+  inp.style.pointerEvents='auto'; inp.style.opacity='1'; inp.style.position='relative'; inp.focus();
 }
 async function go(){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
@@ -351,20 +360,43 @@ function monthlyPlan(p,key){
 function seriesFor(p,key){
   const P=monthlyPlan(p,key);
   const today=new Date(); today.setHours(0,0,0,0);
+  const n=WEEKISO.length;
   const recs=WEEKISO.map(w=>getRec(p.product_id,key,w));
   const past=WEEKISO.map(w=>weekEnd(parseW(w))<today);
-  let fixedSum=0;
-  const kind=WEEKISO.map((w,i)=>{
-    if(past[i]&&recs[i].fact!=null){ fixedSum+=recs[i].fact; return 'fact'; }
-    if(recs[i].forecast!=null){ fixedSum+=recs[i].forecast; return 'manual'; }
-    return null;
+  const val=new Array(n).fill(0);
+  const kind=new Array(n).fill('auto');
+  let sumFactCalc=0;
+  for(let i=0;i<n;i++){
+    const f=recs[i].fact;
+    if(f!=null){
+      if(past[i]){ val[i]=f; kind[i]='fact'; sumFactCalc+=f; }
+      else{
+        const w=parseW(WEEKISO[i]);
+        const D=new Date(today); D.setDate(D.getDate()-1);
+        let E=daysBetween(w,D)+1; if(E<0)E=0; if(E>7)E=7;
+        const v=E>0? f+(f/E)*(7-E) : f;
+        val[i]=v; kind[i]='calc'; sumFactCalc+=v;
+      }
+    } else if(recs[i].forecast!=null){
+      val[i]=recs[i].forecast; kind[i]='manual';
+    }
+  }
+  const nonFact=kind.filter(k=>k==='auto'||k==='manual').length;
+  const baseline=nonFact>0?(P-sumFactCalc)/nonFact:0;
+  const firstManual=kind.indexOf('manual');
+  let sumBefore=0,sumManual=0,cntAfter=0;
+  kind.forEach((k,i)=>{
+    if(k==='manual') sumManual+=val[i];
+    else if(k==='auto'){ if(firstManual===-1||i<firstManual){ sumBefore+=baseline; } else { cntAfter++; } }
   });
-  const free=kind.filter(x=>!x).length;
-  const share=free>0?(P-fixedSum)/free:0;
-  return WEEKISO.map((w,i)=>({
-    past:past[i], fact:recs[i].fact, manual:kind[i]==='manual',
-    forecast: kind[i]==='fact'?recs[i].fact : kind[i]==='manual'?recs[i].forecast : share
-  }));
+  const remainder=P-sumFactCalc-sumManual-sumBefore;
+  const afterVal=cntAfter>0?remainder/cntAfter:0;
+  return WEEKISO.map((w,i)=>{
+    let fc;
+    if(kind[i]==='auto'){ fc=(firstManual===-1||i<firstManual)?baseline:afterVal; }
+    else fc=val[i];
+    return { past:past[i], fact:recs[i].fact, manual:kind[i]==='manual', locked:kind[i]==='fact'||kind[i]==='calc', forecast:fc };
+  });
 }
 function collVal(p,key){
   const mt=METRICS.find(m=>m.key===key);
@@ -433,25 +465,16 @@ function recFor(pid,key){
 function recForV2(pid,key){
   const mt=METRICS.find(m=>m.key===key);
   if(!mt.add) return recFor(pid,key);
-  const cw=currentWeekISO();
-  if(!cw) return null;
-  const recC=getRec(pid,key,cw);
-  if(recC.fact==null) return null;
-  const w=parseW(cw);
-  const today=new Date(); today.setHours(0,0,0,0);
-  const D=new Date(today); D.setDate(D.getDate()-1);
-  let E=daysBetween(w,D)+1; if(E<0)E=0; if(E>7)E=7;
-  if(E<=0) return null;
-  const r=recC.fact/E;
-  const cur=recC.fact + r*(7-E);
-  const nw=WEEKISO[WEEKISO.indexOf(cw)+1];
-  if(!nw) return null;
-  const recN=getRec(pid,key,nw);
-  const weeks=WEEKS.length||1;
-  const target=recN.forecast!=null?recN.forecast:monthlyPlan({product_id:pid},key)/weeks;
+  const cw=currentWeekISO(); if(!cw) return null;
+  const ci=WEEKISO.indexOf(cw); if(ci<0) return null;
+  const series=seriesFor({product_id:pid},key);
+  if(series[ci].fact==null) return null;
+  const ni=ci+1; if(ni>=WEEKISO.length) return null;
+  const cur=series[ci].forecast;
+  const target=series[ni].forecast;
   const d=target-cur;
   const pct=cur!==0?(d/Math.abs(cur)*100):0;
-  return {cw,nw,curV:cur,nxtV:target,d,pct};
+  return {cw,nw:WEEKISO[ni],curV:cur,nxtV:target,d,pct};
 }
 function recText(r){
   if(!r) return {text:'—',cls:'n'};
@@ -674,7 +697,7 @@ function render(){
     let h=`<tr${zp?' class="zeroplan"':''}>
       <td>${esc(p.offer_id)}</td>
       <td class="pname" title="Протокол действий" onclick="toggleProto(${pid})">${esc(p.name)}</td>
-      <td><input type="date" class="dateinp" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
+      <td><span class="dateshort" title="Дата работы" onclick="openDate(${pid})">${wd?ddmm(wd):'—'}</span><input type="date" class="datehidden" id="dt_${pid}" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
       let ffV, dev;
@@ -695,9 +718,17 @@ function render(){
         const series=mt.add?seriesFor(p,mt.key):null;
         WEEKISO.forEach((w,i)=>{
           const rec=getRec(pid,mt.key,w);
-          let fc=mt.add?series[i].forecast:(rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key));
-          const auto=mt.add&&!series[i].manual&&rec.fact==null;
-          h+=`<td class="num editable wcell ${auto?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
+          if(mt.add){
+            const s=series[i];
+            if(s.locked){
+              h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${fmtFor(mt.key,s.forecast)}</td>`;
+            }else{
+              h+=`<td class="num editable wcell ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,s.forecast)}</td>`;
+            }
+          }else{
+            const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
+            h+=`<td class="num editable wcell" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
+          }
           h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
         });
       }
