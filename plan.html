@@ -72,30 +72,30 @@
  tr.mgroup button{background:none;border:1px solid rgba(125,54,115,.4);border-radius:5px;color:#7D3673;cursor:pointer;padding:0 6px;margin-right:6px}
  .mxcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
  .mxtitle{font-family:'Forum';font-weight:700;color:#544273;font-size:1em;margin-bottom:8px}
- .mxbody{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+ .mxbody{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
  .piecard{display:flex;flex-direction:column}
  .ptitle{font-size:.82em;color:#544273;font-weight:700;margin-bottom:5px}
- .piebox{display:flex;gap:12px;align-items:center}
- .pieWrap{position:relative;width:140px;height:140px;flex:0 0 auto}
+ .piebox{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+ .pieWrap{position:relative;width:120px;height:120px;flex:0 0 auto}
  svg.pie{width:100%;height:100%;display:block;animation:piein .5s ease}
  @keyframes piein{from{opacity:0;transform:scale(.9) rotate(-15deg)}to{opacity:1;transform:none}}
  .seg{cursor:pointer;transition:transform .18s ease,opacity .18s ease;transform-origin:110px 110px}
  .seg:hover,.seg.hl{transform:scale(1.06)}
  svg.dim .seg:not(:hover):not(.hl){opacity:.4}
- .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 22px}
+ .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 18px}
  .pcVal{font-size:.95em;font-weight:700;color:#1C0D2E;line-height:1.1}
  .pcCap{font-size:.66em;color:#94a3b8;margin-top:2px}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
- .legend{font-size:.78em;color:#544273}
+ .legend{font-size:.74em;color:#544273}
  .lrow{display:flex;align-items:center;gap:8px;margin:4px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
  .lrow:hover,.lrow.hl{background:rgba(120,166,199,.18)}
  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
  .lval{margin-left:auto;font-weight:700;color:#1C0D2E}
  .lcnt{color:#94a3b8;font-size:.9em}
- .kpiswrap{display:flex;gap:14px;margin-left:auto;flex-wrap:wrap}
+ .kpiswrap{display:flex;gap:12px;margin-left:auto;flex-wrap:nowrap}
  .kpis{display:flex;flex-direction:column;gap:6px}
  .kgroup{font-size:.75em;color:#94a3b8;font-weight:700;margin-bottom:2px}
- .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:6px 14px;min-width:170px}
+ .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:5px 10px;min-width:150px}
  .klabel{font-size:.72em;color:#94a3b8}
  .kval{font-size:1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
 
@@ -157,6 +157,8 @@
    .meta{font-size:.78em}
    .header { flex-wrap: wrap; }
    .header-nav { margin-left: 0; width: 100%; }
+   .mxbody { flex-direction: column; align-items: stretch; }
+   .kpiswrap { flex-wrap: wrap; margin-left: 0; }
  }
 </style></head>
 <body>
@@ -618,7 +620,7 @@ function render(){
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
-  document.getElementById('summary').innerHTML=mxCard('1','Матрица_1',m1)+mxCard('2','Матрица_2',m2);
+  document.getElementById('summary').innerHTML=mxCard('1','Алекс',m1)+mxCard('2','Александр',m2);
   drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},matrixStats(m1).buckets,matrixStats(m1).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
@@ -673,7 +675,7 @@ function render(){
     return h;
   };
   let html='';
-  const groups=[['m1','Матрица_1',m1],['m2','Матрица_2',m2]];
+  const groups=[['m1','Алекс',m1],['m2','Александр',m2]];
   groups.forEach(([gid,gname,list])=>{
     html+=`<tr class="mgroup"><td colspan="${totalCols}"><button onclick="toggleGM('${gid}')">${GM[gid]?'▾':'▸'}</button>${gname} • ${list.length} поз.</td></tr>`;
     if(!GM[gid])return;
