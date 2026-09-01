@@ -318,7 +318,6 @@ async function setFireWh(wh,on){
     await fetch(SUPABASE_URL+'/rest/v1/fire_wh?warehouse_name=eq.'+encodeURIComponent(wh),{method:'DELETE',headers:HD});
   }
 }
-// === ЗАГРУЗКА ИСТОРИИ ПОСТРАНИЧНО (без ограничения 1000 строк) ===
 async function loadHistory(){
   try{
     const since=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-30));
@@ -373,7 +372,6 @@ async function saveStockDay(tISO, stockMap){
     }catch(e){console.warn('stock save:',e);}
   }
 }
-// === Фиксация дня D: остатки из stockMap, продажи за D из SALES. fire=includeFire.
 function computeDay(tISO, includeFire, stockMap){
   const T=DOW_TARGET[parseISO(tISO).getDay()];
   const pAgg=new Map();
@@ -381,7 +379,7 @@ function computeDay(tISO, includeFire, stockMap){
     const o=r.offer_id;
     const whs=new Set([...Object.keys(stockMap[o]||{}),...Object.keys(SALES[o]||{})]);
     whs.forEach(wh=>{
-      if(includeFire===false&&FIRE.has(wh))return;   // без пожара: исключаем склады из fire_wh
+      if(includeFire===false&&FIRE.has(wh))return;
       const stock=stockMap[o]?.[wh]||0;
       const s1=SALES[o]?.[wh]?.[tISO]||0;
       if(stock===0&&s1===0)return;
@@ -427,7 +425,6 @@ function computeDay(tISO, includeFire, stockMap){
   });
   return rows;
 }
-// Разовый пересчёт прошлых дней из фиксированных остатков (вызывать из консоли при необходимости)
 async function recomputePast(daysArr){
   for(const d of daysArr){
     if(!STOCK_ALL[d]){ console.warn('нет остатков за',d); continue; }
@@ -439,6 +436,30 @@ async function recomputePast(daysArr){
   }
   render();
 }
+// === Перенос продаж в недели (sales_plan_weeks.fact, metric=qty) ===
+function weekStartOf(iso){ const d=parseISO(iso); d.setDate(d.getDate()-((d.getDay()+6)%7)); return localISO(d); }
+function isoWeeksOfMonth(y,m){
+  const out=[]; let d=new Date(y,m,1);
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  for(let i=0;i<6;i++){ const thu=new Date(d); thu.setDate(thu.getDate()+3);
+    if(thu.getFullYear()===y&&thu.getMonth()===m) out.push(new Date(d));
+    d.setDate(d.getDate()+7); }
+  return out;
+}
+async function syncWeekFacts(weeks){
+  for(const w of weeks){
+    const e=parseISO(w); e.setDate(e.getDate()+6); const we=localISO(e);
+    const rows=await fetchAll(`/rest/v1/product_sales?sale_date=gte.${w}&sale_date=lte.${we}&select=offer_id,qty`);
+    const per=new Map();
+    rows.forEach(r=>{ const pid=OFFER_PID[r.offer_id]; if(!pid)return; per.set(pid,(per.get(pid)||0)+Number(r.qty||0)); });
+    const body=[...per.entries()].map(([pid,sum])=>({product_id:pid,week:w,metric:'qty',fact:sum}));
+    for(let i=0;i<body.length;i+=500){
+      const part=body.slice(i,i+500);
+      await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
+    }
+  }
+}
+async function syncMonthFacts(ym){ const [y,m]=ym.split('-').map(Number); await syncWeekFacts(isoWeeksOfMonth(y,m-1).map(localISO)); }
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
   document.getElementById('progWrap').classList.remove('hide');
@@ -462,7 +483,7 @@ async function importFile(file){
       if(/отмен/i.test((r[4]||'').trim())){skipped++;continue;}
       const dt=(r[2]||'').trim().slice(0,10);
       if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){skipped++;continue;}
-      if(dt>YEST){skipped++;continue;}   // строки текущего (незавершённого) дня не импортируем
+      if(dt>YEST){skipped++;continue;}
       const offer=(r[11]||'').trim(), qty=Number(r[18]||0), wh=(r[29]||'').trim();
       if(!offer||!wh||!isFinite(qty)){skipped++;continue;}
       const k=dt+'|'+offer+'|'+wh;
@@ -488,6 +509,7 @@ async function importFile(file){
     const r1=computeDay(D,true,STOCK_NOW);
     upsertHistoryMemory(r0); upsertHistoryMemory(r1);
     await saveHistory(r0); await saveHistory(r1);
+    await syncWeekFacts([...new Set(out.map(x=>weekStartOf(x.sale_date)))]);
     await load();
     setP(100,`✔ Готово! Импортировано строк: ${out.length} (пропущено: ${skipped}). День ${D} зафиксирован.`);
     setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000);
@@ -786,7 +808,7 @@ function drawSplitChart(boxEl, tipEl, days, series) {
   attachChart(boxEl, tipEl);
 }
 function render(){
-  if(!BASE){return;}   // защита: не рисуем, пока load() не выставил BASE
+  if(!BASE){return;}
   const q=document.getElementById('q').value.toLowerCase();
   const match=r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q);
   const d1=localISO(BASE);
