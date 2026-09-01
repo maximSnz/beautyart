@@ -28,12 +28,12 @@
  .editable::after{content:" ✎";opacity:.3;font-size:.8em}
  .editable:hover{color:#E33D78}
  .editable:hover::after{opacity:1}
+ .resetbtn{cursor:pointer;margin-left:4px;color:#94a3b8;font-size:.85em}
+ .resetbtn:hover{color:#d97706}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
  .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
  .dateshort:hover{color:#E33D78}
  .datehidden{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;border:0;padding:0}
- td.pname{cursor:pointer}
- td.pname:hover{color:#E33D78}
  tr.dgroup td{background:rgba(120,166,199,.14);font-weight:700;color:#33506b;padding-top:10px}
  tr.protorow td{background:#f8f9fb;padding:12px}
  .protohead{font-size:.9em;color:#1C0D2E;margin-bottom:10px;font-weight:700;border-bottom:1px solid rgba(84,66,115,.1);padding-bottom:6px}
@@ -41,7 +41,7 @@
  .psectitle{font-weight:700;color:#544273;font-size:.85em;margin-bottom:8px}
  .prec{font-size:.85em;color:#544273;padding:4px 0;border-bottom:1px dashed rgba(84,66,115,.08)}
  .prec:last-child{border-bottom:none}
- .prec b{color:#1C0D2E;display:inline-block;min-width:70px}
+ .prec b{color:#1C0D2E;display:inline-block;min-width:90px}
  .pitem{border:1px solid rgba(84,66,115,.15);border-radius:8px;background:#fff;padding:7px 10px;margin:0 0 6px}
  .pitem .pdate{color:#94a3b8;margin-right:8px}
  .pmetrics i{font-style:normal;background:rgba(120,166,199,.2);border-radius:5px;padding:1px 6px;margin-right:4px;color:#33506b;font-size:.85em}
@@ -201,6 +201,7 @@ let GM={m1:false,m2:false};
 let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 const MLBL={qty:'Продажи',rev:'Выручка',mar:'Маржа',price:'Цена',pct:'Марж.%'};
+const MUNIT={qty:'шт',rev:'₽',mar:'₽',price:'₽',pct:'%'};
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
   {key:'rev',label:'Выручка, ₽',add:true},
@@ -348,6 +349,14 @@ async function editWeek(pid,week,metric){
   ((WD[pid]=WD[pid]||{})[metric]=WD[pid][metric]||{})[week]=Object.assign(rec,payload);
   render();
 }
+async function resetWeek(ev,pid,week,metric){
+  ev.stopPropagation();
+  if(!confirm('Вернуть расчётное значение прогноза?'))return;
+  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,week,metric,forecast:null})});
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  if(WD[pid]&&WD[pid][metric]&&WD[pid][metric][week]) WD[pid][metric][week].forecast=null;
+  render();
+}
 function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:null,fact:null}; }
 function monthlyPlan(p,key){
   const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
@@ -476,12 +485,13 @@ function recForV2(pid,key){
   const pct=cur!==0?(d/Math.abs(cur)*100):0;
   return {cw,nw:WEEKISO[ni],curV:cur,nxtV:target,d,pct};
 }
-function recText(r){
+function recText(r,unit){
   if(!r) return {text:'—',cls:'n'};
   const abs=Math.abs(r.d);
   const pctF=(r.pct<0?'−':'+')+Math.round(Math.abs(r.pct))+'%';
-  if(r.d>0.0001) return {text:`увеличить на ${fmt(abs)} (${pctF})`,cls:'g'};
-  if(r.d<-0.0001) return {text:`уменьшить на ${fmt(abs)} (${pctF})`,cls:'r'};
+  const u=unit?(' '+unit):'';
+  if(r.d>0.0001) return {text:`увеличить на ${fmt(abs)}${u} (${pctF})`,cls:'g'};
+  if(r.d<-0.0001) return {text:`уменьшить на ${fmt(abs)}${u} (${pctF})`,cls:'r'};
   return {text:'без изменений',cls:'n'};
 }
 async function addProto(pid){
@@ -568,10 +578,11 @@ function renderSmartForm(pid){
 function renderRecs(pid){
   let h='';
   METRICS.forEach(m=>{
+    const unit=MUNIT[m.key];
     const r=recForV2(pid,m.key);
-    const rec=recText(r);
-    if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}</b> <span class="n">нет данных</span></div>`; return; }
-    h+=`<div class="prec"><b>${MLBL[m.key]}</b> темп ${wlabel(parseW(r.cw))} = ${fmtFor(m.key,r.curV)} → цель ${wlabel(parseW(r.nw))} = ${fmtFor(m.key,r.nxtV)} • <span class="${rec.cls}">${rec.text}</span></div>`;
+    const rec=recText(r,unit);
+    if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> <span class="n">нет данных</span></div>`; return; }
+    h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> темп ${wlabel(parseW(r.cw))} = ${fmtFor(m.key,r.curV)} ${unit} → цель ${wlabel(parseW(r.nw))} = ${fmtFor(m.key,r.nxtV)} ${unit} • <span class="${rec.cls}">${rec.text}</span></div>`;
   });
   const offer=(BYID[pid]||{}).offer_id;
   const dv=DEV[offer];
@@ -579,7 +590,7 @@ function renderRecs(pid){
     const parts=[];
     if(dv.up>0.01) parts.push(`<span class="r">увеличить на ${f1(dv.up)} шт/д</span>`);
     if(dv.down>0.01) parts.push(`<span class="g">уменьшить на ${f1(dv.down)} шт/д</span>`);
-    h+=`<div class="prec"><b>Остатки</b> ${parts.join(' • ')}</div>`;
+    h+=`<div class="prec"><b>Остатки, шт/д</b> ${parts.join(' • ')}</div>`;
   }
   return h||'<div class="psub">нет данных</div>';
 }
@@ -675,9 +686,9 @@ function render(){
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  let totalCols=3;
+  let totalCols=2;
   METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?WEEKS.length*2:0); });
-  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Название</th><th rowspan="3">Дата</th>';
+  let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
@@ -695,8 +706,7 @@ function render(){
     const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const zp=(pl.plan_qty||0)===0;
     let h=`<tr${zp?' class="zeroplan"':''}>
-      <td>${esc(p.offer_id)}</td>
-      <td class="pname" title="Протокол действий" onclick="toggleProto(${pid})">${esc(p.name)}</td>
+      <td class="num" title="${esc(p.name)}">${esc(p.offer_id)}</td>
       <td><span class="dateshort" title="Дата работы" onclick="openDate(${pid})">${wd?ddmm(wd):'—'}</span><input type="date" class="datehidden" id="dt_${pid}" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
@@ -723,11 +733,13 @@ function render(){
             if(s.locked){
               h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${fmtFor(mt.key,s.forecast)}</td>`;
             }else{
-              h+=`<td class="num editable wcell ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,s.forecast)}</td>`;
+              const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
+              h+=`<td class="num editable wcell" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,s.forecast)}${rst}</td>`;
             }
           }else{
             const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
-            h+=`<td class="num editable wcell" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}</td>`;
+            const rst=rec.forecast!=null?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
+            h+=`<td class="num editable wcell ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${fmtFor(mt.key,fc)}${rst}</td>`;
           }
           h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':fmtFor(mt.key,rec.fact)}</td>`;
         });
