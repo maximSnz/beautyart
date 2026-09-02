@@ -389,13 +389,14 @@ function computeDay(tISO, includeFire, stockMap){
   const clAgg=new Map();
   pAgg.forEach(p=>{
     let up=0,down=0,total=0,s1total=0;
+    const upClusters=[],downClusters=[];
     p.clusters.forEach((g,c)=>{
       const dev=(g.cs/T - g.c1)/SMOOTH_DAYS;
       total+=dev; s1total+=g.c1;
       const dir=dev>0.01?'up':(dev<-0.01?'down':0);
       const chg=Math.abs(dev);
-      if(dir==='up'){up+=chg; tMkt[p.matrix].sup+=dev;}
-      else if(dir==='down'){down+=chg; tMkt[p.matrix].def+=dev;}
+      if(dir==='up'){up+=chg; tMkt[p.matrix].sup+=dev; upClusters.push(c);}
+      else if(dir==='down'){down+=chg; tMkt[p.matrix].def+=dev; downClusters.push(c);}
       const k=p.matrix+'|'+c;
       if(!clAgg.has(k))clAgg.set(k,{matrix:p.matrix,cluster:c,dev:0,up:0,down:0});
       const o=clAgg.get(k); o.dev+=dev;
@@ -406,7 +407,7 @@ function computeDay(tISO, includeFire, stockMap){
       const b=days<20?'lt20':(days<=50?'b2050':'gt50');
       cov[p.matrix][b]++;
     }
-    rows.push({entity_type:'product',entity_key:p.o,report_date:tISO,deviation:total,dev_up:up,dev_down:down,fire:includeFire});
+    rows.push({entity_type:'product',entity_key:p.o,report_date:tISO,deviation:total,dev_up:up,dev_down:down,clusters_up:upClusters.join('|'),clusters_down:downClusters.join('|'),fire:includeFire});
   });
   clAgg.forEach(v=>rows.push({entity_type:'cluster',entity_key:v.matrix+':'+v.cluster,report_date:tISO,deviation:v.dev,dev_up:v.up,dev_down:v.down,fire:includeFire}));
   ['m1','m2'].forEach(mk=>{
