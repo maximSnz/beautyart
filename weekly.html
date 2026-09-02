@@ -763,6 +763,7 @@ function attachChart(box, tooltip){
   });
 }
 function drawSplitChart(boxEl, tipEl, days, series) {
+   if(!boxEl||!tipEl)return;
   const n = days.length;
   const W = 900, H = 460, padL = 64, padR = 14, padT = 24, padB = 50;
   const innerW = W - padL - padR, innerH = H - padT - padB;
@@ -842,7 +843,8 @@ function render(){
   const entries=(MODE==='summary')?buildEntries(false):buildEntries(!INCLUDE_FIRE);
   const whRows=(arr)=>arr.sort((a,b)=>b.sum-a.sum).map(e=>`<tr class="whrow"><td class="whcell">${esc(e.wh)}</td><td class="num">${fmt(e.stock)}</td><td class="num">${fmt(e.sum)}</td>${daysCell(e.stock,e.s1)}${cmpCell(e.s3,e.s4)}${cmpCell(e.s2,e.s3)}${cmpCell(e.s1,e.s2)}</tr>`).join('');
   const head7=`<tr><th>Наименование</th><th>Остаток</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
-  let html='';
+ let html='';
+  let chartData=null;
   if(MODE==='products'||MODE==='clusters'){
     const prodAgg=new Map();
     entries.forEach(e=>{
@@ -989,12 +991,8 @@ function render(){
         ${listHtml(itemsDn,true)}
       </div>`;
     };
-    html+=`<div class="topsrow">${topBlock('m1',true)}${topBlock('m2',true)}${topBlock('m1',false)}${topBlock('m2',false)}</div>`;
-    ['m1','m2'].forEach(mk=>{
-      const b=cov[mk]; const total=b.reduce((s,x)=>s+x.cnt,0);
-      drawPie({svg:'pie'+mk,legend:'legend'+mk,val:'pcVal'+mk,cap:'pcCap'+mk},b,total,x=>x.cnt,v=>fmt(v)+' поз.',MATRIX_NAME[mk]+' • '+total+' поз.');
-    });
-    drawSplitChart(document.getElementById('chartBox'),document.getElementById('chartTip'),days,series);
+       html+=`<div class="topsrow">${topBlock('m1',true)}${topBlock('m2',true)}${topBlock('m1',false)}${topBlock('m2',false)}</div>`;
+    chartData={cov,days,series};
     byMatrix.forEach((arr,mk)=>{
       html+=`<details class="matrix" open><summary>${MATRIX_NAME[mk]} • ${arr.length} позиций</summary><div class="matrixbody">`;
       arr.sort((a,b)=>Math.abs(b.totalDev)-Math.abs(a.totalDev)).forEach(p=>{
@@ -1069,6 +1067,13 @@ function render(){
     });
   }
   document.getElementById('clusters').innerHTML=html;
+  if(chartData){
+    ['m1','m2'].forEach(mk=>{
+      const b=chartData.cov[mk]; const total=b.reduce((s,x)=>s+x.cnt,0);
+      drawPie({svg:'pie'+mk,legend:'legend'+mk,val:'pcVal'+mk,cap:'pcCap'+mk},b,total,x=>x.cnt,v=>fmt(v)+' поз.',MATRIX_NAME[mk]+' • '+total+' поз.');
+    });
+    drawSplitChart(document.getElementById('chartBox'),document.getElementById('chartTip'),chartData.days,chartData.series);
+  }
   const entries2=(MODE==='summary')?buildEntries(false):buildEntries(!INCLUDE_FIRE);
   const totStock=entries2.reduce((s,e)=>s+e.stock,0);
   const totSum=entries2.reduce((s,e)=>s+e.sum,0);
