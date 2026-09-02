@@ -505,6 +505,7 @@ async function importFile(file){
     const D=out.reduce((m,x)=>x.sale_date>m?x.sale_date:m,'');
     setP(85,`✔ Импортировано строк: ${out.length}. Фиксирую день ${D}…`);
     await saveStockDay(D, STOCK_NOW);
+    STOCK_ALL[D]=STOCK_NOW;
     const r0=computeDay(D,false,STOCK_NOW);
     const r1=computeDay(D,true,STOCK_NOW);
     upsertHistoryMemory(r0); upsertHistoryMemory(r1);
