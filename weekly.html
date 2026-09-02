@@ -355,13 +355,23 @@ async function saveHistory(rows){
 async function saveStockDay(tISO, stockMap){
   await fetch(SUPABASE_URL+'/rest/v1/stock_history?report_date=eq.'+tISO,{method:'DELETE',headers:HD});
   const rows=[];
-  for(const o in stockMap){ for(const wh in stockMap[o]){ const v=stockMap[o][wh];
-    if(v!=null) rows.push({report_date:tISO,offer_id:o,warehouse_name:wh,stock:v}); } }
+  for(const o in stockMap){
+    for(const wh in stockMap[o]){
+      const v=stockMap[o][wh];
+      if(v!=null) rows.push({report_date:tISO,offer_id:o,warehouse_name:wh,stock:v});
+    }
+  }
   if(!rows.length)return;
-  for(let i=0;i<rows.length;i+=500){ const part=rows.slice(i,i+500);
-    await fetch(SUPABASE_URL+'/rest/v1/stock_history?on_conflict=report_date,offer_id,warehouse_name',{
-      method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
-      body:JSON.stringify(part)}); }
+  for(let i=0;i<rows.length;i+=500){
+    const part=rows.slice(i,i+500);
+    try{
+      await fetch(SUPABASE_URL+'/rest/v1/stock_history?on_conflict=report_date,offer_id,warehouse_name',{
+        method:'POST',
+        headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+        body:JSON.stringify(part)
+      });
+    }catch(e){console.warn('stock save:',e);}
+  }
 }
 function computeDay(tISO, includeFire, stockMap){
   const T=DOW_TARGET[parseISO(tISO).getDay()];
@@ -427,7 +437,6 @@ async function recomputePast(daysArr){
   }
   render();
 }
-// === Перенос продаж в недели (sales_plan_weeks.fact, metric=qty) ===
 function weekStartOf(iso){ const d=parseISO(iso); d.setDate(d.getDate()-((d.getDay()+6)%7)); return localISO(d); }
 function isoWeeksOfMonth(y,m){
   const out=[]; let d=new Date(y,m,1);
@@ -447,10 +456,7 @@ async function syncWeekFacts(weeks){
       cur.q+=Number(r.qty||0); cur.r+=Number(r.revenue||0);
       per.set(pid,cur); });
     const body=[];
-    per.forEach((v,pid)=>{
-      body.push({product_id:pid,week:w,metric:'qty',fact:v.q});
-      body.push({product_id:pid,week:w,metric:'rev',fact:Math.round(v.r)});
-    });
+    per.forEach((v,pid)=>{ body.push({product_id:pid,week:w,metric:'qty',fact:v.q}); body.push({product_id:pid,week:w,metric:'rev',fact:Math.round(v.r)}); });
     for(let i=0;i<body.length;i+=500){
       const part=body.slice(i,i+500);
       await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
@@ -505,6 +511,7 @@ async function importFile(file){
     const D=out.reduce((m,x)=>x.sale_date>m?x.sale_date:m,'');
     setP(85,`✔ Импортировано строк: ${out.length}. Фиксирую день ${D}…`);
     await saveStockDay(D, STOCK_NOW);
+    STOCK_ALL[D]=STOCK_NOW;
     const r0=computeDay(D,false,STOCK_NOW);
     const r1=computeDay(D,true,STOCK_NOW);
     upsertHistoryMemory(r0); upsertHistoryMemory(r1);
@@ -933,136 +940,4 @@ function render(){
         });
       }else{
         const clMap=new Map();
-        byMatrix.get(mkk)?.forEach(p=>{p.clArr.forEach(g=>{ if(!g.dir)return;
-          if(!clMap.has(g.c))clMap.set(g.c,{name:g.c,up:0,down:0});
-          const c=clMap.get(g.c);
-          if(g.dir==='up')c.up+=g.change; else c.down+=g.change;
-        });});
-        clMap.forEach(c=>{
-          const dir=c.down>=c.up?'down':'up'; const mag=Math.max(c.up,c.down);
-          if(mag>0) items.push({label:c.name,ttl:'',dir,mag,jumpId:`cl:${mkk}:${dir}:${c.name}`,histKey:mkk+':'+c.name,histType:'cluster'});
-        });
-      }
-      items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
-      if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="meta">нет позиций</div></div>`;
-      return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
-        <div class="topnote">База ≥ ${MATERIAL} шт/день → %; база &lt; ${MATERIAL} → абсолютное изменение (шт/день)</div>
-        <div class="tophead">
-          <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
-          <span style="grid-column:2;grid-row:1/3"></span>
-          <span style="grid-column:3;grid-row:1/3">Δ шт/день (к цели за 7 дн)</span>
-          <span style="grid-column:4/7;grid-row:1">Изменение результата за</span>
-          <span style="grid-column:4;grid-row:2">1д</span>
-          <span style="grid-column:5;grid-row:2">3д</span>
-          <span style="grid-column:6;grid-row:2">7д</span>
-        </div>`+
-        items.map(x=>{
-          const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
-          const kpi=kpiPctFromHistory(x.histType,x.histKey,x.dir);
-          return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
-        }).join('')+`</div>`;
-    };
-    html+=`<div class="topsrow">`+topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products')+`</div>`;
-    if(MODE==='products'){
-      const prodNode=(p,dir)=>{
-        const cl=p.clArr.filter(g=>g.dir===dir);
-        const ch=cl.reduce((s,g)=>s+g.change,0);
-        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}:${dir}"><summary><span class="clname" title="${esc(p.name)}">${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
-        cl.forEach(g=>{
-          out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-            <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
-            <td class="num">${fmt(g.cs)}</td><td class="num">${fmt(g.csum)}</td>${daysCell(g.cs,g.c1)}${cmpCell(g.c3,g.c4)}${cmpCell(g.c2,g.c3)}${cmpCell(g.c1,g.c2)}</tr>`+whRows(g.arr)+`</tbody>`;
-        });
-        out+=`</table></div></details>`;
-        return out;
-      };
-      const section=(title,arr,dir)=>{
-        const list=arr.filter(p=>p.clArr.some(g=>g.dir===dir))
-          .map(p=>{p._ch=p.clArr.filter(g=>g.dir===dir).reduce((s,g)=>s+g.change,0);return p;})
-          .sort((a,b)=>b._ch-a._ch);
-        if(!list.length)return '';
-        const total=list.reduce((s,p)=>s+p._ch,0);
-        return `<details class="sup" data-dir="${dir}"><summary><span class="clname">${title} — ${list.length} поз.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+list.map(p=>prodNode(p,dir)).join('')+`</div></details>`;
-      };
-      [...byMatrix.keys()].sort().forEach(mkk=>{
-        const arr=byMatrix.get(mkk);
-        const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
-        html+=`<details class="matrix" data-matrix="${mkk}"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
-        html+=section('📦 Профицит (увеличить продажи)',arr,'up');
-        html+=section('⛔ Дефицит (снизить продажи)',arr,'down');
-        html+=`</div></details>`;
-      });
-    }else{
-      const clusterNode=(cname,list,mkk,dir)=>{
-        const ch=list.reduce((s,x)=>s+x.change,0);
-        let out=`<details class="cluster" data-jump-id="cl:${mkk}:${dir}:${esc(cname)}"><summary><span class="clname">${esc(cname)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${list.length} поз.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
-        list.sort((a,b)=>b.change-a.change).forEach(x=>{
-          out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-            <td><span class="caret">▾</span><span title="${esc(x.name)}">${esc(x.o)}</span>${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
-            <td class="num">${fmt(x.cs)}</td><td class="num">${fmt(x.csum)}</td>${daysCell(x.cs,x.c1)}${cmpCell(x.c3,x.c4)}${cmpCell(x.c2,x.c3)}${cmpCell(x.c1,x.c2)}</tr>`+whRows(x.arr)+`</tbody>`;
-        });
-        out+=`</table></div></details>`;
-        return out;
-      };
-      const clusterSection=(title,pc,dir,mkk)=>{
-        const list=pc.filter(x=>x.dir===dir);
-        if(!list.length)return '';
-        const byCl=new Map();
-        list.forEach(x=>{if(!byCl.has(x.cluster))byCl.set(x.cluster,[]);byCl.get(x.cluster).push(x);});
-        const clusters=[...byCl.entries()].map(([c,a])=>({c,a,ch:a.reduce((s,x)=>s+x.change,0)})).sort((a,b)=>b.ch-a.ch);
-        const total=clusters.reduce((s,c)=>s+c.ch,0);
-        return `<details class="sup" data-dir="${dir}"><summary><span class="clname">${title} — ${clusters.length} кл.</span><span class="cltot">Σ ${f1(total)} шт/день</span></summary><div class="supbody">`+clusters.map(cl=>clusterNode(cl.c,cl.a,mkk,dir)).join('')+`</div></details>`;
-      };
-      [...byMatrix.keys()].sort().forEach(mkk=>{
-        const arr=byMatrix.get(mkk);
-        const pc=[];
-        arr.forEach(p=>{p.clArr.forEach(g=>{ if(g.dir) pc.push({o:p.o,name:p.name,cluster:g.c,cs:g.cs,csum:g.csum,c1:g.c1,c2:g.c2,c3:g.c3,c4:g.c4,rec:g.rec,dir:g.dir,change:g.change,arr:g.arr}); });});
-        const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
-        html+=`<details class="matrix" data-matrix="${mkk}"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
-        html+=clusterSection('📦 Профицит (увеличить продажи)',pc,'up',mkk);
-        html+=clusterSection('⛔ Дефицит (снизить продажи)',pc,'down',mkk);
-        html+=`</div></details>`;
-      });
-    }
-    setTimeout(() => {
-      const box = document.getElementById('chartBox');
-      const tip = document.getElementById('chartTip');
-      if (box && tip) drawSplitChart(box, tip, days, series);
-      ['m1','m2'].forEach(mk=>{
-        const b=cov[mk];
-        const total=b.reduce((s,x)=>s+x.cnt,0);
-        drawPie(
-          {svg:'pie'+mk,legend:'legend'+mk,val:'pcVal'+mk,cap:'pcCap'+mk},
-          b, total, x=>x.cnt, v=>v+' поз.', 'позиций'
-        );
-      });
-    }, 0);
-  }else{
-    const whMap=new Map();
-    entries.forEach(e=>{if(!whMap.has(e.wh))whMap.set(e.wh,{id:e.wh,name:e.wh,cluster:e.cluster,rows:[]});whMap.get(e.wh).rows.push(e);});
-    whMap.forEach(w=>{w.rows.sort((a,b)=>b.sum-a.sum);w.total=w.rows.reduce((s,x)=>s+x.stock,0);w.sum=w.rows.reduce((s,x)=>s+x.sum,0);});
-    const mainC=new Map(), fireC=new Map();
-    whMap.forEach(w=>{const t=FIRE.has(w.id)?fireC:mainC;if(!t.has(w.cluster))t.set(w.cluster,[]);t.get(w.cluster).push(w);});
-    const sortC=map=>[...map.entries()].map(([c,ws])=>({c,ws,sum:ws.reduce((s,w)=>s+w.sum,0)})).sort((a,b)=>b.sum-a.sum);
-    const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
-    const whBlock=(w,inFire)=>{
-      const btn=inFire?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`:`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
-      return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.sum)} ₽ • ${fmt(w.total)} шт</span></summary>
-        <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
-    };
-    const clusterBlock=(o,inFire)=>`<details class="cluster"><summary><span class="clname">${esc(o.c)}</span><span class="cltot">${fmt(o.ws.reduce((s,w)=>s+w.sum,0))} ₽ • ${fmt(o.ws.reduce((s,w)=>s+w.total,0))} шт</span></summary>`+o.ws.sort((a,b)=>b.sum-a.sum).map(w=>whBlock(w,inFire)).join('')+`</details>`;
-    const fireList=sortC(fireC), mainList=sortC(mainC);
-    if(fireList.length)html+=`<details class="fire"><summary>🔥 Пожар</summary><div class="firebody">${fireList.map(o=>clusterBlock(o,true)).join('')}</div></details>`;
-    html+=mainList.map(o=>clusterBlock(o,false)).join('');
-  }
-  document.getElementById('clusters').innerHTML=html||'<div class="meta">Нет данных под фильтр.</div>';
-  const grandEl=document.getElementById('grand');
-  if(MODE==='summary'){
-    grandEl.style.display='';
-    const tStock=entries.reduce((s,e)=>s+e.stock,0);
-    const tSum=entries.reduce((s,e)=>s+e.sum,0);
-    grandEl.innerHTML=`<span>ИТОГО по всем складам:</span><span>${fmt(tSum)} ₽ • ${fmt(tStock)} шт</span>`;
-  }else{ grandEl.style.display='none'; grandEl.innerHTML=''; }
-}
-</script></body></html>
+        byMatrix.get(mkk)?.forEach(p=>{p.clArr.forEach(g
