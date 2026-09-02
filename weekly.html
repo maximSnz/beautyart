@@ -928,8 +928,7 @@ function render(){
       let items=[];
       if(isProd){
         byMatrix.get(mkk)?.forEach(p=>{
-          const h=histDom(p.o, todayISO); if(!h)return;
-          const dir=h.down>=h.up?'down':'up'; const mag=Math.max(h.up,h.down);
+          const dir=p.down>=p.up?'down':'up'; const mag=Math.max(p.up,p.down);
           if(mag>0) items.push({label:p.o,ttl:p.name,dir,mag,jumpId:`prod:${p.o}:${dir}`,histKey:p.o,histType:'product'});
         });
       }else{
