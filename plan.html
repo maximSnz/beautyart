@@ -35,6 +35,8 @@
  .editbtn:hover{opacity:1;color:#E33D78}
  .resetbtn{opacity:.55;font-size:.85em;margin-left:4px;cursor:pointer;color:#94a3b8}
  .resetbtn:hover{opacity:1;color:#d97706}
+ .stocklink{color:#544273;text-decoration:underline;transition:transform .2s ease,color .2s;display:inline-block}
+ .stocklink:hover{transform:scale(1.05);color:#E33D78}
  tr.zeroplan td{background:rgba(227,61,120,.12)}
  .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
  .dateshort:hover{color:#E33D78}
@@ -105,21 +107,21 @@
  .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:5px 10px;min-width:150px}
  .klabel{font-size:.72em;color:#94a3b8}
  .kval{font-size:1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
- .header { max-width: 1200px; margin: 20px auto 20px; display: flex; align-items: center; gap: 20px; padding: 25px 30px; background: rgba(255, 255, 255, 0.15); border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3); box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2); position: relative; z-index: 200; }
- .logo-link { display: inline-block; flex: 0 0 auto; }
- .logo { width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); transition: transform .3s ease; display: block; }
- .logo-link:hover .logo { transform: scale(1.1); }
- .company-name { font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white; text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px; }
- .header-nav { margin-left: auto; display: flex; gap: 10px; }
- .nav-item { position: relative; }
- .nav-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: #fff; padding: 10px 16px; font-family: 'Forum', serif; font-size: 1em; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .3s; text-shadow: 0 1px 3px rgba(0,0,0,0.25); }
- .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
- .nav-btn .caret { font-size: .72em; transition: transform .2s; }
- .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
- .nav-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px; background: rgba(255,255,255,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 8px; display: none; z-index: 300; box-shadow: 0 10px 30px rgba(28,13,46,.25); }
- .nav-item.open .nav-menu { display: block; }
- .nav-menu a { display: block; padding: 10px 14px; border-radius: 8px; color: #fff; text-decoration: none; font-family: 'Forum', serif; font-size: .95em; transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25); }
- .nav-menu a:hover { background: rgba(255,255,255,0.22); }
+ .header{max-width:1200px;margin:20px auto 20px;display:flex;align-items:center;gap:20px;padding:25px 30px;background:rgba(255,255,255,0.15);border-radius:16px;border:2px solid rgba(255,255,255,0.3);box-shadow:0 8px 32px rgba(28,13,46,0.2);position:relative;z-index:200}
+ .logo-link{display:inline-block;flex:0 0 auto}
+ .logo{width:80px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));transition:transform .3s ease;display:block}
+ .logo-link:hover .logo{transform:scale(1.1)}
+ .company-name{font-family:'Forum',serif;font-size:2.5em;font-weight:400;color:white;text-shadow:0 2px 8px rgba(28,13,46,0.4);letter-spacing:2px}
+ .header-nav{margin-left:auto;display:flex;gap:10px}
+ .nav-item{position:relative}
+ .nav-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;padding:10px 16px;font-family:'Forum',serif;font-size:1em;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .3s;text-shadow:0 1px 3px rgba(0,0,0,0.25)}
+ .nav-btn:hover{background:rgba(255,255,255,0.25);transform:translateY(-1px)}
+ .nav-btn .caret{font-size:.72em;transition:transform .2s}
+ .nav-item.open .nav-btn .caret{transform:rotate(180deg)}
+ .nav-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:250px;background:rgba(255,255,255,0.18);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.35);border-radius:12px;padding:8px;display:none;z-index:300;box-shadow:0 10px 30px rgba(28,13,46,.25)}
+ .nav-item.open .nav-menu{display:block}
+ .nav-menu a{display:block;padding:10px 14px;border-radius:8px;color:#fff;text-decoration:none;font-family:'Forum',serif;font-size:.95em;transition:background .2s;text-shadow:0 1px 3px rgba(0,0,0,.25)}
+ .nav-menu a:hover{background:rgba(255,255,255,0.22)}
  @media (max-width:640px){
    body{padding:8px}
    .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
@@ -129,10 +131,10 @@
    table{font-size:.72em;min-width:800px}
    th,td{padding:4px 5px}
    .meta{font-size:.78em}
-   .header { flex-wrap: wrap; }
-   .header-nav { margin-left: 0; width: 100%; }
-   .mxbody { flex-direction: column; align-items: stretch; }
-   .kpiswrap { flex-wrap: wrap; margin-left: 0; }
+   .header{flex-wrap:wrap}
+   .header-nav{margin-left:0;width:100%}
+   .mxbody{flex-direction:column;align-items:stretch}
+   .kpiswrap{flex-wrap:wrap;margin-left:0}
  }
 </style></head>
 <body>
@@ -184,18 +186,8 @@
   </div>
 </div>
 <script>
-function toggleNav(btn) {
-  const item = btn.closest('.nav-item');
-  const wasOpen = item.classList.contains('open');
-  document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
-  if (!wasOpen) item.classList.add('open');
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.nav-item')) {
-    document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
-  }
-});
-
+function toggleNav(btn){const item=btn.closest('.nav-item');const wasOpen=item.classList.contains('open');document.querySelectorAll('.nav-item.open').forEach(i=>i.classList.remove('open'));if(!wasOpen)item.classList.add('open');}
+document.addEventListener('click',(e)=>{if(!e.target.closest('.nav-item')){document.querySelectorAll('.nav-item.open').forEach(i=>i.classList.remove('open'));}});
 const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
@@ -298,10 +290,10 @@ async function loadProto(){
   (await r2.json()).forEach(x=>{(NOTES[x.product_id]=NOTES[x.product_id]||[]).push(x);});
 }
 async function loadDev(){
-  const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?entity_type=eq.product&fire=eq.false&select=entity_key,report_date,dev_up,dev_down&order=report_date.desc&limit=2000`,{headers:HD});
+  const r=await fetch(SUPABASE_URL+`/rest/v1/deviation_history?entity_type=eq.product&fire=eq.false&select=entity_key,report_date,dev_up,dev_down,clusters_up,clusters_down&order=report_date.desc&limit=2000`,{headers:HD});
   if(!r.ok){DEV={};return;}
   DEV={};
-  (await r.json()).forEach(x=>{ if(DEV[x.entity_key]==null) DEV[x.entity_key]={up:+(x.dev_up||0),down:+(x.dev_down||0)}; });
+  (await r.json()).forEach(x=>{ if(DEV[x.entity_key]==null) DEV[x.entity_key]={up:+(x.dev_up||0),down:+(x.dev_down||0),cu:x.clusters_up||'',cd:x.clusters_down||''}; });
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -421,7 +413,6 @@ function calcForecast(p,key){
   const r=F/E; let R=T-E; if(R<0)R=0; return F+r*R;
 }
 const calcForecastQty=p=>calcForecast(p,'qty');
-// Прогноз и отклонение для метрик-сумм: с фактом — проекция; без факта — прогноз «—», отклонение = −план×E/T.
 function projVal(p,key){
   const planV=monthlyPlan(p,key);
   const P=calcForecast(p,key);
@@ -639,13 +630,22 @@ function renderRecs(pid){
     if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> <span class="n">нет данных</span></div>`; return; }
     h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> темп ${wlabel(parseW(r.cw))} = ${fmtFor(m.key,r.curV)} ${unit} → цель ${wlabel(parseW(r.nw))} = ${fmtFor(m.key,r.nxtV)} ${unit} • <span class="${rec.cls}">${rec.text}</span></div>`;
   });
+  return h||'<div class="psub">нет данных</div>';
+}
+function renderStock(pid){
   const offer=(BYID[pid]||{}).offer_id;
   const dv=DEV[offer];
-  if(dv&&(dv.up>0.01||dv.down>0.01)){
-    const parts=[];
-    if(dv.up>0.01) parts.push(`<span class="r">увеличить на ${f1(dv.up)} шт/д</span>`);
-    if(dv.down>0.01) parts.push(`<span class="g">уменьшить на ${f1(dv.down)} шт/д</span>`);
-    h+=`<div class="prec"><b>Остатки, шт/д</b> ${parts.join(' • ')}</div>`;
+  if(!dv) return '<div class="psub">нет данных</div>';
+  let h='';
+  if(dv.up>0.01){
+    const cls=(dv.cu||'').split('|').filter(x=>x);
+    const clsStr=cls.length?` (${cls.join(', ')})`:'';
+    h+=`<div class="prec"><span class="r">увеличить на ${f1(dv.up)} шт/д${clsStr}</span></div>`;
+  }
+  if(dv.down>0.01){
+    const cls=(dv.cd||'').split('|').filter(x=>x);
+    const clsStr=cls.length?` (${cls.join(', ')})`:'';
+    h+=`<div class="prec"><span class="g">уменьшить на ${f1(dv.down)} шт/д${clsStr}</span></div>`;
   }
   return h||'<div class="psub">нет данных</div>';
 }
@@ -661,6 +661,7 @@ function renderNotes(pid){
 function protoBlock(pid,offer){
   return `<div class="protohead">Протокол действий • ${esc(offer)}</div>
     <div class="psection"><div class="psectitle">📈 Рекомендации на следующую неделю</div>${renderRecs(pid)}</div>
+    <div class="psection"><div class="psectitle"><a href="https://maximsnz.github.io/beautyart/weekly.html" target="_blank" class="stocklink">📦 Рекомендации по управлению остатками</a></div>${renderStock(pid)}</div>
     <div class="psection"><div class="psectitle">🎯 SMART-протокол</div>${(PROTO[pid]||[]).map(renderItem).join('')||'<div class="psub">пока нет пунктов</div>'}${renderSmartForm(pid)}</div>
     <div class="psection"><div class="psectitle">📝 Заметки менеджера</div>${renderNotes(pid)}</div>`;
 }
@@ -703,7 +704,8 @@ function matrixStats(list){
   let tRub=0,tMar=0,tFRev=0,tFMar=0;
   list.forEach(p=>{ const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const rev=pl.plan_qty*pl.price, mar=rev*pl.margin_pct/100; tRub+=rev; tMar+=mar;
-    tFRev+=forecastClose(p,'rev'); tFMar+=forecastClose(p,'mar');
+    const pvRev=projVal(p,'rev'), pvMar=projVal(p,'mar');
+    tFRev+=rev+(pvRev.dev||0); tFMar+=mar+(pvMar.dev||0);
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1; });
   return {buckets,tRub,tMar,tFRev,tFMar};
 }
@@ -833,4 +835,6 @@ function render(){
   });
   document.getElementById('tb').innerHTML=html||`<tr><td colspan="${totalCols}" style="color:#94a3b8">нет данных</td></tr>`;
 }
-</script></body></html>
+</script>
+</body>
+</html>
