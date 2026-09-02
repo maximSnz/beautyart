@@ -211,7 +211,7 @@ const COLLBL={
   qty:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
   rev:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
   mar:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
-  price:{fc:'Ср.цена<br>продажи',dv:'Отклонение'},
+  price:{fc:'Ср.взвеш.<br>цена, ₽',dv:'Отклонение'},
   pct:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'}
 };
 const METRICS=[
@@ -379,6 +379,19 @@ function monthlyPlan(p,key){
   if(key==='price')return pl.price;
   return pl.margin_pct;
 }
+function elapsedInfo(){
+  const [y,m]=MONTH.split('-').map(Number);
+  const T=new Date(y,m,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const first=new Date(y,m-1,1);
+  const last=new Date(y,m-1,T);
+  let E;
+  if(today>last) E=T;
+  else if(today<first) E=0;
+  else { const D=new Date(today); D.setDate(D.getDate()-1); E=daysBetween(first,D)+1; }
+  if(E<0)E=0; if(E>T)E=T;
+  return {E,T};
+}
 function priceFactForWeek(pid,week){
   const rq=getRec(pid,'qty',week), rr=getRec(pid,'rev',week);
   if(rq.fact==null||rr.fact==null||rq.fact<=0) return null;
@@ -408,6 +421,14 @@ function calcForecast(p,key){
   const r=F/E; let R=T-E; if(R<0)R=0; return F+r*R;
 }
 const calcForecastQty=p=>calcForecast(p,'qty');
+// Прогноз и отклонение для метрик-сумм: с фактом — проекция; без факта — прогноз «—», отклонение = −план×E/T.
+function projVal(p,key){
+  const planV=monthlyPlan(p,key);
+  const P=calcForecast(p,key);
+  if(P!=null) return {ffV:P, dev:P-planV};
+  const {E,T}=elapsedInfo();
+  return {ffV:null, dev: -planV*E/T };
+}
 function seriesFor(p,key){
   const P=monthlyPlan(p,key);
   const today=new Date(); today.setHours(0,0,0,0);
@@ -610,7 +631,7 @@ function renderRecs(pid){
       if(Math.abs(diff)<0.005){txt='без изменений';cls='n';}
       else if(diff>0){txt=`снизить цену на ${fmt2(diff)} ${unit}`;cls='r';}
       else {txt=`поднять цену на ${fmt2(-diff)} ${unit}`;cls='g';}
-      h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> ср.цена = ${fmt2(ap)} ${unit} → план = ${fmt2(plan)} ${unit} • <span class="${cls}">${txt}</span></div>`;
+      h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> ср.взвеш. цена = ${fmt2(ap)} ${unit} → план = ${fmt2(plan)} ${unit} • <span class="${cls}">${txt}</span></div>`;
       return;
     }
     const r=recForV2(pid,m.key);
@@ -734,7 +755,7 @@ function render(){
              WEEKS.forEach(w=>{ r3+= isPrice?`<th class="wsub">Ф</th>`:`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  const devOf=p=>devFor(p,'rev');
+  const devOf=p=>projVal(p,'rev').dev;
   const prodRow=p=>{
     const pid=p.product_id;
     const wd=(PPM[pid]&&PPM[pid].work_date)||'';
@@ -746,8 +767,7 @@ function render(){
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
       let ffV, dev;
-      if(mt.key==='qty'){ const P=calcForecast(p,'qty'); ffV=P==null?null:P; dev=P==null?null:P-planV; }
-      else if(mt.key==='rev'){ const P=calcForecast(p,'rev'); ffV=P==null?null:P; dev=P==null?null:P-planV; }
+      if(mt.key==='qty'||mt.key==='rev'){ const pv=projVal(p,mt.key); ffV=pv.ffV; dev=pv.dev; }
       else if(mt.key==='price'){ const ap=avgPriceFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
       else { ffV=collVal(p,mt.key); dev=devFor(p,mt.key); }
       const dcls=dev==null?'n':(dev>0?'g':dev<0?'r':'n');
