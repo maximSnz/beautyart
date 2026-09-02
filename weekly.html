@@ -343,11 +343,12 @@ function upsertHistoryMemory(rows){
 }
 async function saveHistory(rows){
   if(!rows.length)return;
+  const norm=rows.map(r=>({entity_type:r.entity_type,entity_key:r.entity_key,report_date:r.report_date,deviation:r.deviation,dev_up:r.dev_up,dev_down:r.dev_down,clusters_up:r.clusters_up!=null?r.clusters_up:null,clusters_down:r.clusters_down!=null?r.clusters_down:null,fire:r.fire}));
   try{
     const r=await fetch(SUPABASE_URL+'/rest/v1/deviation_history?on_conflict=entity_type,entity_key,report_date,fire',{
       method:'POST',
       headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
-      body:JSON.stringify(rows)
+      body:JSON.stringify(norm)
     });
     if(!r.ok) console.warn('history save HTTP', r.status);
   }catch(e){console.warn('history save:',e);}
