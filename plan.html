@@ -207,6 +207,13 @@ let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 const MLBL={qty:'Продажи',rev:'Выручка',mar:'Маржа',price:'Цена',pct:'Марж.%'};
 const MUNIT={qty:'шт',rev:'₽',mar:'₽',price:'₽',pct:'%'};
+const COLLBL={
+  qty:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
+  rev:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
+  mar:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
+  price:{fc:'Ср.цена<br>продажи',dv:'Отклонение'},
+  pct:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'}
+};
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
   {key:'rev',label:'Выручка, ₽',add:true},
@@ -371,6 +378,19 @@ function monthlyPlan(p,key){
   if(key==='mar')return pl.plan_qty*pl.price*pl.margin_pct/100;
   if(key==='price')return pl.price;
   return pl.margin_pct;
+}
+function priceFactForWeek(pid,week){
+  const rq=getRec(pid,'qty',week), rr=getRec(pid,'rev',week);
+  if(rq.fact==null||rr.fact==null||rq.fact<=0) return null;
+  return rr.fact/rq.fact;
+}
+function avgPriceFact(p){
+  let R=0,Q=0,any=false;
+  WEEKISO.forEach(w=>{
+    const rq=getRec(p.product_id,'qty',w), rr=getRec(p.product_id,'rev',w);
+    if(rq.fact!=null&&rr.fact!=null&&rq.fact>0){ R+=rr.fact; Q+=rq.fact; any=true; }
+  });
+  return (any&&Q>0)? R/Q : null;
 }
 function calcForecast(p,key){
   if(!WEEKS.length) return null;
@@ -577,9 +597,22 @@ function renderSmartForm(pid){
   </div>`;
 }
 function renderRecs(pid){
+  const p=BYID[pid];
   let h='';
   METRICS.forEach(m=>{
     const unit=MUNIT[m.key];
+    if(m.key==='price'){
+      const ap=p?avgPriceFact(p):null;
+      if(ap==null){ h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> <span class="n">нет данных</span></div>`; return; }
+      const plan=monthlyPlan(p,'price');
+      const diff=ap-plan;
+      let txt,cls;
+      if(Math.abs(diff)<0.005){txt='без изменений';cls='n';}
+      else if(diff>0){txt=`снизить цену на ${fmt2(diff)} ${unit}`;cls='r';}
+      else {txt=`поднять цену на ${fmt2(-diff)} ${unit}`;cls='g';}
+      h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> ср.цена = ${fmt2(ap)} ${unit} → план = ${fmt2(plan)} ${unit} • <span class="${cls}">${txt}</span></div>`;
+      return;
+    }
     const r=recForV2(pid,m.key);
     const rec=recText(r,unit);
     if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> <span class="n">нет данных</span></div>`; return; }
@@ -688,19 +721,20 @@ function render(){
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=2;
-  METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?WEEKS.length*2:0); });
+  METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?(mt.key==='price'?WEEKS.length:WEEKS.length*2):0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
-    const span=3+(exp?WEEKS.length*2:0);
+    const isPrice=mt.key==='price';
+    const span=3+(exp?(isPrice?WEEKS.length:WEEKS.length*2):0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
-    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub wrap2">Расчётный<br>прогноз</th><th rowspan="2" class="sub wrap2">Расчётное<br>отклонение</th>`;
-    if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="2" class="whead">${wlabel(w)}</th>`; });
-             WEEKS.forEach(w=>{ r3+=`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
+    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].fc}</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].dv}</th>`;
+    if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="${isPrice?1:2}" class="whead">${wlabel(w)}</th>`; });
+             WEEKS.forEach(w=>{ r3+= isPrice?`<th class="wsub">Ф</th>`:`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  const devOf=p=>devFor(p,'mar');
+  const devOf=p=>devFor(p,'rev');
   const prodRow=p=>{
     const pid=p.product_id;
     const wd=(PPM[pid]&&PPM[pid].work_date)||'';
@@ -714,7 +748,7 @@ function render(){
       let ffV, dev;
       if(mt.key==='qty'){ const P=calcForecast(p,'qty'); ffV=P==null?null:P; dev=P==null?null:P-planV; }
       else if(mt.key==='rev'){ const P=calcForecast(p,'rev'); ffV=P==null?null:P; dev=P==null?null:P-planV; }
-      else if(mt.key==='price'){ const qF=calcForecast(p,'qty'), rF=calcForecast(p,'rev'); ffV=(qF>0&&rF!=null)?rF/qF:null; dev=ffV==null?null:ffV-planV; }
+      else if(mt.key==='price'){ const ap=avgPriceFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
       else { ffV=collVal(p,mt.key); dev=devFor(p,mt.key); }
       const dcls=dev==null?'n':(dev>0?'g':dev<0?'r':'n');
       const editKey=mt.edit;
@@ -722,24 +756,31 @@ function render(){
       h+=`<td class="num calc">${ffV==null?'—':fmtFor(mt.key,ffV)}</td>`;
       h+=`<td class="num ${dcls}">${dev==null?'—':(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
       if(EXP[mt.key]){
-        const series=mt.add?seriesFor(p,mt.key):null;
-        WEEKISO.forEach((w,i)=>{
-          const rec=getRec(pid,mt.key,w);
-          if(mt.add){
-            const s=series[i];
-            if(s.locked){
-              h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${wfmt(mt.key,s.forecast)}</td>`;
+        if(mt.key==='price'){
+          WEEKISO.forEach((w,i)=>{
+            const pf=priceFactForWeek(pid,w);
+            h+=`<td class="num wcell factcell" title="Факт цены (rev/qty)">${pf==null?'—':fmt2(pf)}</td>`;
+          });
+        }else{
+          const series=mt.add?seriesFor(p,mt.key):null;
+          WEEKISO.forEach((w,i)=>{
+            const rec=getRec(pid,mt.key,w);
+            if(mt.add){
+              const s=series[i];
+              if(s.locked){
+                h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${wfmt(mt.key,s.forecast)}</td>`;
+              }else{
+                const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
+                h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
+              }
             }else{
-              const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-              h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
+              const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
+              const rst=rec.forecast!=null?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
+              h+=`<td class="num wcell wedit ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,fc)}<span class="editbtn">✎</span>${rst}</td>`;
             }
-          }else{
-            const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
-            const rst=rec.forecast!=null?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-            h+=`<td class="num wcell wedit ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,fc)}<span class="editbtn">✎</span>${rst}</td>`;
-          }
-          h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':wfmt(mt.key,rec.fact)}</td>`;
-        });
+            h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':wfmt(mt.key,rec.fact)}</td>`;
+          });
+        }
       }
     });
     h+=`</tr>`;
