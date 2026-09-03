@@ -759,7 +759,7 @@ function attachChart(box, tooltip){
 }
 function drawSplitChart(boxEl, tipEl, days, series) {
   const n = days.length;
-  const W = 900, H = 460, padL = 64, padR = 14, padT = 24, padB = 50;
+  const W = 950, H = 460, padL = 64, padR = 64, padT = 24, padB = 50;
   const innerW = W - padL - padR, innerH = H - padT - padB;
   const midY = padT + innerH / 2;
   let maxAbs = 1;
@@ -792,11 +792,23 @@ function drawSplitChart(boxEl, tipEl, days, series) {
     svg += mkPath(series[mk].sup, col, false);
     svg += mkPath(series[mk].def, col, true);
     days.forEach((d, i) => {
-      const tipVal = `Профицит: +${fmt(series[mk].sup[i])} шт/день • Дефицит: ${fmt(series[mk].def[i])} шт/день`;
+      const tipVal = `↑ увеличить продажи: +${fmt(series[mk].sup[i])} шт/день • ↓ снизить продажи: ${fmt(series[mk].def[i])} шт/день`;
       svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].sup[i])}" r="3.5" fill="${col}" data-label="${MATRIX_NAME[mk]}, ${d.slice(8,10)}.${d.slice(5,7)}" data-value="${tipVal}"/>`;
       svg += `<circle class="chart-point" cx="${x(i)}" cy="${y(series[mk].def[i])}" r="3.5" fill="#fff" stroke="${col}" stroke-width="2" data-label="${MATRIX_NAME[mk]}, ${d.slice(8,10)}.${d.slice(5,7)}" data-value="${tipVal}"/>`;
     });
   });
+   // Фигурные скобки справа
+  const bx = W - padR + 6, xe = bx + 6;
+  const brace = (y0, y1) => {
+    const ym = (y0 + y1) / 2;
+    return `M ${bx} ${y0} Q ${xe} ${y0} ${xe} ${y0+10} L ${xe} ${ym-6} Q ${xe} ${ym} ${xe+5} ${ym} Q ${xe} ${ym} ${xe} ${ym+6} L ${xe} ${y1-10} Q ${xe} ${y1} ${bx} ${y1}`;
+  };
+  svg += `<path d="${brace(padT+2, midY-6)}" fill="none" stroke="#7D3673" stroke-width="1.5" opacity="0.8"/>`;
+  svg += `<path d="${brace(midY+6, padT+innerH-2)}" fill="none" stroke="#7D3673" stroke-width="1.5" opacity="0.8"/>`;
+  const t1 = (padT + midY) / 2, t2 = (midY + padT + innerH) / 2;
+  svg += `<text x="${xe+16}" y="${t1}" transform="rotate(-90 ${xe+16} ${t1})" text-anchor="middle" font-size="10" font-weight="700" fill="#7D3673" font-family="Forum">↑ увеличить продажи</text>`;
+  svg += `<text x="${xe+16}" y="${t2}" transform="rotate(-90 ${xe+16} ${t2})" text-anchor="middle" font-size="9" font-weight="700" fill="#7D3673" font-family="Forum">↓ снизить продажи</text>`;
+  svg += `<text x="${xe+28}" y="${t2}" transform="rotate(-90 ${xe+28} ${t2})" text-anchor="middle" font-size="9" font-weight="700" fill="#7D3673" font-family="Forum">либо пополнить остаток</text>`;
   svg += `</svg>`;
   boxEl.querySelectorAll('svg').forEach(el => el.remove());
   boxEl.insertAdjacentHTML('beforeend', svg);
@@ -919,10 +931,10 @@ function render(){
       </div>
       <div class="chart-note">
         <div class="legend-row">
-          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс профицит</span>
-          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M1} 0 5px,transparent 5px 9px)"></span>Алекс дефицит</span>
-          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр профицит</span>
-          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр дефицит</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс — увеличить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M1} 0 5px,transparent 5px 9px)"></span>Алекс — снизить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр — увеличить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр — снизить продажи</span>
         </div>
         <div>Цель — обе линии около нуля. Диаграммы справа — распределение товаров по покрытию остатком; ниже — число позиций и изменение за 1/3/7 дн.</div>
       </div></div>`;
@@ -959,7 +971,7 @@ function render(){
           <span style="grid-column:6;grid-row:2">7д</span>
         </div>`+
         items.map(x=>{
-          const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить</span>`:`<span class="topdir g">↓ уменьшить</span>`;
+          const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить продажи</span>`:`<span class="topdir g">↓ снизить продажи</span>`;
           const kpi=kpiPctFromHistory(x.histType,x.histKey,x.dir);
           return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
         }).join('')+`</div>`;
@@ -990,8 +1002,8 @@ function render(){
         const arr=byMatrix.get(mkk);
         const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
         html+=`<details class="matrix" data-matrix="${mkk}"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
-        html+=section('📦 Профицит (увеличить продажи)',arr,'up');
-        html+=section('⛔ Дефицит (снизить продажи)',arr,'down');
+        html+=section('📦 Увеличить продажи',arr,'up');
+        html+=section('⛔ Снизить продажи либо пополнить остаток',arr,'down');
         html+=`</div></details>`;
       });
     }else{
@@ -1021,8 +1033,8 @@ function render(){
         arr.forEach(p=>{p.clArr.forEach(g=>{ if(g.dir) pc.push({o:p.o,name:p.name,cluster:g.c,cs:g.cs,csum:g.csum,c1:g.c1,c2:g.c2,c3:g.c3,c4:g.c4,rec:g.rec,dir:g.dir,change:g.change,arr:g.arr}); });});
         const mSum=arr.reduce((s,p)=>s+p.sum,0), mStock=arr.reduce((s,p)=>s+p.stock,0);
         html+=`<details class="matrix" data-matrix="${mkk}"><summary><span class="clname">${MATRIX_NAME[mkk]}</span><span class="cltot">${fmt(mSum)} ₽ • ${fmt(mStock)} шт</span></summary><div class="matrixbody">`;
-        html+=clusterSection('📦 Профицит (увеличить продажи)',pc,'up',mkk);
-        html+=clusterSection('⛔ Дефицит (снизить продажи)',pc,'down',mkk);
+        html+=clusterSection('📦 Увеличить продажи',pc,'up',mkk);
+        html+=clusterSection('⛔ Снизить продажи либо пополнить остаток',pc,'down',mkk);
         html+=`</div></details>`;
       });
     }
