@@ -386,7 +386,7 @@ function computeDay(tISO, includeFire, stockMap){
   }
   const rows=[];
   const tMkt={m1:{sup:0,def:0},m2:{sup:0,def:0}};
-  const cov={m1:{lt20:0,b2050:0,gt50:0},m2:{lt20:0,b2050:0,gt50:0}};
+  const cov={m1:{lt20:0,b2050:0,gt50:0,ns:0},m2:{lt20:0,b2050:0,gt50:0,ns:0}};
   const clAgg=new Map();
   pAgg.forEach(p=>{
     let up=0,down=0,total=0,s1total=0;
@@ -407,6 +407,8 @@ function computeDay(tISO, includeFire, stockMap){
       const days=s1total>0?p.stock/s1total:Infinity;
       const b=days<20?'lt20':(days<=50?'b2050':'gt50');
       cov[p.matrix][b]++;
+    }else{
+      cov[p.matrix].ns++;
     }
     rows.push({entity_type:'product',entity_key:p.o,report_date:tISO,deviation:total,dev_up:up,dev_down:down,clusters_up:upClusters.join('|'),clusters_down:downClusters.join('|'),fire:includeFire});
   });
@@ -414,7 +416,7 @@ function computeDay(tISO, includeFire, stockMap){
   ['m1','m2'].forEach(mk=>{
     rows.push({entity_type:'market',entity_key:mk+':sup',report_date:tISO,deviation:tMkt[mk].sup,dev_up:null,dev_down:null,fire:includeFire});
     rows.push({entity_type:'market',entity_key:mk+':def',report_date:tISO,deviation:tMkt[mk].def,dev_up:null,dev_down:null,fire:includeFire});
-    ['lt20','b2050','gt50'].forEach(b=>rows.push({entity_type:'coverage',entity_key:mk+':'+b,report_date:tISO,deviation:cov[mk][b],dev_up:null,dev_down:null,fire:includeFire}));
+    ['lt20','b2050','gt50','ns'].forEach(b=>rows.push({entity_type:'coverage',entity_key:mk+':'+b,report_date:tISO,deviation:cov[mk][b],dev_up:null,dev_down:null,fire:includeFire}));
   });
   return rows;
 }
@@ -726,11 +728,12 @@ function coverageBuckets(prods,mk){
   const buckets=[
     {key:'lt20',label:'<20 дн',color:'#E33D78',cnt:0,value:0},
     {key:'b2050',label:'20–50 дн',color:'#16a34a',cnt:0,value:0},
-    {key:'gt50',label:'>50 дн',color:'#d97706',cnt:0,value:0}
+    {key:'gt50',label:'>50 дн',color:'#d97706',cnt:0,value:0},
+    {key:'ns',label:'нет остатка',color:'#94a3b8',cnt:0,value:0}
   ];
   prods.forEach(p=>{
     if(p.matrix!==mk) return;
-    if(p.stock<=0) return;
+    if(p.stock<=0){ buckets[3].cnt++; return; }
     const days=p.s1total>0 ? p.stock/p.s1total : Infinity;
     const b=days<20?buckets[0]:(days<=50?buckets[1]:buckets[2]);
     b.cnt++;
@@ -904,13 +907,19 @@ function render(){
       });
     });
     const pieCard=(mk)=>{
-      const b=cov[mk]; const total=b.reduce((s,x)=>s+x.cnt,0);
-      const dyn=`<div class="covrow covhead"><span class="covtitle">Изменение результата за</span><span class="covd">1д</span><span class="covd">3д</span><span class="covd">7д</span></div>`+
-        b.map(x=>{
-          const gw=x.key!=='b2050';
+      const all=cov[mk]; const b=all.filter(x=>x.key!=='ns'); const total=b.reduce((s,x)=>s+x.cnt,0);
+      const cell=v=>v==null?`<span class="covd n">—</span>`:`<span class="covd">${v}</span>`;
+      const dyn=`<div class="covrow covhead">
+          <span style="grid-column:1;grid-row:1/3">Корзина</span>
+          <span style="grid-column:2;grid-row:1/3">Сейчас</span>
+          <span style="grid-column:3/6;grid-row:1">Покрытие остатком, дн назад</span>
+          <span style="grid-column:3;grid-row:2">1</span>
+          <span style="grid-column:4;grid-row:2">3</span>
+          <span style="grid-column:5;grid-row:2">7</span>
+        </div>`+
+        all.map(x=>{
           const p1=covPast(mk,x.key,1),p3=covPast(mk,x.key,3),p7=covPast(mk,x.key,7);
-          const d1=p1==null?null:x.cnt-p1, d3=p3==null?null:x.cnt-p3, d7=p7==null?null:x.cnt-p7;
-          return `<div class="covrow"><span class="covlab"><span class="dot" style="background:${x.color}"></span>${x.label}</span><span class="covcnt">${x.cnt}</span>${covDeltaCell(d1,gw)}${covDeltaCell(d3,gw)}${covDeltaCell(d7,gw)}</div>`;
+          return `<div class="covrow"><span class="covlab"><span class="dot" style="background:${x.color}"></span>${x.label}</span><span class="covcnt">${x.cnt}</span>${cell(p1)}${cell(p3)}${cell(p7)}</div>`;
         }).join('');
       return `<div class="piecard">
         <div class="ptitle">${MATRIX_NAME[mk]} • покрытие остатком</div>
@@ -1043,7 +1052,7 @@ function render(){
       const tip = document.getElementById('chartTip');
       if (box && tip) drawSplitChart(box, tip, days, series);
       ['m1','m2'].forEach(mk=>{
-        const b=cov[mk];
+        const b=cov[mk].filter(x=>x.key!=='ns');
         const total=b.reduce((s,x)=>s+x.cnt,0);
         drawPie(
           {svg:'pie'+mk,legend:'legend'+mk,val:'pcVal'+mk,cap:'pcCap'+mk},
