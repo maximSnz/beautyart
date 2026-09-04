@@ -79,6 +79,7 @@
  .covrow .dot{width:8px;height:8px}
  .covcnt{font-weight:700;color:#1C0D2E;text-align:right}
  .covd{text-align:center;font-weight:700;border-radius:4px;padding:1px 2px;background:rgba(148,163,184,.12)}
+ .covd.now{background:rgba(120,166,199,.18);color:#1C0D2E}
  .covhead{color:#94a3b8;font-size:.68em}
  .covhead .covtitle{grid-column:1/3;text-align:left;font-weight:400}
  .covhead .covd{background:none;font-weight:400}
@@ -654,6 +655,9 @@ function kpiCells(k){
     return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
   }).join('');
 }
+function showCovTip(ev,txt){const tip=document.getElementById('tip');tip.textContent=txt;tip.style.whiteSpace='normal';tip.style.maxWidth='340px';tip.style.opacity=1;tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';}
+function moveCovTip(ev){const tip=document.getElementById('tip');tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';}
+function hideCovTip(){document.getElementById('tip').style.opacity=0;}
 function arcPath(cx,cy,rO,rI,a0,a1){
   const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
   const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
@@ -906,21 +910,57 @@ function render(){
         series[mk].def.push(f?Number(f.deviation):0);
       });
     });
+    const covLive=(mk,n)=>{
+      const t=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-n));
+      if(!STOCK_ALL[t])return null;
+      const out={lt20:0,b2050:0,gt50:0,ns:0};
+      prods.forEach(p=>{
+        if(p.matrix!==mk)return;
+        let stock=0,s1=0;
+        const sm=STOCK_ALL[t][p.o]||{};
+        for(const wh in sm){ if(!INCLUDE_FIRE&&FIRE.has(wh))continue; stock+=sm[wh]||0; }
+        const sa=SALES[p.o]||{};
+        for(const wh in sa){ if(!INCLUDE_FIRE&&FIRE.has(wh))continue; s1+=sa[wh][t]||0; }
+        if(stock<=0){out.ns++;return;}
+        const d=s1>0?stock/s1:Infinity;
+        if(d<20)out.lt20++;else if(d<=50)out.b2050++;else out.gt50++;
+      });
+      return out;
+    };
     const pieCard=(mk)=>{
       const all=cov[mk]; const b=all.filter(x=>x.key!=='ns'); const total=b.reduce((s,x)=>s+x.cnt,0);
-      const cell=v=>v==null?`<span class="covd n">—</span>`:`<span class="covd">${v}</span>`;
+      const L=[covLive(mk,1),covLive(mk,3),covLive(mk,7)];
+      const members={gt50:[],ns:[]};
+      prods.forEach(p=>{
+        if(p.matrix!==mk)return;
+        if(p.stock<=0){members.ns.push(p.o);return;}
+        const d=p.s1total>0?p.stock/p.s1total:Infinity;
+        if(d>50)members.gt50.push(p.o);
+      });
+      const tipFor=(x)=>{
+        const arr=members[x.key]||[];
+        if(!arr.length)return 'нет позиций';
+        const shown=arr.slice(0,12).join(', ');
+        return shown+(arr.length>12?`, … и ещё ${arr.length-12}`:'');
+      };
+      const nowCell=(x)=>(x.key==='gt50'||x.key==='ns')
+        ?`<span class="covd now" style="cursor:help" data-tip="${tipFor(x)}" onmouseover="showCovTip(event,this.dataset.tip)" onmousemove="moveCovTip(event)" onmouseout="hideCovTip()">${x.cnt}</span>`
+        :`<span class="covd now">${x.cnt}</span>`;
+      const dcell=(x,past)=>{
+        if(past==null)return `<span class="covd n">—</span>`;
+        const d=x.cnt-past;
+        const cls=d===0?'n':((x.key!=='b2050'?d<0:d>0)?'g':'r');
+        return `<span class="covd">${past}<span class="${cls}" style="font-size:.85em">(${d>0?'+':''}${d})</span></span>`;
+      };
       const dyn=`<div class="covrow covhead">
           <span style="grid-column:1;grid-row:1/3">Корзина</span>
-          <span style="grid-column:2;grid-row:1/3">Сейчас</span>
-          <span style="grid-column:3/6;grid-row:1">Покрытие остатком, дн назад</span>
-          <span style="grid-column:3;grid-row:2">1</span>
-          <span style="grid-column:4;grid-row:2">3</span>
-          <span style="grid-column:5;grid-row:2">7</span>
+          <span style="grid-column:2;grid-row:1/3;text-align:center">Сейчас</span>
+          <span style="grid-column:3/6;grid-row:1;text-align:center">Покрытие остатком, дн назад</span>
+          <span style="grid-column:3;grid-row:2;text-align:center">1д</span>
+          <span style="grid-column:4;grid-row:2;text-align:center">3д</span>
+          <span style="grid-column:5;grid-row:2;text-align:center">7д</span>
         </div>`+
-        all.map(x=>{
-          const p1=covPast(mk,x.key,1),p3=covPast(mk,x.key,3),p7=covPast(mk,x.key,7);
-          return `<div class="covrow"><span class="covlab"><span class="dot" style="background:${x.color}"></span>${x.label}</span><span class="covcnt">${x.cnt}</span>${cell(p1)}${cell(p3)}${cell(p7)}</div>`;
-        }).join('');
+        all.map(x=>`<div class="covrow"><span class="covlab"><span class="dot" style="background:${x.color}"></span>${x.label}</span>${nowCell(x)}${dcell(x,L[0]?L[0][x.key]:null)}${dcell(x,L[1]?L[1][x.key]:null)}${dcell(x,L[2]?L[2][x.key]:null)}</div>`).join('');
       return `<div class="piecard">
         <div class="ptitle">${MATRIX_NAME[mk]} • покрытие остатком</div>
         <div class="piebox">
