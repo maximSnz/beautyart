@@ -173,10 +173,12 @@
     <div class="toolbar">
       <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
       <input type="month" id="month" onchange="onMonth(this.value)">
+      <button id="btnCharges" onclick="chargesInput.click()">⬆ CSV начислений</button>
+      <input type="file" id="chargesInput" accept=".csv" style="display:none" onchange="importCharges(this.files[0])">
+    </div>
     <div class="progress hide" id="progWrap">
       <div class="progtext" id="progText">Загрузка…</div>
       <div class="progbar"><div class="progfill" id="progFill"></div></div>
-    </div>
     </div>
     <div id="summary"></div>
     <div class="tablewrap">
@@ -310,6 +312,13 @@ async function loadCharges(){
   }
   CHARGES=out;
 }
+ let COST={};
+async function loadCosts(){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc&limit=5000',{headers:HD});
+  if(!r.ok){COST={};return;}
+  COST={};
+  (await r.json()).forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
+}
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c==','){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
   document.getElementById('progWrap').classList.remove('hide');
@@ -329,11 +338,15 @@ async function syncMarFacts(){
     const pids=new Set([...cm.keys()]);
     for(const pid in WD){const rec=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];if(rec&&rec.fact!=null)pids.add(Number(pid));}
     pids.forEach(pid=>{
-      const rec=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];
-      const rev=(rec&&rec.fact!=null)?rec.fact:0;
+      const recRev=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];
+      const recQty=WD[pid]&&WD[pid]['qty']&&WD[pid]['qty'][w];
+      const rev=(recRev&&recRev.fact!=null)?recRev.fact:0;
+      const qty=(recQty&&recQty.fact!=null)?recQty.fact:0;
       const ch=cm.get(pid)||0;
+      const cost=COST[pid]||0;
+      const mar=rev+ch-(cost*qty);
       body.push({product_id:pid,week:w,metric:'charges',fact:Math.round(ch*100)/100});
-      body.push({product_id:pid,week:w,metric:'mar',fact:Math.round((rev+ch)*100)/100});
+      body.push({product_id:pid,week:w,metric:'mar',fact:Math.round(mar*100)/100});
     });
   });
   for(let i=0;i<body.length;i+=500){
@@ -402,13 +415,13 @@ async function load(){
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges()]);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]);
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -461,9 +474,10 @@ async function resetWeek(ev,pid,week,metric){
 function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[pid][key][w]:{plan:0,forecast:null,fact:null}; }
 function monthlyPlan(p,key){
   const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+  const cost=COST[p.product_id]||0;
   if(key==='qty')return pl.plan_qty;
   if(key==='rev')return pl.plan_qty*pl.price;
-  if(key==='mar')return pl.plan_qty*pl.price*pl.margin_pct/100;
+  if(key==='mar')return pl.plan_qty*(pl.price-cost);
   if(key==='price')return pl.price;
   return pl.margin_pct;
 }
@@ -493,7 +507,7 @@ function avgPriceFact(p){
   });
   return (any&&Q>0)? R/Q : null;
 }
- function avgPctFact(p){
+function avgPctFact(p){
   let M=0,R=0,any=false;
   WEEKISO.forEach(w=>{
     const rq=getRec(p.product_id,'rev',w), rm=getRec(p.product_id,'mar',w);
