@@ -397,7 +397,7 @@ async function importCharges(file){
       const amt=parseMoney(r[15]);
       const qty=Number(String(r[7]||'0').replace(/[^\d-]/g,''))||0;
       const price=parseMoney(r[8]);
-      const row_key=[id,grp,type,offer,amt].join('|');
+      const row_key=[id,grp,type,offer,String(r[5]||''),String(r[7]||''),String(r[9]||''),amt].join('|');
       if(seen.has(row_key))continue; seen.add(row_key);
       out.push({row_key,source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:amt,qty:qty,price:price});
     }
