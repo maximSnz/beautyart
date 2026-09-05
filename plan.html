@@ -173,7 +173,8 @@
     <div class="toolbar">
       <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
       <input type="month" id="month" onchange="onMonth(this.value)">
-      <button onclick="load()">⟳ Обновить</button>
+      <button id="btnCharges" onclick="chargesInput.click()">⬆ CSV начислений</button>
+      <input type="file" id="chargesInput" accept=".csv" style="display:none" onchange="importCharges(this.files[0])">
     </div>
     <div id="summary"></div>
     <div class="tablewrap">
@@ -192,7 +193,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},CHARGES=[],OFFER_PID={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
@@ -204,7 +205,7 @@ const COLLBL={
   rev:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
   mar:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
   price:{fc:'Ср.взвеш.<br>цена, ₽',dv:'Отклонение'},
-  pct:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'}
+  pct:{fc:'Ср.взвеш.<br>маржин., %',dv:'Отклонение'}
 };
 const METRICS=[
   {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
@@ -295,6 +296,81 @@ async function loadDev(){
   DEV={};
   (await r.json()).forEach(x=>{ if(DEV[x.entity_key]==null) DEV[x.entity_key]={up:+(x.dev_up||0),down:+(x.dev_down||0),cu:x.clusters_up||'',cd:x.clusters_down||''}; });
 }
+async function loadCharges(){
+  if(!WEEKISO.length){CHARGES=[];return;}
+  const first=WEEKISO[0];
+  const le=parseW(WEEKISO[WEEKISO.length-1]); le.setDate(le.getDate()+6); const last=localISO(le);
+  let out=[],off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=source_id,charge_date,offer_id,group_name,charge_type,amount&order=charge_date.asc&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok){CHARGES=out;return;}
+    const j=await r.json(); out=out.concat(j); if(j.length<1000)break; off+=1000;
+  }
+  CHARGES=out;
+}
+function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c==','){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
+function parseMoney(s){let t=String(s||'').replace(/[^0-9\-,\.]/g,'');if(t.includes(',')&&t.includes('.'))t=t.replace(/,/g,'');else t=t.replace(',','.');const n=Number(t);return isFinite(n)?n:0;}
+function parseDateRu(s){const m=String(s||'').match(/(\d{2})\.(\d{2})\.(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:null;}
+function weekStartOf(iso){const d=parseW(iso);d.setDate(d.getDate()-((d.getDay()+6)%7));return localISO(d);}
+async function syncMarFacts(){
+  const byWeek=new Map();
+  CHARGES.forEach(c=>{const pid=OFFER_PID[c.offer_id];if(!pid)return;const w=weekStartOf(c.charge_date);if(!byWeek.has(w))byWeek.set(w,new Map());const m=byWeek.get(w);m.set(pid,(m.get(pid)||0)+Number(c.amount||0));});
+  const body=[];
+  WEEKISO.forEach(w=>{
+    const cm=byWeek.get(w)||new Map();
+    const pids=new Set([...cm.keys()]);
+    for(const pid in WD){const rec=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];if(rec&&rec.fact!=null)pids.add(Number(pid));}
+    pids.forEach(pid=>{
+      const rec=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];
+      const rev=(rec&&rec.fact!=null)?rec.fact:0;
+      const ch=cm.get(pid)||0;
+      body.push({product_id:pid,week:w,metric:'charges',fact:Math.round(ch*100)/100});
+      body.push({product_id:pid,week:w,metric:'mar',fact:Math.round((rev+ch)*100)/100});
+    });
+  });
+  for(let i=0;i<body.length;i+=500){
+    const part=body.slice(i,i+500);
+    await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
+  }
+}
+async function importCharges(file){
+  if(!file)return;
+  const btn=document.getElementById('btnCharges'); btn.disabled=true; btn.textContent='⏳ Загрузка…';
+  try{
+    const text=await file.text();
+    const rows=parseCSV(text);
+    const out=[]; let skipped=0;
+    for(const r of rows){
+      const id=(r[0]||'').trim();
+      if(!id||/период:/i.test(id)||/ID начисления/i.test(id))continue;
+      const d=parseDateRu(r[1]); const offer=(r[4]||'').trim(); const type=(r[3]||'').trim(); const grp=(r[2]||'').trim();
+      if(!d||!offer||!type){skipped++;continue;}
+      out.push({source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:parseMoney(r[15])});
+    }
+    if(!out.length){alert('В файле нет подходящих строк.');return;}
+    for(let i=0;i<out.length;i+=500){
+      const part=out.slice(i,i+500);
+      const r=await fetch(SUPABASE_URL+'/rest/v1/ozon_charges?on_conflict=source_id',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+    }
+    await loadCharges();
+    await syncMarFacts();
+    await loadWeeks();
+    render();
+    alert(`✔ Импортировано начислений: ${out.length} (пропущено: ${skipped}). Маржа пересчитана.`);
+  }catch(e){alert('Ошибка импорта: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='⬆ CSV начислений';document.getElementById('chargesInput').value='';}
+}
+function renderCharges(pid){
+  const offer=(BYID[pid]||{}).offer_id;
+  const rows=CHARGES.filter(c=>c.offer_id===offer);
+  if(!rows.length)return '<div class="psub">нет начислений за период</div>';
+  const byType=new Map();
+  rows.forEach(c=>{byType.set(c.charge_type,(byType.get(c.charge_type)||0)+Number(c.amount||0));});
+  const arr=[...byType.entries()].sort((a,b)=>a[1]-b[1]);
+  const total=arr.reduce((s,x)=>s+x[1],0);
+  return arr.map(([t,v])=>`<div class="prec"><b>${esc(t)}</b> <span class="${v<0?'r':'g'}">${fmt2(v)} ₽</span></div>`).join('')+`<div class="prec"><b>Итого</b> <span class="${total<0?'r':'g'}">${fmt2(total)} ₽</span></div>`;
+}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -305,14 +381,14 @@ async function load(){
       if(!rp.ok)throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev()]);
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • месяц: ${MONTH} • недель: ${WEEKS.length}`;
+      OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges()]);
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -396,6 +472,19 @@ function avgPriceFact(p){
     if(rq.fact!=null&&rr.fact!=null&&rq.fact>0){ R+=rr.fact; Q+=rq.fact; any=true; }
   });
   return (any&&Q>0)? R/Q : null;
+}
+ function avgPctFact(p){
+  let M=0,R=0,any=false;
+  WEEKISO.forEach(w=>{
+    const rq=getRec(p.product_id,'rev',w), rm=getRec(p.product_id,'mar',w);
+    if(rq.fact!=null&&rm.fact!=null&&rq.fact>0){ R+=rq.fact; M+=rm.fact; any=true; }
+  });
+  return (any&&R>0)? M/R*100 : null;
+}
+function pctFactForWeek(pid,week){
+  const rq=getRec(pid,'rev',week), rm=getRec(pid,'mar',week);
+  if(rq.fact==null||rm.fact==null||rq.fact<=0) return null;
+  return rm.fact/rq.fact*100;
 }
 function calcForecast(p,key){
   if(!WEEKS.length) return null;
@@ -625,6 +714,18 @@ function renderRecs(pid){
       h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> ср.взвеш. цена = ${fmt2(ap)} ${unit} → план = ${fmt2(plan)} ${unit} • <span class="${cls}">${txt}</span></div>`;
       return;
     }
+       if(m.key==='pct'){
+      const ap=p?avgPctFact(p):null;
+      if(ap==null){ h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> <span class="n">нет данных</span></div>`; return; }
+      const plan=monthlyPlan(p,'pct');
+      const diff=ap-plan;
+      let txt,cls;
+      if(Math.abs(diff)<0.005){txt='без изменений';cls='n';}
+      else if(diff>0){txt=`выше плана на ${fmt2(diff)} п.п.`;cls='g';}
+      else {txt=`ниже плана на ${fmt2(-diff)} п.п.`;cls='r';}
+      h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> ср.взвеш. = ${fmt2(ap)} ${unit} → план = ${fmt2(plan)} ${unit} • <span class="${cls}">${txt}</span></div>`;
+      return;
+    }
     const r=recForV2(pid,m.key);
     const rec=recText(r,unit);
     if(!r){ h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> <span class="n">нет данных</span></div>`; return; }
@@ -662,6 +763,7 @@ function protoBlock(pid,offer){
   return `<div class="protohead">Протокол действий • ${esc(offer)}</div>
     <div class="psection"><div class="psectitle">📈 Рекомендации на следующую неделю</div>${renderRecs(pid)}</div>
     <div class="psection"><div class="psectitle"><a href="https://maximsnz.github.io/beautyart/weekly.html" target="_blank" class="stocklink">📦 Рекомендации по управлению остатками</a></div>${renderStock(pid)}</div>
+    <div class="psection"><div class="psectitle">💰 Начисления за период (декомпозиция)</div>${renderCharges(pid)}</div>
     <div class="psection"><div class="psectitle">🎯 SMART-протокол</div>${(PROTO[pid]||[]).map(renderItem).join('')||'<div class="psub">пока нет пунктов</div>'}${renderSmartForm(pid)}</div>
     <div class="psection"><div class="psectitle">📝 Заметки менеджера</div>${renderNotes(pid)}</div>`;
 }
@@ -744,12 +846,12 @@ function render(){
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=2;
-  METRICS.forEach(mt=>{ totalCols+=3+(EXP[mt.key]?(mt.key==='price'?WEEKS.length:WEEKS.length*2):0); });
+  METRICS.forEach(mt=>{ const single=(mt.key==='price'||mt.key==='pct'); totalCols+=3+(EXP[mt.key]?(single?WEEKS.length:WEEKS.length*2):0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
-    const isPrice=mt.key==='price';
+    const isPrice=(mt.key==='price'||mt.key==='pct');
     const span=3+(exp?(isPrice?WEEKS.length:WEEKS.length*2):0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
     r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].fc}</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].dv}</th>`;
@@ -769,8 +871,9 @@ function render(){
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
       let ffV, dev;
-      if(mt.key==='qty'||mt.key==='rev'){ const pv=projVal(p,mt.key); ffV=pv.ffV; dev=pv.dev; }
+      if(mt.key==='qty'||mt.key==='rev'||mt.key==='mar'){ const pv=projVal(p,mt.key); ffV=pv.ffV; dev=pv.dev; }
       else if(mt.key==='price'){ const ap=avgPriceFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
+      else if(mt.key==='pct'){ const ap=avgPctFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
       else { ffV=collVal(p,mt.key); dev=devFor(p,mt.key); }
       const dcls=dev==null?'n':(dev>0?'g':dev<0?'r':'n');
       const editKey=mt.edit;
@@ -782,6 +885,11 @@ function render(){
           WEEKISO.forEach((w,i)=>{
             const pf=priceFactForWeek(pid,w);
             h+=`<td class="num wcell factcell" title="Факт цены (rev/qty)">${pf==null?'—':fmt2(pf)}</td>`;
+          });
+        }else if(mt.key==='pct'){
+          WEEKISO.forEach((w,i)=>{
+            const pf=pctFactForWeek(pid,w);
+            h+=`<td class="num wcell factcell" title="Факт маржин. (mar/rev×100)">${pf==null?'—':fmt2(pf)}</td>`;
           });
         }else{
           const series=mt.add?seriesFor(p,mt.key):null;
