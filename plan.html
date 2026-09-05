@@ -315,9 +315,16 @@ async function loadCharges(){
   const le=parseW(WEEKISO[WEEKISO.length-1]); le.setDate(le.getDate()+6); const last=localISO(le);
   let out=[],off=0;
   while(true){
-const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=source_id,charge_date,offer_id,group_name,charge_type,amount,qty,price&order=charge_date.asc&limit=1000&offset=${off}`,{headers:HD});
-    if(!r.ok){CHARGES=out;return;}
-    const j=await r.json(); out=out.concat(j); if(j.length<1000)break; off+=1000;
+    let j=null;
+    for(let a=0;a<3;a++){
+      const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=source_id,charge_date,offer_id,group_name,charge_type,amount,qty,price&order=charge_date.asc,id.asc&limit=1000&offset=${off}`,{headers:HD});
+      if(r.ok){j=await r.json();break;}
+      await sleep(500*(a+1));
+    }
+    if(j==null)break;
+    out=out.concat(j);
+    if(j.length<1000)break;
+    off+=1000;
   }
   CHARGES=out;
 }
