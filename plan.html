@@ -221,7 +221,6 @@ const COLLBL={
 };
 const METRICS=[
   {key:'qty',label:'Заказы, шт',add:true,plan:false},
-  {key:'revo',label:'Выручка (заказы), ₽',add:true,plan:false},
   {key:'sales',label:'Продажи, шт',add:true,plan:true,edit:'plan_qty'},
   {key:'revn',label:'Выручка, ₽',add:true,plan:true},
   {key:'mar',label:'Маржа, ₽',add:true,plan:true},
@@ -508,7 +507,7 @@ function monthlyPlan(p,key){
   if(key==='qty'||key==='revo')return null;
   if(key==='sales')return pl.plan_qty;
   if(key==='revn')return pl.plan_qty*pl.price;
-  if(key==='mar')return pl.plan_qty*(pl.price-cost);
+  if(key==='mar')return pl.plan_qty*pl.price*pl.margin_pct/100;
   if(key==='price')return pl.price;
   return pl.margin_pct;
 }
@@ -877,8 +876,6 @@ function matrixStats(list){
     const pvRev=projVal(p,'revn'), pvMar=projVal(p,'mar');
     if(pvRev.ffV!=null)tFRev+=pvRev.ffV;
     if(pvMar.ffV!=null)tFMar+=pvMar.ffV;
-    const oq=sumFact(p.product_id,'qty'); if(oq!=null)tOrd+=oq;
-    const orv=sumFact(p.product_id,'rev'); if(orv!=null)tOrdRev+=orv;
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1;
   });
   return {buckets,tRub,tMar,tFRev,tFMar,tOrd,tOrdRev};
@@ -905,10 +902,6 @@ function mxCard(id,title,list){
         <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tFMar)}</div></div>
         <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wFMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
       </div>
-      <div class="kpis"><div class="kgroup">Факт (заказы)</div>
-        <div class="kpi"><div class="klabel">Заказы, шт</div><div class="kval">${fmt(s.tOrd)}</div></div>
-        <div class="kpi"><div class="klabel">Выручка (заказы), ₽</div><div class="kval">${fmt(s.tOrdRev)}</div></div>
-      </div>
     </div></div></div>`;
 }
 function render(){
@@ -922,12 +915,12 @@ function render(){
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2).buckets,m2.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=2;
-  METRICS.forEach(mt=>{ const single=(mt.key==='price'||mt.key==='pct'); totalCols+=3+(EXP[mt.key]?(single?WEEKS.length:WEEKS.length*2):0); });
+  METRICS.forEach(mt=>{ const single=(mt.key==='price'||mt.key==='pct'||mt.plan===false); totalCols+=3+(EXP[mt.key]?(single?WEEKS.length:WEEKS.length*2):0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
   let r2='', r3='';
   METRICS.forEach(mt=>{
     const exp=EXP[mt.key];
-    const isPrice=(mt.key==='price'||mt.key==='pct');
+    const isPrice=(mt.key==='price'||mt.key==='pct'||mt.plan===false);
     const span=3+(exp?(isPrice?WEEKS.length:WEEKS.length*2):0);
     r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
     r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].fc}</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].dv}</th>`;
