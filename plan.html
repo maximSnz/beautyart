@@ -331,7 +331,7 @@ function parseDateRu(s){const m=String(s||'').match(/(\d{2})\.(\d{2})\.(\d{4})/)
 function weekStartOf(iso){const d=parseW(iso);d.setDate(d.getDate()-((d.getDay()+6)%7));return localISO(d);}
 async function syncMarFacts(){
   const byWeek=new Map();
-  CHARGES.forEach(c=>{const pid=OFFER_PID[c.offer_id];if(!pid)return;const w=weekStartOf(c.charge_date);if(!byWeek.has(w))byWeek.set(w,new Map());const m=byWeek.get(w);m.set(pid,(m.get(pid)||0)+Number(c.amount||0));});
+  CHARGES.forEach(c=>{const pid=OFFER_PID[c.offer_id];if(!pid)return;const amt=Number(c.amount||0);if(amt>=0)return;const w=weekStartOf(c.charge_date);if(!byWeek.has(w))byWeek.set(w,new Map());const m=byWeek.get(w);m.set(pid,(m.get(pid)||0)+amt);});
   const body=[];
   WEEKISO.forEach(w=>{
     const cm=byWeek.get(w)||new Map();
@@ -400,9 +400,13 @@ function renderCharges(pid){
   if(!rows.length)return '<div class="psub">нет начислений за период</div>';
   const byType=new Map();
   rows.forEach(c=>{byType.set(c.charge_type,(byType.get(c.charge_type)||0)+Number(c.amount||0));});
-  const arr=[...byType.entries()].sort((a,b)=>a[1]-b[1]);
-  const total=arr.reduce((s,x)=>s+x[1],0);
-  return arr.map(([t,v])=>`<div class="prec"><b>${esc(t)}</b> <span class="${v<0?'r':'g'}">${fmt2(v)} ₽</span></div>`).join('')+`<div class="prec"><b>Итого</b> <span class="${total<0?'r':'g'}">${fmt2(total)} ₽</span></div>`;
+  const arr=[...byType.entries()].sort((a,b)=>Math.abs(a[1])-Math.abs(b[1]));
+  const totalNeg=arr.filter(([,v])=>v<0).reduce((s,[,v])=>s+v,0);
+  return arr.map(([t,v])=>{
+    const cls=v>0?'n':(v<0?'r':'n');
+    const note=v>0?' <span style="opacity:.5;font-size:.85em">(не в расчёте)</span>':'';
+    return `<div class="prec"><b>${esc(t)}</b>${note} <span class="${cls}">${fmt2(v)} ₽</span></div>`;
+  }).join('')+`<div class="prec"><b>В расчёте маржи</b> <span class="${totalNeg<0?'r':'n'}">${fmt2(totalNeg)} ₽</span></div>`;
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
