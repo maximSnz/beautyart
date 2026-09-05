@@ -870,8 +870,7 @@ function matrixStats(list){
   let tRub=0,tMar=0,tFRev=0,tFMar=0,tOrd=0,tOrdRev=0;
   list.forEach(p=>{
     const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-    const cost=COST[p.product_id]||0;
-    const rev=pl.plan_qty*pl.price, mar=pl.plan_qty*(pl.price-cost);
+    const rev=pl.plan_qty*pl.price, mar=pl.plan_qty*pl.price*pl.margin_pct/100;
     tRub+=rev; tMar+=mar;
     const pvRev=projVal(p,'revn'), pvMar=projVal(p,'mar');
     if(pvRev.ffV!=null)tFRev+=pvRev.ffV;
