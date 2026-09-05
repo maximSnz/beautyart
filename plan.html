@@ -418,17 +418,22 @@ function renderCharges(pid){
   const offer=(BYID[pid]||{}).offer_id;
   const rows=CHARGES.filter(c=>c.offer_id===offer);
   if(!rows.length)return '<div class="psub">нет начислений за период</div>';
-  const byType=new Map(); let ug=0,retq=0,pnl=0;
+  const byType=new Map(); let ug=0,retq=0,pnl=0,revG=0,retG=0;
   rows.forEach(c=>{
-    const amt=Number(c.amount||0);
+    const amt=Number(c.amount||0), pr=Number(c.price||0);
     byType.set(c.charge_type,(byType.get(c.charge_type)||0)+amt);
     pnl+=amt;
-    if(c.charge_type==='Выручка')ug+=Number(c.qty||0);
-    else if(c.charge_type==='Возврат выручки')retq+=Number(c.qty||0);
+    if(c.charge_type==='Выручка'){ ug+=Number(c.qty||0); revG+=pr; }
+    else if(c.charge_type==='Возврат выручки'){ retq+=Number(c.qty||0); retG+=pr; }
   });
   const cost=COST[pid]||0, sales=ug-retq, mar=pnl-cost*sales;
   const arr=[...byType.entries()].sort((a,b)=>a[1]-b[1]);
-  return arr.map(([t,v])=>`<div class="prec"><b>${esc(t)}</b> <span class="${v<0?'r':'g'}">${fmt2(v)} ₽</span></div>`).join('')
+  const line=([t,v])=>{
+    if(t==='Выручка')return `<div class="prec"><b>${esc(t)}</b> <span class="g">${fmt2(revG)} ₽</span></div>`;
+    if(t==='Возврат выручки')return `<div class="prec"><b>${esc(t)}</b> <span class="r">${fmt2(retG)} ₽</span></div>`;
+    return `<div class="prec"><b>${esc(t)}</b> <span class="${v<0?'r':'g'}">${fmt2(v)} ₽</span></div>`;
+  };
+  return arr.map(line).join('')
     +`<div class="prec"><b>PNL до себестоимости</b> <span class="${pnl<0?'r':'g'}">${fmt2(pnl)} ₽</span></div>`
     +`<div class="prec"><b>− себестоимость × продажи</b> <span class="r">−${fmt2(cost*sales)} ₽</span> <span style="opacity:.5;font-size:.85em">(${fmt2(cost)} ₽ × ${sales} шт)</span></div>`
     +`<div class="prec"><b>Маржа</b> <span class="${mar<0?'r':'g'}">${fmt2(mar)} ₽</span></div>`;
@@ -445,12 +450,14 @@ async function load(){
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
       await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]);
+      await syncPnl();
+      await loadWeeks();
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]); await syncPnl(); await loadWeeks(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
