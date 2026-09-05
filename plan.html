@@ -339,18 +339,21 @@ async function importCharges(file){
   try{
     const text=await file.text();
     const rows=parseCSV(text);
-    const out=[]; let skipped=0;
+    const out=[]; const seen=new Set(); let skipped=0;
     for(const r of rows){
       const id=(r[0]||'').trim();
       if(!id||/период:/i.test(id)||/ID начисления/i.test(id))continue;
       const d=parseDateRu(r[1]); const offer=(r[4]||'').trim(); const type=(r[3]||'').trim(); const grp=(r[2]||'').trim();
       if(!d||!offer||!type){skipped++;continue;}
-      out.push({source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:parseMoney(r[15])});
+      const amt=parseMoney(r[15]);
+      const row_key=[id,grp,type,offer,amt].join('|');
+      if(seen.has(row_key))continue; seen.add(row_key);
+      out.push({row_key,source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:amt});
     }
     if(!out.length){alert('В файле нет подходящих строк.');return;}
     for(let i=0;i<out.length;i+=500){
       const part=out.slice(i,i+500);
-      const r=await fetch(SUPABASE_URL+'/rest/v1/ozon_charges?on_conflict=source_id',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
+      const r=await fetch(SUPABASE_URL+'/rest/v1/ozon_charges?on_conflict=row_key',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
       if(!r.ok)throw new Error('HTTP '+r.status);
     }
     await loadCharges();
