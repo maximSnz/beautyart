@@ -71,6 +71,11 @@
  .pnote button{padding:1px 6px;font-size:.75em;margin-top:4px}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
+ .progress{margin:10px 0}
+ .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
+ .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
+ .progfill{height:100%;width:0%;background:linear-gradient(90deg,#78A6C7,#E33D78);transition:width .2s}
+ .progfill.bad{background:#E33D78}
  th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
  th.sub{background:rgba(120,166,199,.1)}
  th.whead{background:rgba(227,61,120,.08);color:#7D3673}
@@ -202,21 +207,26 @@ let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-const MLBL={qty:'Продажи',rev:'Выручка',mar:'Маржа',price:'Цена',pct:'Марж.%'};
-const MUNIT={qty:'шт',rev:'₽',mar:'₽',price:'₽',pct:'%'};
+const MLBL={qty:'Заказы',revo:'Выручка (заказы)',sales:'Продажи',revn:'Выручка',mar:'Маржа',price:'Цена',pct:'Марж.%'};
+const MUNIT={qty:'шт',revo:'₽',sales:'шт',revn:'₽',mar:'₽',price:'₽',pct:'%'};
+const WDKEY={qty:'qty',revo:'rev',sales:'sales',revn:'revn',mar:'mar',price:'price',pct:'pct'};
 const COLLBL={
-  qty:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
-  rev:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
+  qty:{fc:'Прогноз<br>(заказы)',dv:'—'},
+  revo:{fc:'Прогноз<br>(заказы)',dv:'—'},
+  sales:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
+  revn:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
   mar:{fc:'Расчётный<br>прогноз',dv:'Расчётное<br>отклонение'},
   price:{fc:'Ср.взвеш.<br>цена, ₽',dv:'Отклонение'},
   pct:{fc:'Ср.взвеш.<br>маржин., %',dv:'Отклонение'}
 };
 const METRICS=[
-  {key:'qty',label:'Продажи, шт',add:true,edit:'plan_qty'},
-  {key:'rev',label:'Выручка, ₽',add:true},
-  {key:'mar',label:'Маржа, ₽',add:true},
-  {key:'price',label:'Цена, ₽',add:false,edit:'price'},
-  {key:'pct',label:'Маржин., %',add:false,edit:'margin_pct'}
+  {key:'qty',label:'Заказы, шт',add:true,plan:false},
+  {key:'revo',label:'Выручка (заказы), ₽',add:true,plan:false},
+  {key:'sales',label:'Продажи, шт',add:true,plan:true,edit:'plan_qty'},
+  {key:'revn',label:'Выручка, ₽',add:true,plan:true},
+  {key:'mar',label:'Маржа, ₽',add:true,plan:true},
+  {key:'price',label:'Цена, ₽',add:false,plan:true,edit:'price'},
+  {key:'pct',label:'Маржин., %',add:false,plan:true,edit:'margin_pct'}
 ];
 const now0=new Date();
 let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
@@ -228,7 +238,7 @@ const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const f1=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const fmtM=n=>n>=1e6?(n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2})+' млн':fmt(n);
 const fmtFor=(k,v)=>(k==='price'||k==='pct')?fmt2(v):fmt(v);
-const wfmt=(k,v)=>{ if(k==='qty'){ const r=Math.round(v*100)/100; return Number.isInteger(r)?fmt(r):r.toLocaleString('ru-RU',{maximumFractionDigits:2}); } return fmtFor(k,v); };
+const wfmt=(k,v)=>{ if(k==='qty'||k==='sales'){ const r=Math.round(v*100)/100; return Number.isInteger(r)?fmt(r):r.toLocaleString('ru-RU',{maximumFractionDigits:2}); } return fmtFor(k,v); };
 const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const daysBetween=(a,b)=>Math.round((b-a)/86400000);
 const ddmm=iso=>iso.slice(8,10)+'.'+iso.slice(5,7);
@@ -306,7 +316,7 @@ async function loadCharges(){
   const le=parseW(WEEKISO[WEEKISO.length-1]); le.setDate(le.getDate()+6); const last=localISO(le);
   let out=[],off=0;
   while(true){
-    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=source_id,charge_date,offer_id,group_name,charge_type,amount&order=charge_date.asc&limit=1000&offset=${off}`,{headers:HD});
+const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=source_id,charge_date,offer_id,group_name,charge_type,amount,qty,price&order=charge_date.asc&limit=1000&offset=${off}`,{headers:HD});
     if(!r.ok){CHARGES=out;return;}
     const j=await r.json(); out=out.concat(j); if(j.length<1000)break; off+=1000;
   }
@@ -329,24 +339,33 @@ function setP(pct,txt,bad){
 function parseMoney(s){let t=String(s||'').replace(/[^0-9\-,\.]/g,'');if(t.includes(',')&&t.includes('.'))t=t.replace(/,/g,'');else t=t.replace(',','.');const n=Number(t);return isFinite(n)?n:0;}
 function parseDateRu(s){const m=String(s||'').match(/(\d{2})\.(\d{2})\.(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:null;}
 function weekStartOf(iso){const d=parseW(iso);d.setDate(d.getDate()-((d.getDay()+6)%7));return localISO(d);}
-async function syncMarFacts(){
+async function syncPnl(){
   const byWeek=new Map();
-  CHARGES.forEach(c=>{const pid=OFFER_PID[c.offer_id];if(!pid)return;const amt=Number(c.amount||0);if(amt>=0)return;const w=weekStartOf(c.charge_date);if(!byWeek.has(w))byWeek.set(w,new Map());const m=byWeek.get(w);m.set(pid,(m.get(pid)||0)+amt);});
+  CHARGES.forEach(c=>{
+    const pid=OFFER_PID[c.offer_id]; if(!pid)return;
+    const w=weekStartOf(c.charge_date);
+    if(!byWeek.has(w))byWeek.set(w,new Map());
+    let m=byWeek.get(w).get(pid);
+    if(!m){m={ug:0,retq:0,revg:0,retn:0,pnl:0};byWeek.get(w).set(pid,m);}
+    const amt=Number(c.amount||0), q=Number(c.qty||0), pr=Number(c.price||0);
+    m.pnl+=amt;
+    if(c.charge_type==='Выручка'){ m.ug+=q; m.revg+=pr; m.retn+=pr; }
+    else if(c.charge_type==='Возврат выручки'){ m.retq+=q; m.retn+=pr; }
+  });
   const body=[];
   WEEKISO.forEach(w=>{
-    const cm=byWeek.get(w)||new Map();
-    const pids=new Set([...cm.keys()]);
-    for(const pid in WD){const rec=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];if(rec&&rec.fact!=null)pids.add(Number(pid));}
-    pids.forEach(pid=>{
-      const recRev=WD[pid]&&WD[pid]['rev']&&WD[pid]['rev'][w];
-      const recQty=WD[pid]&&WD[pid]['qty']&&WD[pid]['qty'][w];
-      const rev=(recRev&&recRev.fact!=null)?recRev.fact:0;
-      const qty=(recQty&&recQty.fact!=null)?recQty.fact:0;
-      const ch=cm.get(pid)||0;
+    const wm=byWeek.get(w); if(!wm)return;
+    wm.forEach((m,pid)=>{
       const cost=COST[pid]||0;
-      const mar=rev+ch-(cost*qty);
-      body.push({product_id:pid,week:w,metric:'charges',fact:Math.round(ch*100)/100});
+      const sales=m.ug-m.retq;
+      const mar=m.pnl-cost*sales;
+      body.push({product_id:pid,week:w,metric:'sales',fact:sales});
+      body.push({product_id:pid,week:w,metric:'revn',fact:Math.round(m.retn*100)/100});
       body.push({product_id:pid,week:w,metric:'mar',fact:Math.round(mar*100)/100});
+      body.push({product_id:pid,week:w,metric:'revg',fact:Math.round(m.revg*100)/100});
+      body.push({product_id:pid,week:w,metric:'ug',fact:m.ug});
+      if(m.ug>0)body.push({product_id:pid,week:w,metric:'price',fact:Math.round(m.revg/m.ug*100)/100});
+      if(m.retn!==0)body.push({product_id:pid,week:w,metric:'pct',fact:Math.round(mar/m.retn*10000)/100});
     });
   });
   for(let i=0;i<body.length;i+=500){
@@ -370,9 +389,11 @@ async function importCharges(file){
       const d=parseDateRu(r[1]); const offer=(r[4]||'').trim(); const type=(r[3]||'').trim(); const grp=(r[2]||'').trim();
       if(!d||!offer||!type){skipped++;continue;}
       const amt=parseMoney(r[15]);
+      const qty=Number(String(r[7]||'0').replace(/[^\d-]/g,''))||0;
+      const price=parseMoney(r[8]);
       const row_key=[id,grp,type,offer,amt].join('|');
       if(seen.has(row_key))continue; seen.add(row_key);
-      out.push({row_key,source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:amt});
+      out.push({row_key,source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:amt,qty:qty,price:price});
     }
     if(!out.length){ setP(100,'В файле нет подходящих строк (все пропущены).',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
     for(let i=0;i<out.length;i+=500){
@@ -383,7 +404,7 @@ async function importCharges(file){
     }
     setP(90,'Пересчёт маржи по неделям…');
     await loadCharges();
-    await syncMarFacts();
+    await syncPnl();
     await loadWeeks();
     render();
     setP(100,`✔ Готово! Импортировано начислений: ${out.length} (пропущено: ${skipped}). Маржа пересчитана.`);
@@ -398,15 +419,20 @@ function renderCharges(pid){
   const offer=(BYID[pid]||{}).offer_id;
   const rows=CHARGES.filter(c=>c.offer_id===offer);
   if(!rows.length)return '<div class="psub">нет начислений за период</div>';
-  const byType=new Map();
-  rows.forEach(c=>{byType.set(c.charge_type,(byType.get(c.charge_type)||0)+Number(c.amount||0));});
-  const arr=[...byType.entries()].sort((a,b)=>Math.abs(a[1])-Math.abs(b[1]));
-  const totalNeg=arr.filter(([,v])=>v<0).reduce((s,[,v])=>s+v,0);
-  return arr.map(([t,v])=>{
-    const cls=v>0?'n':(v<0?'r':'n');
-    const note=v>0?' <span style="opacity:.5;font-size:.85em">(не в расчёте)</span>':'';
-    return `<div class="prec"><b>${esc(t)}</b>${note} <span class="${cls}">${fmt2(v)} ₽</span></div>`;
-  }).join('')+`<div class="prec"><b>В расчёте маржи</b> <span class="${totalNeg<0?'r':'n'}">${fmt2(totalNeg)} ₽</span></div>`;
+  const byType=new Map(); let ug=0,retq=0,pnl=0;
+  rows.forEach(c=>{
+    const amt=Number(c.amount||0);
+    byType.set(c.charge_type,(byType.get(c.charge_type)||0)+amt);
+    pnl+=amt;
+    if(c.charge_type==='Выручка')ug+=Number(c.qty||0);
+    else if(c.charge_type==='Возврат выручки')retq+=Number(c.qty||0);
+  });
+  const cost=COST[pid]||0, sales=ug-retq, mar=pnl-cost*sales;
+  const arr=[...byType.entries()].sort((a,b)=>a[1]-b[1]);
+  return arr.map(([t,v])=>`<div class="prec"><b>${esc(t)}</b> <span class="${v<0?'r':'g'}">${fmt2(v)} ₽</span></div>`).join('')
+    +`<div class="prec"><b>PNL до себестоимости</b> <span class="${pnl<0?'r':'g'}">${fmt2(pnl)} ₽</span></div>`
+    +`<div class="prec"><b>− себестоимость × продажи</b> <span class="r">−${fmt2(cost*sales)} ₽</span> <span style="opacity:.5;font-size:.85em">(${fmt2(cost)} ₽ × ${sales} шт)</span></div>`
+    +`<div class="prec"><b>Маржа</b> <span class="${mar<0?'r':'g'}">${fmt2(mar)} ₽</span></div>`;
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -479,8 +505,9 @@ function getRec(pid,key,w){ return (WD[pid]&&WD[pid][key]&&WD[pid][key][w])?WD[p
 function monthlyPlan(p,key){
   const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
   const cost=COST[p.product_id]||0;
-  if(key==='qty')return pl.plan_qty;
-  if(key==='rev')return pl.plan_qty*pl.price;
+  if(key==='qty'||key==='revo')return null;
+  if(key==='sales')return pl.plan_qty;
+  if(key==='revn')return pl.plan_qty*pl.price;
   if(key==='mar')return pl.plan_qty*(pl.price-cost);
   if(key==='price')return pl.price;
   return pl.margin_pct;
@@ -498,33 +525,27 @@ function elapsedInfo(){
   if(E<0)E=0; if(E>T)E=T;
   return {E,T};
 }
-function priceFactForWeek(pid,week){
-  const rq=getRec(pid,'qty',week), rr=getRec(pid,'rev',week);
-  if(rq.fact==null||rr.fact==null||rq.fact<=0) return null;
-  return rr.fact/rq.fact;
-}
+function priceFactForWeek(pid,week){ const r=getRec(pid,'price',week); return r.fact!=null?r.fact:null; }
+function sumFact(pid,metric){ let s=0,any=false; WEEKISO.forEach(w=>{ const r=getRec(pid,metric,w); if(r.fact!=null){s+=r.fact;any=true;} }); return any?s:null; }
 function avgPriceFact(p){
-  let R=0,Q=0,any=false;
+  let G=0,U=0,any=false;
   WEEKISO.forEach(w=>{
-    const rq=getRec(p.product_id,'qty',w), rr=getRec(p.product_id,'rev',w);
-    if(rq.fact!=null&&rr.fact!=null&&rq.fact>0){ R+=rr.fact; Q+=rq.fact; any=true; }
+    const rg=getRec(p.product_id,'revg',w), ru=getRec(p.product_id,'ug',w);
+    if(rg.fact!=null&&ru.fact!=null&&ru.fact>0){ G+=rg.fact; U+=ru.fact; any=true; }
   });
-  return (any&&Q>0)? R/Q : null;
+  return (any&&U>0)? G/U : null;
 }
 function avgPctFact(p){
   let M=0,R=0,any=false;
   WEEKISO.forEach(w=>{
-    const rq=getRec(p.product_id,'rev',w), rm=getRec(p.product_id,'mar',w);
-    if(rq.fact!=null&&rm.fact!=null&&rq.fact>0){ R+=rq.fact; M+=rm.fact; any=true; }
+    const rm=getRec(p.product_id,'mar',w), rr=getRec(p.product_id,'revn',w);
+    if(rm.fact!=null&&rr.fact!=null&&rr.fact!==0){ M+=rm.fact; R+=rr.fact; any=true; }
   });
-  return (any&&R>0)? M/R*100 : null;
+  return (any&&R!==0)? M/R*100 : null;
 }
-function pctFactForWeek(pid,week){
-  const rq=getRec(pid,'rev',week), rm=getRec(pid,'mar',week);
-  if(rq.fact==null||rm.fact==null||rq.fact<=0) return null;
-  return rm.fact/rq.fact*100;
-}
+function pctFactForWeek(pid,week){ const r=getRec(pid,'pct',week); return r.fact!=null?r.fact:null; }
 function calcForecast(p,key){
+  key=WDKEY[key]||key;
   if(!WEEKS.length) return null;
   const start=WEEKS[0]; const end=weekEnd(WEEKS[WEEKS.length-1]); const T=daysBetween(start,end)+1;
   const today=new Date(); today.setHours(0,0,0,0); const D=new Date(today); D.setDate(D.getDate()-1);
@@ -543,12 +564,14 @@ const calcForecastQty=p=>calcForecast(p,'qty');
 function projVal(p,key){
   const planV=monthlyPlan(p,key);
   const P=calcForecast(p,key);
-  if(P!=null) return {ffV:P, dev:P-planV};
+  if(P!=null) return {ffV:P, dev:planV==null?null:P-planV};
+  if(planV==null) return {ffV:null, dev:null};
   const {E,T}=elapsedInfo();
-  return {ffV:null, dev: -planV*E/T };
+  return {ffV:null, dev:-planV*E/T};
 }
 function seriesFor(p,key){
-  const P=monthlyPlan(p,key);
+  const P=monthlyPlan(p,key);      // план — по логическому ключу!
+  key=WDKEY[key]||key;             // дальше читаем WD по ключу базы
   const today=new Date(); today.setHours(0,0,0,0);
   const n=WEEKISO.length;
   const recs=WEEKISO.map(w=>getRec(p.product_id,key,w));
@@ -610,12 +633,14 @@ function forecastClose(p,key){
 }
 function devFor(p,key){ return forecastClose(p,key)-monthlyPlan(p,key); }
 function currentFact(pid,key){
+  const lk=key;
   const cw=currentWeekISO();
-  if(!cw) return monthlyPlan({product_id:pid},key);
+  if(!cw) return monthlyPlan({product_id:pid},lk);
+  key=WDKEY[key]||key;
   const rec=getRec(pid,key,cw);
   if(rec.fact!=null) return rec.fact;
   if(rec.forecast!=null) return rec.forecast;
-  return monthlyPlan({product_id:pid},key);
+  return monthlyPlan({product_id:pid},lk);
 }
 function recFor(pid,key){
   const cw=currentWeekISO();
@@ -623,7 +648,8 @@ function recFor(pid,key){
   const cwIdx=WEEKISO.indexOf(cw);
   const nw=WEEKISO[cwIdx+1];
   if(!nw) return null;
-  const rC=getRec(pid,key,cw), rN=getRec(pid,key,nw);
+  const wk=WDKEY[key]||key;
+  const rC=getRec(pid,wk,cw), rN=getRec(pid,wk,nw);
   const curV=rC.fact!=null?rC.fact:(rC.forecast!=null?rC.forecast:null);
   const nxtV=rN.forecast!=null?rN.forecast:(rN.fact!=null?rN.fact:null);
   if(curV==null||nxtV==null) return null;
@@ -739,6 +765,7 @@ function renderRecs(pid){
   const p=BYID[pid];
   let h='';
   METRICS.forEach(m=>{
+    if(m.key==='qty'||m.key==='revo')return;
     const unit=MUNIT[m.key];
     if(m.key==='price'){
       const ap=p?avgPriceFact(p):null;
@@ -841,13 +868,20 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
 }
 function matrixStats(list){
   const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
-  let tRub=0,tMar=0,tFRev=0,tFMar=0;
-  list.forEach(p=>{ const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
-    const rev=pl.plan_qty*pl.price, mar=rev*pl.margin_pct/100; tRub+=rev; tMar+=mar;
-    const pvRev=projVal(p,'rev'), pvMar=projVal(p,'mar');
-    tFRev+=rev+(pvRev.dev||0); tFMar+=mar+(pvMar.dev||0);
-    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1; });
-  return {buckets,tRub,tMar,tFRev,tFMar};
+  let tRub=0,tMar=0,tFRev=0,tFMar=0,tOrd=0,tOrdRev=0;
+  list.forEach(p=>{
+    const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
+    const cost=COST[p.product_id]||0;
+    const rev=pl.plan_qty*pl.price, mar=pl.plan_qty*(pl.price-cost);
+    tRub+=rev; tMar+=mar;
+    const pvRev=projVal(p,'revn'), pvMar=projVal(p,'mar');
+    if(pvRev.ffV!=null)tFRev+=pvRev.ffV;
+    if(pvMar.ffV!=null)tFMar+=pvMar.ffV;
+    const oq=sumFact(p.product_id,'qty'); if(oq!=null)tOrd+=oq;
+    const orv=sumFact(p.product_id,'rev'); if(orv!=null)tOrdRev+=orv;
+    const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1;
+  });
+  return {buckets,tRub,tMar,tFRev,tFMar,tOrd,tOrdRev};
 }
 function mxCard(id,title,list){
   const s=matrixStats(list);
@@ -861,15 +895,19 @@ function mxCard(id,title,list){
       <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
       <div class="legend" id="legendPos${id}"></div></div></div>
     <div class="kpiswrap">
-      <div class="kpis"><div class="kgroup">План</div>
+      <div class="kpis"><div class="kgroup">План (PNL)</div>
         <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
         <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tMar)}</div></div>
         <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
       </div>
-      <div class="kpis"><div class="kgroup">Прогноз в динамике</div>
+      <div class="kpis"><div class="kgroup">Прогноз (PNL)</div>
         <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tFRev)}</div></div>
         <div class="kpi"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tFMar)}</div></div>
         <div class="kpi"><div class="klabel">Маржин. средневзвеш., %</div><div class="kval">${wFMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
+      </div>
+      <div class="kpis"><div class="kgroup">Факт (заказы)</div>
+        <div class="kpi"><div class="klabel">Заказы, шт</div><div class="kval">${fmt(s.tOrd)}</div></div>
+        <div class="kpi"><div class="klabel">Выручка (заказы), ₽</div><div class="kval">${fmt(s.tOrdRev)}</div></div>
       </div>
     </div></div></div>`;
 }
@@ -897,7 +935,7 @@ function render(){
              WEEKS.forEach(w=>{ r3+= isPrice?`<th class="wsub">Ф</th>`:`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
   document.getElementById('th').innerHTML=r1+'</tr><tr>'+r2+'</tr><tr>'+r3+'</tr></tr>';
-  const devOf=p=>projVal(p,'rev').dev;
+  const devOf=p=>{const d=projVal(p,'mar').dev;return d==null?0:d;};
   const prodRow=p=>{
     const pid=p.product_id;
     const wd=(PPM[pid]&&PPM[pid].work_date)||'';
@@ -908,45 +946,33 @@ function render(){
       <td><span class="dateshort" title="Дата работы" onclick="openDate(${pid})">${wd?ddmm(wd):'—'}</span><input type="date" class="datehidden" id="dt_${pid}" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
-      let ffV, dev;
-      if(mt.key==='qty'||mt.key==='rev'||mt.key==='mar'){ const pv=projVal(p,mt.key); ffV=pv.ffV; dev=pv.dev; }
-      else if(mt.key==='price'){ const ap=avgPriceFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
+      let ffV=null, dev=null;
+      if(mt.key==='price'){ const ap=avgPriceFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
       else if(mt.key==='pct'){ const ap=avgPctFact(p); ffV=ap; dev=ap==null?null:ap-planV; }
-      else { ffV=collVal(p,mt.key); dev=devFor(p,mt.key); }
+      else { const pv=projVal(p,mt.key); ffV=pv.ffV; dev=pv.dev; }
       const dcls=dev==null?'n':(dev>0?'g':dev<0?'r':'n');
       const editKey=mt.edit;
-      h+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${pid},'${editKey}')"`:''}>${fmtFor(mt.key,planV)}</td>`;
+      h+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${pid},'${editKey}')"`:''}>${planV==null?'—':fmtFor(mt.key,planV)}</td>`;
       h+=`<td class="num calc">${ffV==null?'—':fmtFor(mt.key,ffV)}</td>`;
       h+=`<td class="num ${dcls}">${dev==null?'—':(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
       if(EXP[mt.key]){
         if(mt.key==='price'){
-          WEEKISO.forEach((w,i)=>{
-            const pf=priceFactForWeek(pid,w);
-            h+=`<td class="num wcell factcell" title="Факт цены (rev/qty)">${pf==null?'—':fmt2(pf)}</td>`;
-          });
+          WEEKISO.forEach((w,i)=>{ const pf=priceFactForWeek(pid,w); h+=`<td class="num wcell factcell" title="Факт цены (PNL)">${pf==null?'—':fmt2(pf)}</td>`; });
         }else if(mt.key==='pct'){
-          WEEKISO.forEach((w,i)=>{
-            const pf=pctFactForWeek(pid,w);
-            h+=`<td class="num wcell factcell" title="Факт маржин. (mar/rev×100)">${pf==null?'—':fmt2(pf)}</td>`;
-          });
+          WEEKISO.forEach((w,i)=>{ const pf=pctFactForWeek(pid,w); h+=`<td class="num wcell factcell" title="Факт маржин. (PNL)">${pf==null?'—':fmt2(pf)}</td>`; });
+        }else if(mt.plan===false){
+          WEEKISO.forEach((w,i)=>{ const r=getRec(pid,WDKEY[mt.key],w); h+=`<td class="num wcell factcell" title="Факт (заказы)">${r.fact==null?'—':wfmt(mt.key,r.fact)}</td>`; });
         }else{
-          const series=mt.add?seriesFor(p,mt.key):null;
+          const series=seriesFor(p,mt.key);
           WEEKISO.forEach((w,i)=>{
-            const rec=getRec(pid,mt.key,w);
-            if(mt.add){
-              const s=series[i];
-              if(s.locked){
-                h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${wfmt(mt.key,s.forecast)}</td>`;
-              }else{
-                const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-                h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
-              }
-            }else{
-              const fc=rec.forecast!=null?rec.forecast:monthlyPlan(p,mt.key);
-              const rst=rec.forecast!=null?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${mt.key}')">↺</span>`:'';
-              h+=`<td class="num wcell wedit ${rec.forecast==null?'autocell':''}" title="Прогноз" onclick="editWeek(${pid},'${w}','${mt.key}')">${wfmt(mt.key,fc)}<span class="editbtn">✎</span>${rst}</td>`;
+            const rec=getRec(pid,WDKEY[mt.key],w);
+            const s=series[i];
+            if(s.locked){ h+=`<td class="num wcell calc" title="Расчёт (факт+динамика)">${wfmt(mt.key,s.forecast)}</td>`; }
+            else{
+              const rst=s.manual?`<span class="resetbtn" title="Вернуть расчётное" onclick="resetWeek(event,${pid},'${w}','${WDKEY[mt.key]}')">↺</span>`:'';
+              h+=`<td class="num wcell wedit ${s.manual?'':'autocell'}" title="Прогноз" onclick="editWeek(${pid},'${w}','${WDKEY[mt.key]}')">${wfmt(mt.key,s.forecast)}<span class="editbtn">✎</span>${rst}</td>`;
             }
-            h+=`<td class="num wcell factcell" title="Факт (API)">${rec.fact==null?'—':wfmt(mt.key,rec.fact)}</td>`;
+            h+=`<td class="num wcell factcell" title="Факт">${rec.fact==null?'—':wfmt(mt.key,rec.fact)}</td>`;
           });
         }
       }
