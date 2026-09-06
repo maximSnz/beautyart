@@ -48,7 +48,7 @@
  .psectitle{font-weight:700;color:#544273;font-size:.85em;margin-bottom:8px}
  .sec-head{cursor:pointer;user-select:none}
  .sec-caret{display:inline-block;margin-right:6px}
- .protowrap{max-width:1200px}
+ .protowrap{max-width:1100px}
  .pulsewrap{overflow-x:auto}
  .pulsemetric{color:#544273;font-weight:700}
  .pulsetable{width:auto;min-width:0;font-size:.82em;border-collapse:collapse}
@@ -211,7 +211,7 @@ const PASSWORD_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab44
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},CHARGES=[],OFFER_PID={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
@@ -317,24 +317,18 @@ async function loadDev(){
   DEV={};
   (await r.json()).forEach(x=>{ if(DEV[x.entity_key]==null) DEV[x.entity_key]={up:+(x.dev_up||0),down:+(x.dev_down||0),cu:x.clusters_up||'',cd:x.clusters_down||''}; });
 }
-async function loadCharges(){
-  if(!WEEKISO.length){CHARGES=[];return;}
-  const first=WEEKISO[0];
-  const le=parseW(WEEKISO[WEEKISO.length-1]); le.setDate(le.getDate()+6); const last=localISO(le);
-  let out=[],off=0;
+async function loadChargesFor(pid){
+  const offer=(BYID[pid]||{}).offer_id;
+  const box=document.getElementById('chgtbl_'+pid);
+  if(!WEEKISO.length){ if(box)box.innerHTML='<div class="psub">нет недель</div>'; return; }
+  const first=WEEKISO[0], last=localISO(weekEnd(parseW(WEEKISO[WEEKISO.length-1])));
+  let rows=[],off=0;
   while(true){
-    let j=null;
-    for(let a=0;a<3;a++){
-      const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=source_id,charge_date,offer_id,group_name,charge_type,amount,qty,price&order=charge_date.asc,id.asc&limit=1000&offset=${off}`,{headers:HD});
-      if(r.ok){j=await r.json();break;}
-      await sleep(500*(a+1));
-    }
-    if(j==null)break;
-    out=out.concat(j);
-    if(j.length<1000)break;
-    off+=1000;
+    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&charge_date=gte.${first}&charge_date=lte.${last}&select=charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json(); rows=rows.concat(j); if(j.length<1000)break; off+=1000;
   }
-  CHARGES=out;
+  if(box)box.innerHTML=renderCharges(pid,rows);
 }
  let COST={};
 async function loadCosts(){
@@ -354,33 +348,27 @@ function parseMoney(s){let t=String(s||'').replace(/[^0-9\-,\.]/g,'');if(t.inclu
 function parseDateRu(s){const m=String(s||'').match(/(\d{2})\.(\d{2})\.(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:null;}
 function weekStartOf(iso){const d=parseW(iso);d.setDate(d.getDate()-((d.getDay()+6)%7));return localISO(d);}
 async function syncPnl(){
-  const byWeek=new Map();
-  CHARGES.forEach(c=>{
-    const pid=OFFER_PID[c.offer_id]; if(!pid)return;
-    const w=weekStartOf(c.charge_date);
-    if(!byWeek.has(w))byWeek.set(w,new Map());
-    let m=byWeek.get(w).get(pid);
-    if(!m){m={ug:0,retq:0,revg:0,retn:0,pnl:0};byWeek.get(w).set(pid,m);}
-    const amt=Number(c.amount||0), q=Number(c.qty||0), pr=Number(c.price||0);
-    m.pnl+=amt;
-    if(c.charge_type==='Выручка'){ m.ug+=q; m.revg+=pr; m.retn+=pr; }
-    else if(c.charge_type==='Возврат выручки'){ m.retq+=q; m.retn+=pr; }
-  });
+  if(!WEEKISO.length)return;
+  const inList='('+WEEKISO.map(w=>`"${w}"`).join(',')+')';
+  let rows=[],off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges_weekly?week=in.${inList}&select=offer_id,week,pnl,ug,retq,revg,retn&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json(); rows=rows.concat(j); if(j.length<1000)break; off+=1000;
+  }
   const body=[];
-  WEEKISO.forEach(w=>{
-    const wm=byWeek.get(w); if(!wm)return;
-    wm.forEach((m,pid)=>{
-      const cost=COST[pid]||0;
-      const sales=m.ug-m.retq;
-      const mar=m.pnl-cost*sales;
-      body.push({product_id:pid,week:w,metric:'sales',fact:sales});
-      body.push({product_id:pid,week:w,metric:'revn',fact:Math.round(m.retn*100)/100});
-      body.push({product_id:pid,week:w,metric:'mar',fact:Math.round(mar*100)/100});
-      body.push({product_id:pid,week:w,metric:'revg',fact:Math.round(m.revg*100)/100});
-      body.push({product_id:pid,week:w,metric:'ug',fact:m.ug});
-      if(m.ug>0)body.push({product_id:pid,week:w,metric:'price',fact:Math.round(m.revg/m.ug*100)/100});
-      if(m.retn!==0)body.push({product_id:pid,week:w,metric:'pct',fact:Math.round(mar/m.retn*10000)/100});
-    });
+  rows.forEach(c=>{
+    const pid=OFFER_PID[c.offer_id]; if(!pid)return;
+    const cost=COST[pid]||0;
+    const ug=+c.ug||0, retq=+c.retq||0, revg=+c.revg||0, retn=+c.retn||0, pnl=+c.pnl||0;
+    const sales=ug-retq, mar=pnl-cost*sales;
+    body.push({product_id:pid,week:c.week,metric:'sales',fact:sales});
+    body.push({product_id:pid,week:c.week,metric:'revn',fact:Math.round(retn*100)/100});
+    body.push({product_id:pid,week:c.week,metric:'mar',fact:Math.round(mar*100)/100});
+    body.push({product_id:pid,week:c.week,metric:'revg',fact:Math.round(revg*100)/100});
+    body.push({product_id:pid,week:c.week,metric:'ug',fact:ug});
+    if(ug>0)body.push({product_id:pid,week:c.week,metric:'price',fact:Math.round(revg/ug*100)/100});
+    if(retn!==0)body.push({product_id:pid,week:c.week,metric:'pct',fact:Math.round(mar/retn*10000)/100});
   });
   for(let i=0;i<body.length;i+=500){
     const part=body.slice(i,i+500);
@@ -417,7 +405,6 @@ async function importCharges(file){
       if(!r.ok)throw new Error('HTTP '+r.status);
     }
     setP(90,'Пересчёт маржи по неделям…');
-    await loadCharges();
     await syncPnl();
     await loadWeeks();
     render();
@@ -429,10 +416,8 @@ async function importCharges(file){
     btn.disabled=false;btn.textContent='⬆ CSV начислений';document.getElementById('chargesInput').value='';
   }
 }
-function renderCharges(pid){
-  const offer=(BYID[pid]||{}).offer_id;
-  const rows=CHARGES.filter(c=>c.offer_id===offer);
-  if(!rows.length)return '<div class="psub">нет начислений за период</div>';
+function renderCharges(pid,rows){
+  if(!rows||!rows.length)return '<div class="psub">нет начислений за период</div>';
   const byType=new Map(); let ug=0,retq=0,pnl=0,revG=0,retG=0;
   rows.forEach(c=>{
     const amt=Number(c.amount||0), pr=Number(c.price||0);
@@ -464,7 +449,7 @@ async function load(){
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]);
       await syncPnl();
       await loadWeeks();
       render(); return;
@@ -472,7 +457,7 @@ async function load(){
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCharges(),loadCosts()]); await syncPnl(); await loadWeeks(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]); await syncPnl(); await loadWeeks(); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -849,8 +834,8 @@ function protoBlock(pid,offer){
   return `<div class="protohead">Протокол действий • ${esc(offer)}</div>
     <div class="psection"><div class="psectitle">📈 Рекомендации на следующую неделю</div>${renderRecs(pid)}</div>
     <div class="psection"><div class="psectitle"><a href="https://maximsnz.github.io/beautyart/weekly.html" target="_blank" class="stocklink">📦 Рекомендации по управлению остатками</a></div>${renderStock(pid)}</div>
-    <div class="psection"><div class="psectitle sec-head" onclick="toggleSection('chg_${pid}')"><span class="sec-caret" id="caret_chg_${pid}">▸</span>💰 Начисления за период (декомпозиция)</div><div class="hide" id="chg_${pid}">${renderCharges(pid)}</div></div>
-    <div class="psection"><div class="psectitle sec-head" onclick="toggleSection('pulse_${pid}')"><span class="sec-caret" id="caret_pulse_${pid}">▸</span>🩺 Рука на пульсе</div><div class="hide" id="pulse_${pid}"><div id="pulsetbl_${pid}" class="psub">загрузка…</div></div></div>
+<div class="psection"><div class="psectitle sec-head" onclick="toggleSection('chg_${pid}')"><span class="sec-caret" id="caret_chg_${pid}">▸</span>💰 Начисления за период (декомпозиция)</div><div class="hide" id="chg_${pid}"><div id="chgtbl_${pid}" class="psub">загрузка…</div></div></div>
+<div class="psection"><div class="psectitle sec-head" onclick="toggleSection('pulse_${pid}')"><span class="sec-caret" id="caret_pulse_${pid}">▸</span>🩺 Рука на пульсе</div><div class="hide" id="pulse_${pid}"><div id="pulsetbl_${pid}" class="psub">загрузка…</div></div></div>
     <div class="psection"><div class="psectitle">🎯 SMART-протокол</div>${(PROTO[pid]||[]).map(renderItem).join('')||'<div class="psub">пока нет пунктов</div>'}${renderSmartForm(pid)}</div>
     <div class="psection"><div class="psectitle">📝 Заметки менеджера</div>${renderNotes(pid)}</div>`;
 }
@@ -859,6 +844,10 @@ function toggleSection(id){
   el.classList.toggle('hide');
   const open=!el.classList.contains('hide');
   const c=document.getElementById('caret_'+id); if(c)c.textContent=open?'▾':'▸';
+  if(open&&id.indexOf('chg_')===0&&!el.dataset.loaded){
+    el.dataset.loaded='1';
+    loadChargesFor(Number(id.slice(4)));
+  }
   if(open&&id.indexOf('pulse_')===0&&!el.dataset.loaded){
     el.dataset.loaded='1';
     loadPulse(Number(id.slice(6)));
