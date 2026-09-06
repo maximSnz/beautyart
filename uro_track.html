@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-title" content="УроКурс">
 <title>УроКурс — трекер</title>
 
-<!-- ИКОНКИ -->
-<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<!-- ИКОНКИ С ПАРАМЕТРОМ ВЕРСИИ (обход кэша iOS) -->
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icon.png?v=2">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png?v=2">
 <meta name="theme-color" content="#0f1b2d">
 
 <style>
@@ -174,11 +174,11 @@ function attachTouch(){
   el.addEventListener('touchmove',e=>{
    const dy=Math.abs(e.touches[0].clientY-startY);
    const dx=Math.abs(e.touches[0].clientX-startX);
-   if(dy>10 || dx>10) moved=true; // это скролл, не тап
+   if(dy>10 || dx>10) moved=true;
   },{passive:true});
   el.addEventListener('touchend',e=>{
    el.classList.remove('pressed');
-   if(moved) return; // игнорируем, был скролл
+   if(moved) return;
    e.preventDefault();
    const id=el.dataset.id,key=iso(sel);
    state.checks[key]=state.checks[key]||{};
