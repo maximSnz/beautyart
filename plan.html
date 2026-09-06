@@ -291,10 +291,16 @@ async function loadPlans(){
 async function loadWeeks(){
   if(!WEEKISO.length){WD={};return;}
   const inList='('+WEEKISO.map(w=>`"${w}"`).join(',')+')';
-  const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?week=in.${inList}&select=product_id,week,metric,plan,forecast,fact`,{headers:HD});
-  if(!r.ok)throw new Error('HTTP '+r.status);
   WD={};
-  (await r.json()).forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:x.forecast==null?null:Number(x.forecast),fact:x.fact==null?null:Number(x.fact)}; });
+  let off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan_weeks?week=in.${inList}&select=product_id,week,metric,plan,forecast,fact&order=product_id.asc,week.asc,metric.asc&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    j.forEach(x=>{ ((WD[x.product_id]=WD[x.product_id]||{})[x.metric]=WD[x.product_id][x.metric]||{})[x.week]={plan:Number(x.plan||0),forecast:x.forecast==null?null:Number(x.forecast),fact:x.fact==null?null:Number(x.fact)}; });
+    if(j.length<1000)break;
+    off+=1000;
+  }
 }
 async function loadPPM(){
   const r=await fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol,work_date`,{headers:HD});
