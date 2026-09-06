@@ -16,95 +16,125 @@
   --pixel:'Press Start 2P',monospace;--sans:'Inter',system-ui,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);
-  background-image:radial-gradient(circle at 20% 30%,#1a2a40 1px,transparent 1px),radial-gradient(circle at 80% 70%,#1a2a40 1px,transparent 1px);
-  background-size:20px 20px}
-.wrap{max-width:500px;margin:0 auto;padding:12px 12px 40px}
-h1{font-family:var(--pixel);font-size:14px;line-height:1.6;margin:8px 0 4px;color:var(--acc);text-shadow:2px 2px 0 #000}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);overflow-x:hidden}
+/* Пиксельные звёзды на фоне */
+.stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%,#fff,transparent),
+    radial-gradient(1px 1px at 30% 60%,#00e5c7,transparent),
+    radial-gradient(2px 2px at 50% 10%,#fff,transparent),
+    radial-gradient(1px 1px at 70% 80%,#39ff88,transparent),
+    radial-gradient(1px 1px at 90% 40%,#fff,transparent),
+    radial-gradient(2px 2px at 20% 90%,#ffb347,transparent),
+    radial-gradient(1px 1px at 80% 15%,#fff,transparent);
+  background-size:200% 200%;animation:twinkle 8s linear infinite}
+@keyframes twinkle{0%{opacity:.3}50%{opacity:.8}100%{opacity:.3}}
+.wrap{max-width:500px;margin:0 auto;padding:12px 12px 40px;position:relative;z-index:1}
+h1{font-family:var(--pixel);font-size:13px;line-height:1.7;margin:8px 0 4px;color:var(--acc);text-shadow:2px 2px 0 #000}
+.blink{animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
 .sub{color:var(--mut);font-size:12px;margin-bottom:14px;font-family:var(--pixel);font-size:8px;line-height:1.8}
+
+/* Закреплённая шапка */
+.sticky{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0 4px;margin:0 -12px;padding-left:12px;padding-right:12px;
+  border-bottom:2px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.5)}
 .card{background:var(--card);border:2px solid var(--line);border-radius:4px;padding:12px;margin-bottom:10px;
   box-shadow:4px 4px 0 #000, inset 0 0 0 1px rgba(0,229,199,.1)}
 .nav{display:flex;align-items:center;gap:6px;justify-content:space-between}
 button{cursor:pointer;border:2px solid var(--acc);background:var(--chip);color:var(--acc);border-radius:4px;padding:8px 10px;font-family:var(--pixel);font-size:9px;
   box-shadow:2px 2px 0 #000;transition:transform .05s}
 button:active{transform:translate(2px,2px);box-shadow:0 0 0 #000}
+#today{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:2px 2px 0 #000,0 0 0 0 rgba(0,229,199,.4)}50%{box-shadow:2px 2px 0 #000,0 0 0 6px rgba(0,229,199,0)}}
 .daylabel{font-size:13px;font-weight:700;text-align:center}
 .daynum{color:var(--acc);font-family:var(--pixel);font-size:10px;text-align:center;margin-top:2px}
-.bar{height:10px;background:var(--chip);border:2px solid var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
-.bar>div{height:100%;background:linear-gradient(90deg,var(--acc2),var(--ok));width:0;transition:width .3s;
+
+/* Прогресс-бар с котом */
+.barwrap{position:relative;height:24px;background:var(--chip);border:2px solid var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
+.barfill{height:100%;background:linear-gradient(90deg,var(--acc2),var(--ok));width:0;transition:width .4s cubic-bezier(.34,1.56,.64,1);
   background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.15) 4px,rgba(0,0,0,.15) 8px)}
+.cat{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:16px;transition:left .4s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(1px 1px 0 #000);image-rendering:pixelated}
+.cat.jump{animation:jump .4s ease}
+@keyframes jump{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-90%)}}
+
 .slot h3{margin:14px 0 8px;font-family:var(--pixel);font-size:9px;color:var(--acc);text-transform:uppercase}
 .item{display:flex;gap:10px;align-items:flex-start;padding:10px;border:2px solid var(--line);border-radius:4px;margin-bottom:8px;background:var(--chip);
-  box-shadow:2px 2px 0 #000}
+  box-shadow:2px 2px 0 #000;transition:transform .1s}
+.item:active{transform:scale(.98)}
 .item.done{background:#0d2818;border-color:var(--ok)}
-.item input{width:24px;height:24px;margin-top:2px;accent-color:var(--ok);flex:none;image-rendering:pixelated}
-.t{font-weight:700;font-size:14px}
+.item input{width:24px;height:24px;margin-top:2px;accent-color:var(--ok);flex:none}
+.t{font-family:var(--pixel);font-size:8px;line-height:1.6;font-weight:400}
 .time{flex:none;font-family:var(--pixel);font-size:8px;color:var(--bg);background:var(--acc);padding:3px 5px;border-radius:2px;margin-top:2px}
-.note{color:var(--mut);font-size:12px;margin-top:2px}
+.note{color:var(--mut);font-size:11px;margin-top:4px;line-height:1.4}
 .range{font-family:var(--pixel);font-size:7px;color:var(--warn);margin-left:4px}
 .empty{color:var(--mut);padding:8px 2px;font-family:var(--pixel);font-size:9px;text-align:center}
 .tools{display:flex;gap:6px;flex-wrap:wrap}
-.tools button{flex:1;min-width:120px;font-size:8px}
-.foot{color:var(--mut);font-size:11px;margin-top:14px;text-align:center;font-family:var(--pixel);font-size:7px;line-height:2}
+.tools button{flex:1;min-width:140px;font-size:8px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:var(--bg);padding:10px 16px;border-radius:4px;font-family:var(--pixel);font-size:9px;
   box-shadow:3px 3px 0 #000;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99}
 .toast.show{opacity:1}
-@media(max-width:380px){.time{display:none}}
+@media(max-width:380px){.time{display:none}.t{font-size:7px}}
 </style>
 </head>
 <body>
+<div class="stars"></div>
 <div class="wrap">
-<h1>💊 УРОКУРС<br>ПРОСТАТИТ+ЭПИДИДИМИТ</h1>
-<div class="sub">СТАРТ 07.09.2026 • 30 ДНЕЙ • ОТСЛЕЖИВАЙ ПРИЁМЫ</div>
+<h1>💊 УРОКУРС<span class="blink">_</span><br>ПРОСТАТИТ+ЭПИДИДИМИТ</h1>
+<div class="sub">СТАРТ 07.09.2026 • 30 ДНЕЙ</div>
 
-<div class="card nav">
- <button id="prev">◀ НАЗАД</button>
- <div style="flex:1"><div class="daylabel" id="dl"></div><div class="daynum" id="dn"></div></div>
- <button id="next">ВПЕРЁД ▶</button>
+<div class="sticky">
+ <div class="card nav" style="margin-bottom:6px">
+  <button id="prev">◀</button>
+  <div style="flex:1"><div class="daylabel" id="dl"></div><div class="daynum" id="dn"></div></div>
+  <button id="next">▶</button>
+ </div>
+ <div class="card" style="margin-bottom:0;padding:10px 12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+   <b id="pt" style="font-family:var(--pixel);font-size:8px;color:var(--acc)"></b>
+   <button id="today" style="padding:5px 8px;font-size:8px">СЕГОДНЯ</button>
+  </div>
+  <div class="barwrap"><div class="barfill" id="pb"></div><div class="cat" id="cat">🐱</div></div>
+ </div>
 </div>
-<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b id="pt" style="font-family:var(--pixel);font-size:9px;color:var(--acc)"></b><button id="today" style="padding:6px 8px">СЕГОДНЯ</button></div><div class="bar"><div id="pb"></div></div></div>
 
+<div style="height:10px"></div>
 <div id="slots"></div>
 
 <div class="card tools">
- <button id="save">💾 СОХРАНИТЬ ПРОГРЕСС</button>
- <button id="load">📂 ЗАГРУЗИТЬ ПРОГРЕСС</button>
+ <button id="save">💾 СОХРАНИТЬ</button>
+ <button id="load">📂 ЗАГРУЗИТЬ</button>
  <input type="file" id="file" accept=".json" style="display:none">
 </div>
-
-<div class="foot">ДЕНЬ 31 — ПОВТОРНАЯ ЯВКА К ВРАЧУ<br>ДАННЫЕ ХРАНЯТСЯ ЛОКАЛЬНО • ДЕЛАЙ БЭКАП РАЗ В НЕДЕЛЮ</div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-const DAY=86400000, START=new Date(2026,8,7); // 7 сентября 2026 (месяцы с 0)
+const DAY=86400000, START=new Date(2026,8,7);
 const $=s=>document.getElementById(s);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addDays=(b,n)=>new Date(b.getFullYear(),b.getMonth(),b.getDate()+n);
-let state;try{state=JSON.parse(localStorage.getItem('uro_v2'))}catch(e){}
+let state;try{state=JSON.parse(localStorage.getItem('uro_v3'))}catch(e){}
 if(!state)state={checks:{}};
-const save=()=>localStorage.setItem('uro_v2',JSON.stringify(state));
+const save=()=>localStorage.setItem('uro_v3',JSON.stringify(state));
 let sel=new Date();sel.setHours(0,0,0,0);
 const dayNum=d=>Math.round((d-START)/DAY)+1;
 const toast=(msg,col)=>{const t=$('toast');t.textContent=msg;t.style.background=col||'var(--ok)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 
 function items(){
  const a=[];
- a.push({id:'cipro_am',slot:'morning',time:'07:00',title:'Ципрофлоксацин 500 мг — 1 табл.',note:'Натощак, за 1 ч до завтрака, стакан воды (не молоко).',range:'дни 1–10',on:d=>d>=1&&d<=10});
- a.push({id:'lavomax',slot:'morning',time:'08:30',title:'Лавомакс 125 мг — 1 табл.',note:'После завтрака.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
- a.push({id:'diflucan',slot:'morning',time:'08:30',title:'Дифлюкан 150 мг — 1 капс.',note:'После завтрака.',range:'дни 1,8,15,22',on:d=>[1,8,15,22].includes(d)});
- a.push({id:'prostacor',slot:'day',time:'13:00',title:'Простакор 10 мг — в/м инъекция',note:'2 амп. по 5 мг; в одно время; хранить в холодильнике.',range:'дни 1–10',on:d=>d>=1&&d<=10});
- a.push({id:'phyto',slot:'day',time:'14:00',title:'Проставит 420 мг — 1 капс.',note:'С обедом (цинк — разнос 4–6 ч от ципрофлоксацина).',range:'дни 1–30',on:d=>d>=1&&d<=30});
- a.push({id:'probio',slot:'day',time:'14:00',title:'Линекс форте — 1 капс.',note:'После обеда, ≥3 ч от антибиотика.',range:'дни 1–14',on:d=>d>=1&&d<=14});
- a.push({id:'cipro_pm',slot:'evening',time:'20:00',title:'Ципрофлоксацин 500 мг — 1 табл.',note:'Натощак: через 2 ч после ужина, стакан воды.',range:'дни 1–10',on:d=>d>=1&&d<=10});
- a.push({id:'omnic',slot:'evening',time:'21:00',title:'Омник Окас 0,4 мг — 1 табл.',note:'В одно время, целиком. Вставать медленно!',range:'дни 1–30',on:d=>d>=1&&d<=30});
- a.push({id:'longidaza',slot:'night',time:'22:30',title:'Лонгидаза 3000 МЕ — свеча ректально',note:'После гигиены, лёжа. Нечётные ночи.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
- a.push({id:'vitaprost',slot:'night',time:'22:30',title:'Витапрост 10 мг — свеча ректально',note:'После гигиены, лёжа. Чётные ночи и с 21 дня.',range:'чёт 2–20 и 21–30',on:d=>(d>=2&&d<=20&&d%2==0)||(d>=21&&d<=30)});
- a.push({id:'sperm',slot:'extra',time:'—',title:'Спермоизвержение (через день)',note:'Без партнёра. Пункт 1 плана.',range:'нечёт',on:d=>d>=1&&d<=29&&d%2==1});
- a.push({id:'physio',slot:'extra',time:'—',title:'Процедуры в клинике: ВМЛТ / ЛАСТ О2',note:'Через день, всего 20 — по записи.',range:'нечёт',on:d=>d>=1&&d<=29&&d%2==1});
+ a.push({id:'cipro_am',slot:'morning',time:'07:00',title:'ЦИПРОФЛОКСАЦИН 500МГ',note:'Натощак, за 1 ч до завтрака, стакан воды (не молоко).',range:'1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'lavomax',slot:'morning',time:'08:30',title:'ЛАВОМАКС 125МГ',note:'После завтрака.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
+ a.push({id:'diflucan',slot:'morning',time:'08:30',title:'ДИФЛЮКАН 150МГ',note:'После завтрака.',range:'1,8,15,22',on:d=>[1,8,15,22].includes(d)});
+ a.push({id:'prostacor',slot:'day',time:'13:00',title:'ПРОСТАКОР 10МГ В/М',note:'2 амп. по 5 мг; в одно время; хранить в холодильнике.',range:'1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'phyto',slot:'day',time:'14:00',title:'ПРОСТАВИТ 420МГ',note:'С обедом (цинк — разнос 4–6 ч от ципрофлоксацина).',range:'1–30',on:d=>d>=1&&d<=30});
+ a.push({id:'probio',slot:'day',time:'14:00',title:'ЛИНЕКС ФОРТЕ',note:'После обеда, ≥3 ч от антибиотика.',range:'1–14',on:d=>d>=1&&d<=14});
+ a.push({id:'cipro_pm',slot:'evening',time:'20:00',title:'ЦИПРОФЛОКСАЦИН 500МГ',note:'Натощак: через 2 ч после ужина, стакан воды.',range:'1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'omnic',slot:'evening',time:'21:00',title:'ОМНИК ОКАС 0,4МГ',note:'В одно время, целиком. Вставать медленно!',range:'1–30',on:d=>d>=1&&d<=30});
+ a.push({id:'longidaza',slot:'night',time:'22:30',title:'ЛОНГИДАЗА 3000МЕ СВЕЧА',note:'После гигиены, лёжа. Нечётные ночи.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
+ a.push({id:'vitaprost',slot:'night',time:'22:30',title:'ВИТАПРОСТ 10МГ СВЕЧА',note:'После гигиены, лёжа. Чётные ночи и с 21 дня.',range:'чёт 2–20, 21–30',on:d=>(d>=2&&d<=20&&d%2==0)||(d>=21&&d<=30)});
  return a;
 }
-const SLOTS=[['morning','🌅 УТРО'],['day','☀️ ДЕНЬ'],['evening','🌆 ВЕЧЕР'],['night','🌙 НОЧЬ'],['extra','➕ ПРОЦЕДУРЫ']];
+const SLOTS=[['morning','🌅 УТРО'],['day','☀️ ДЕНЬ'],['evening','🌆 ВЕЧЕР'],['night','🌙 НОЧЬ']];
 
 function render(){
  const its=items(),d=dayNum(sel),key=iso(sel),chk=state.checks[key]||{};
@@ -116,13 +146,16 @@ function render(){
   if(!list.length)continue;
   html+='<div class="slot"><h3>'+label+'</h3>';
   for(const i of list){cnt++;const c=!!chk[i.id];if(c)done++;
-   html+='<label class="item'+(c?' done':'')+'"><input type="checkbox" data-id="'+i.id+'"'+(c?' checked':'')+'><span class="time">'+i.time+'</span><span><span class="t">'+i.title+'</span><span class="range">'+i.range+'</span><div class="note">'+i.note+'</div></span></label>';}
+   html+='<label class="item'+(c?' done':'')+'"><input type="checkbox" data-id="'+i.id+'"'+(c?' checked':'')+'><span class="time">'+i.time+'</span><span><span class="t">'+i.title+'</span> <span class="range">'+i.range+'</span><div class="note">'+i.note+'</div></span></label>';}
   html+='</div>';
  }
  if(!cnt)html='<div class="empty">НА ЭТОТ ДЕНЬ ПРИЁМОВ НЕТ</div>';
  $('slots').innerHTML=html;
- $('pt').textContent='ВЫПОЛНЕНО: '+done+'/'+cnt;
- $('pb').style.width=(cnt?Math.round(done/cnt*100):0)+'%';
+ $('pt').textContent=done+'/'+cnt;
+ const pct=cnt?Math.round(done/cnt*100):0;
+ $('pb').style.width=pct+'%';
+ const cat=$('cat');cat.style.left='calc('+pct+'% )';
+ cat.classList.remove('jump');void cat.offsetWidth;cat.classList.add('jump');
 }
 document.addEventListener('change',e=>{
  const id=e.target.dataset&&e.target.dataset.id;if(!id)return;
@@ -135,12 +168,13 @@ $('today').onclick=()=>{sel=new Date();sel.setHours(0,0,0,0);render()};
 $('save').onclick=()=>{
  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='uro-progress-'+iso(new Date())+'.json';a.click();
- toast('💾 ФАЙЛ СОХРАНЕН! ЗАГРУЗИ В ICLOUD','var(--acc)');
+ toast('💾 ФАЙЛ В ЗАГРУЗКАХ','var(--acc)');
+ if(navigator.vibrate)navigator.vibrate([20,30,20]);
 };
 $('load').onclick=()=>$('file').click();
 $('file').onchange=e=>{
  const f=e.target.files[0];if(!f)return;
- const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.checks){state=d;save();render();toast('✅ ПРОГРЕСС ВОССТАНОВЛЕН!','var(--ok)')}}catch(err){toast('❌ ОШИБКА ФАЙЛА','var(--warn)')}};r.readAsText(f);
+ const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.checks){state=d;save();render();toast('✅ ВОССТАНОВЛЕНО!','var(--ok)')}}catch(err){toast('❌ ОШИБКА ФАЙЛА','var(--warn)')}};r.readAsText(f);
 };
 render();
 </script>
