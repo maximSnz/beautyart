@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Урологический курс — трекер приёма</title>
+<style>
+:root{--bg:#eef4f5;--card:#fff;--ink:#152a30;--mut:#5c7078;--acc:#0e7c86;--acc2:#095e66;--ok:#229453;--warn:#b26a00;--line:#d8e4e6;--chip:#e8f3f4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:14px 14px 40px}
+h1{font-size:21px;margin:6px 0 2px}h1 span{color:var(--acc)}
+.sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(20,40,50,.06)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label.set{font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center}
+input[type=date],select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;color:var(--ink)}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--acc2);border-radius:8px;padding:7px 12px;font-size:14px}
+button:hover{background:var(--chip)}
+.nav{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.daylabel{font-size:16px;font-weight:600}.daynum{color:var(--acc);font-weight:700}
+.bar{height:8px;background:#e4edee;border-radius:6px;overflow:hidden;margin-top:10px}
+.bar>div{height:100%;background:var(--ok);width:0;transition:width .25s}
+.slot h3{margin:14px 0 8px;font-size:15px;color:var(--acc2)}
+.item{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fbfdfd}
+.item.done{background:#f0faf3;border-color:#bfe4cb}
+.item input{width:22px;height:22px;margin-top:2px;accent-color:var(--ok);flex:none}
+.t{font-weight:600}
+.time{flex:none;font-size:12px;font-weight:700;color:var(--acc2);background:var(--chip);padding:2px 7px;border-radius:6px;margin-top:1px}
+.note{color:var(--mut);font-size:13px}
+.range{font-size:12px;color:var(--warn);font-weight:600}
+.empty{color:var(--mut);padding:8px 2px}
+details{margin-bottom:12px}
+summary{cursor:pointer;font-weight:600;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.dbody{background:var(--card);border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;padding:12px 14px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top;text-align:left}
+th{background:var(--chip)}
+ul{margin:6px 0;padding-left:20px}
+.warnbox{background:#fff7ec;border:1px solid #ecd9b8;border-radius:10px;padding:10px 12px;font-size:13.5px}
+.foot{color:var(--mut);font-size:12.5px;margin-top:14px}
+.stats{display:flex;flex-wrap:wrap;gap:6px}
+.stat{background:var(--chip);border-radius:8px;padding:6px 9px;font-size:12.5px}
+.stat b{color:var(--acc2)}
+@media(max-width:560px){.time{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>💊 Урологический курс — <span>трекер приёма</span></h1>
+<div class="sub">Простатит + эпидидимит • 30 дней • Отмечайте галочками приёмы — данные хранятся только на этом устройстве</div>
+
+<div class="card">
+ <div class="row">
+  <label class="set">Старт курса: <input type="date" id="start"></label>
+  <label class="set">БАД: <select id="phyto"><option value="prostavit">Проставит 420 мг</option><option value="licoprofit">Ликопрофит</option><option value="none">не принимаю</option></select></label>
+  <label class="set">Пробиотик: <select id="probio"><option value="linex">Линекс форте</option><option value="bifiform">Бифиформ</option><option value="none">не принимаю</option></select></label>
+  <button id="reset" title="Стереть все отметки">🗑 Сброс</button>
+ </div>
+</div>
+
+<div class="card nav">
+ <button id="prev">← Пред.</button>
+ <div style="text-align:center"><div class="daylabel" id="dl"></div><div class="daynum" id="dn"></div></div>
+ <button id="next">След. →</button>
+</div>
+<div class="card"><div class="row" style="justify-content:space-between"><b id="pt"></b><button id="today" style="padding:4px 10px">Сегодня</button></div><div class="bar"><div id="pb"></div></div></div>
+
+<div id="slots"></div>
+
+<div class="card"><b>Весь курс (факт/план по сегодня)</b><div class="stats" id="stats" style="margin-top:8px"></div></div>
+
+<details><summary>✅ Сверка назначений врача с инструкциями</summary><div class="dbody">
+<table>
+<tr><th>Препарат</th><th>Назначение врача</th><th>Инструкция / комментарий</th></tr>
+<tr><td>Ципрофлоксацин 500 мг</td><td>1 т ×2 р/д, 10 дн</td><td>✅ Стандарт при простатите/эпидидимите. Натощак, интервал 12 ч, стакан воды; не с молочным; фоточувствительность.</td></tr>
+<tr><td>Проставит / Ликопрофит (один)</td><td>1 капс/сут, 30 дн</td><td>✅ Совпадает. ⚠️ Цинк снижает всасывание ципрофлоксацина — разнос 4–6 ч (учтено в графике).</td></tr>
+<tr><td>Простакор 10 мг в/м</td><td>1 р/д (2 амп. по 5 мг), 10 дн</td><td>✅ Совпадает со схемой пептидов простаты (простатилен и аналоги). Хранить в холодильнике. Сверьте ДВ по упаковке.</td></tr>
+<tr><td>Лавомакс 125 мг</td><td>через день, 10 т</td><td>✅ Схема «через день» применяется; после еды.</td></tr>
+<tr><td>Дифлюкан 150 мг</td><td>1 р/нед ×4</td><td>✅ Профилактика кандидоза на фоне АБ.</td></tr>
+<tr><td>Омник Окас</td><td>вечером, 30 дн</td><td>✅ Доза 0,4 мг («4 мг» — опечатка). 1 р/д в одно время, целиком. ⚠️ Вставать медленно (ортостаз).</td></tr>
+<tr><td>Линекс форте / Бифиформ</td><td>1 капс 14 дн / 2 капс 15 дн</td><td>✅ В пределах инструкций; разнос с АБ ≥3 ч (учтено).</td></tr>
+<tr><td>Лонгидаза 3000 МЕ св.</td><td>через день на ночь, 10 св.</td><td>✅ Совпадает; для комфорта — чередование с Витапростом (одна свеча на ночь).</td></tr>
+<tr><td>Витапрост 10 мг св.</td><td>на ночь, 20 св.</td><td>✅ Инструкция: 1 св./сут 10–15 дней; 20 дней чередованием — допустимо.</td></tr>
+</table>
+</div></details>
+
+<details><summary>⚠️ Взаимодействия и предостережения</summary><div class="dbody">
+<ul>
+<li><b>Ципрофлоксацин + цинк (БАД):</b> разнос 4–6 ч (БАД — в обед).</li>
+<li><b>Ципрофлоксацин + пробиотик:</b> разнос ≥3 ч (пробиотик — в обед).</li>
+<li><b>Ципрофлоксацин + флуконазол:</b> теоретическое суммирование QT; сердцебиение/обмороки — к врачу.</li>
+<li><b>Флуконазол + тамсулозин:</b> возможно головокружение — вставайте медленно.</li>
+<li><b>Алкоголь</b> исключён весь курс; <b>солнце/солярий</b> ограничить на фоне ципрофлоксацина.</li>
+<li>Боль в сухожилиях, онемение, судороги — стоп ципрофлоксацин и срочно к врачу.</li>
+<li>НПВС в схеме нет; при болях — согласовать с врачом.</li>
+</ul>
+<div class="warnbox">Страница — помощник по приверженности, не заменяет консультацию лечащего врача.</div>
+</div></details>
+
+<div class="foot">День 31 — повторная явка к врачу (пункт 11 плана).</div>
+</div>
+
+<script>
+const DAY=86400000,$=s=>document.getElementById(s);
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fromIso=s=>{const p=s.split('-');return new Date(+p[0],p[1]-1,+p[2])};
+const addDays=(b,n)=>new Date(b.getFullYear(),b.getMonth(),b.getDate()+n);
+let state;try{state=JSON.parse(localStorage.getItem('uro_v1'))}catch(e){}
+if(!state)state={start:iso(new Date()),checks:{},prefs:{phyto:'prostavit',probio:'linex'}};
+state.prefs=state.prefs||{phyto:'prostavit',probio:'linex'};
+const save=()=>localStorage.setItem('uro_v1',JSON.stringify(state));
+let sel=new Date();sel.setHours(0,0,0,0);
+const dayNum=d=>Math.round((d-fromIso(state.start))/DAY)+1;
+
+function items(){
+ const P=state.prefs,a=[];
+ const phyto=P.phyto==='licoprofit'?'Ликопрофит — 1 капс.':P.phyto==='prostavit'?'Проставит 420 мг — 1 капс.':null;
+ const prob=P.probio==='bifiform'?'Бифиформ — 2 капс.':P.probio==='linex'?'Линекс форте — 1 капс.':null;
+ const probD=P.probio==='bifiform'?15:14;
+ a.push({id:'cipro_am',slot:'morning',time:'07:00',title:'Ципрофлоксацин 500 мг — 1 табл.',note:'Натощак, за 1 ч до завтрака, стакан воды (не молоко).',range:'дни 1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'lavomax',slot:'morning',time:'08:30',title:'Лавомакс 125 мг — 1 табл.',note:'После завтрака.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
+ a.push({id:'diflucan',slot:'morning',time:'08:30',title:'Дифлюкан 150 мг — 1 капс.',note:'После завтрака.',range:'дни 1, 8, 15, 22',on:d=>[1,8,15,22].includes(d)});
+ a.push({id:'prostacor',slot:'day',time:'13:00',title:'Простакор 10 мг — в/м инъекция',note:'2 амп. по 5 мг; в одно время; хранить в холодильнике.',range:'дни 1–10',on:d=>d>=1&&d<=10});
+ if(phyto)a.push({id:'phyto',slot:'day',time:'14:00',title:phyto,note:'С обедом (цинк — разнос 4–6 ч от ципрофлоксацина).',range:'дни 1–30',on:d=>d>=1&&d<=30});
+ if(prob)a.push({id:'probio',slot:'day',time:'14:00',title:prob,note:'После обеда, ≥3 ч от антибиотика.',range:'дни 1–'+probD,on:d=>d>=1&&d<=probD});
+ a.push({id:'cipro_pm',slot:'evening',time:'20:00',title:'Ципрофлоксацин 500 мг — 1 табл.',note:'Натощак: через 2 ч после ужина, стакан воды.',range:'дни 1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'omnic',slot:'evening',time:'21:00',title:'Омник Окас 0,4 мг — 1 табл.',note:'В одно время, целиком. Вставать медленно!',range:'дни 1–30',on:d=>d>=1&&d<=30});
+ a.push({id:'longidaza',slot:'night',time:'22:30',title:'Лонгидаза 3000 МЕ — свеча ректально',note:'После гигиены, лёжа. Нечётные ночи.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
+ a.push({id:'vitaprost',slot:'night',time:'22:30',title:'Витапрост 10 мг — свеча ректально',note:'После гигиены, лёжа. Чётные ночи и с 21 дня.',range:'чёт 2–20 и 21–30',on:d=>(d>=2&&d<=20&&d%2==0)||(d>=21&&d<=30)});
+ a.push({id:'sperm',slot:'extra',time:'—',title:'Спермоизвержение (через день, без партнёра)',note:'Пункт 1 плана.',range:'нечёт',on:d=>d>=1&&d<=29&&d%2==1});
+ a.push({id:'physio',slot:'extra',time:'—',title:'Процедуры в клинике: ВМЛТ / ЛАСТ О2 (лазер)',note:'Через день, всего 20 — по записи клиники.',range:'нечёт',on:d=>d>=1&&d<=29&&d%2==1});
+ return a;
+}
+const SLOTS=[['morning','🌅 Утро'],['day','☀️ День'],['evening','🌆 Вечер'],['night','🌙 Ночь'],['extra','➕ Процедуры и доп. пункты']];
+
+function render(){
+ const its=items(),d=dayNum(sel),key=iso(sel),chk=state.checks[key]||{};
+ $('dl').textContent=sel.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ $('dn').textContent=(d>=1&&d<=30)?'День '+d+' из 30':(d===31?'День 31 — явка к врачу!':(d<1?'Курс ещё не начат':'Курс завершён'));
+ let html='',cnt=0,done=0;
+ for(const[sid,label]of SLOTS){
+  const list=its.filter(i=>i.slot===sid&&i.on(d));
+  if(!list.length)continue;
+  html+='<div class="slot"><h3>'+label+'</h3>';
+  for(const i of list){cnt++;const c=!!chk[i.id];if(c)done++;
+   html+='<label class="item'+(c?' done':'')+'"><input type="checkbox" data-id="'+i.id+'"'+(c?' checked':'')+'><span class="time">'+i.time+'</span><span><span class="t">'+i.title+'</span> <span class="range">'+i.range+'</span><div class="note">'+i.note+'</div></span></label>';}
+  html+='</div>';
+ }
+ if(!cnt)html='<div class="empty">На этот день приёмов не запланировано.</div>';
+ $('slots').innerHTML=html;
+ $('pt').textContent='Выполнено за день: '+done+' из '+cnt;
+ $('pb').style.width=(cnt?Math.round(done/cnt*100):0)+'%';
+ const today=dayNum(new Date()),st=fromIso(state.start);let sh='';
+ for(const i of its){let exp=0,got=0;
+  for(let x=1;x<=Math.min(Math.max(today,0),30);x++){if(i.on(x)){exp++;if((state.checks[iso(addDays(st,x-1))]||{})[i.id])got++;}}
+  if(exp)sh+='<span class="stat">'+i.title.split('—')[0].trim()+' <b>'+got+'/'+exp+'</b></span>';}
+ $('stats').innerHTML=sh||'<span class="stat">Курс ещё не начат</span>';
+}
+document.addEventListener('change',e=>{
+ const id=e.target.dataset&&e.target.dataset.id;if(!id)return;
+ const key=iso(sel);state.checks[key]=state.checks[key]||{};state.checks[key][id]=e.target.checked;save();render();
+});
+$('prev').onclick=()=>{sel=addDays(sel,-1);render()};
+$('next').onclick=()=>{sel=addDays(sel,1);render()};
+$('today').onclick=()=>{sel=new Date();sel.setHours(0,0,0,0);render()};
+$('start').value=state.start;
+$('start').onchange=e=>{state.start=e.target.value||iso(new Date());save();render()};
+$('phyto').value=state.prefs.phyto;$('probio').value=state.prefs.probio;
+$('phyto').onchange=e=>{state.prefs.phyto=e.target.value;save();render()};
+$('probio').onchange=e=>{state.prefs.probio=e.target.value;save();render()};
+$('reset').onclick=()=>{if(confirm('Стереть все отметки приёмов?')){state.checks={};save();render();}};
+render();
+</script>
+</body>
+</html>
