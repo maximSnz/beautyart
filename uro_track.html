@@ -9,77 +9,77 @@
 <title>УроКурс — трекер</title>
 <link rel="apple-touch-icon" href="https://api.dicebear.com/9.x/pixel-art/svg?seed=uro&backgroundColor=0e7c86">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 :root{
   --bg:#0f1b2d;--card:#1a2a40;--ink:#e8f4f8;--mut:#8aa3b8;
   --acc:#00e5c7;--acc2:#00b8a0;--ok:#39ff88;--warn:#ffb347;--line:#2a3f5a;--chip:#243650;
-  --pixel:'Press Start 2P',monospace;--sans:'Inter',system-ui,sans-serif;
+  --pixel:'Press Start 2P',monospace;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);overflow-x:hidden}
-/* Пиксельные звёзды на фоне */
-.stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;
-  background-image:
-    radial-gradient(1px 1px at 10% 20%,#fff,transparent),
-    radial-gradient(1px 1px at 30% 60%,#00e5c7,transparent),
-    radial-gradient(2px 2px at 50% 10%,#fff,transparent),
-    radial-gradient(1px 1px at 70% 80%,#39ff88,transparent),
-    radial-gradient(1px 1px at 90% 40%,#fff,transparent),
-    radial-gradient(2px 2px at 20% 90%,#ffb347,transparent),
-    radial-gradient(1px 1px at 80% 15%,#fff,transparent);
-  background-size:200% 200%;animation:twinkle 8s linear infinite}
-@keyframes twinkle{0%{opacity:.3}50%{opacity:.8}100%{opacity:.3}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--pixel);overflow-x:hidden;min-height:100vh}
+
+/* Звёзды — реальные div, генерируются JS */
+.star{position:fixed;width:2px;height:2px;background:#fff;pointer-events:none;z-index:0;image-rendering:pixelated;animation:twinkle var(--dur) ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+
 .wrap{max-width:500px;margin:0 auto;padding:12px 12px 40px;position:relative;z-index:1}
-h1{font-family:var(--pixel);font-size:13px;line-height:1.7;margin:8px 0 4px;color:var(--acc);text-shadow:2px 2px 0 #000}
+h1{font-size:12px;line-height:1.8;margin:8px 0 4px;color:var(--acc);text-shadow:2px 2px 0 #000}
 .blink{animation:blink 1s step-end infinite}
 @keyframes blink{50%{opacity:0}}
-.sub{color:var(--mut);font-size:12px;margin-bottom:14px;font-family:var(--pixel);font-size:8px;line-height:1.8}
+.sub{color:var(--mut);font-size:8px;line-height:2;margin-bottom:14px}
 
-/* Закреплённая шапка */
-.sticky{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0 4px;margin:0 -12px;padding-left:12px;padding-right:12px;
-  border-bottom:2px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.5)}
-.card{background:var(--card);border:2px solid var(--line);border-radius:4px;padding:12px;margin-bottom:10px;
-  box-shadow:4px 4px 0 #000, inset 0 0 0 1px rgba(0,229,199,.1)}
+.sticky{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 12px 4px;margin:0 -12px;border-bottom:2px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.6)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:4px;padding:12px;margin-bottom:10px;box-shadow:4px 4px 0 #000}
 .nav{display:flex;align-items:center;gap:6px;justify-content:space-between}
-button{cursor:pointer;border:2px solid var(--acc);background:var(--chip);color:var(--acc);border-radius:4px;padding:8px 10px;font-family:var(--pixel);font-size:9px;
-  box-shadow:2px 2px 0 #000;transition:transform .05s}
-button:active{transform:translate(2px,2px);box-shadow:0 0 0 #000}
+button{cursor:pointer;border:2px solid var(--acc);background:var(--chip);color:var(--acc);border-radius:4px;padding:8px 10px;font-family:var(--pixel);font-size:9px;box-shadow:2px 2px 0 #000;transition:transform .05s,box-shadow .05s}
+button:active,button.pressed{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 #today{animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{box-shadow:2px 2px 0 #000,0 0 0 0 rgba(0,229,199,.4)}50%{box-shadow:2px 2px 0 #000,0 0 0 6px rgba(0,229,199,0)}}
-.daylabel{font-size:13px;font-weight:700;text-align:center}
-.daynum{color:var(--acc);font-family:var(--pixel);font-size:10px;text-align:center;margin-top:2px}
+.daylabel{font-size:11px;font-weight:400;text-align:center;color:var(--ink)}
+.daynum{color:var(--acc);font-size:9px;text-align:center;margin-top:3px}
 
-/* Прогресс-бар с котом */
-.barwrap{position:relative;height:24px;background:var(--chip);border:2px solid var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
-.barfill{height:100%;background:linear-gradient(90deg,var(--acc2),var(--ok));width:0;transition:width .4s cubic-bezier(.34,1.56,.64,1);
-  background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.15) 4px,rgba(0,0,0,.15) 8px)}
-.cat{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:16px;transition:left .4s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(1px 1px 0 #000);image-rendering:pixelated}
+/* Прогресс-бар с пиксельным котом */
+.barwrap{position:relative;height:28px;background:var(--chip);border:2px solid var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
+.barfill{height:100%;background:linear-gradient(90deg,var(--acc2),var(--ok));width:0;transition:width .4s cubic-bezier(.34,1.56,.64,1);background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.15) 4px,rgba(0,0,0,.15) 8px)}
+
+/* ПИКСЕЛЬНЫЙ КОТ 8x8 через box-shadow */
+.cat{position:absolute;top:50%;left:0;transform:translate(-50%,-50%);width:3px;height:3px;background:transparent;transition:left .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:
+    /* уши */
+    -9px -9px 0 #fff, -3px -9px 0 #fff,
+    /* голова */
+    -12px -6px 0 #fff, -9px -6px 0 #fff, -6px -6px 0 #fff, -3px -6px 0 #fff, 0px -6px 0 #fff,
+    -12px -3px 0 #fff, -9px -3px 0 #000, -6px -3px 0 #fff, -3px -3px 0 #000, 0px -3px 0 #fff,
+    -12px 0px 0 #fff, -9px 0px 0 #fff, -6px 0px 0 #ffb3c1, -3px 0px 0 #fff, 0px 0px 0 #fff,
+    /* тело */
+    -9px 3px 0 #fff, -6px 3px 0 #fff, -3px 3px 0 #fff,
+    -9px 6px 0 #fff, -6px 6px 0 #fff, -3px 6px 0 #fff,
+    /* хвост */
+    3px 0px 0 #fff, 6px -3px 0 #fff;
+  image-rendering:pixelated}
 .cat.jump{animation:jump .4s ease}
-@keyframes jump{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-90%)}}
+@keyframes jump{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-110%)}}
 
-.slot h3{margin:14px 0 8px;font-family:var(--pixel);font-size:9px;color:var(--acc);text-transform:uppercase}
-.item{display:flex;gap:10px;align-items:flex-start;padding:10px;border:2px solid var(--line);border-radius:4px;margin-bottom:8px;background:var(--chip);
-  box-shadow:2px 2px 0 #000;transition:transform .1s}
-.item:active{transform:scale(.98)}
+.slot h3{margin:14px 0 8px;font-size:9px;color:var(--acc);text-transform:uppercase}
+.item{display:flex;gap:10px;align-items:flex-start;padding:10px;border:2px solid var(--line);border-radius:4px;margin-bottom:8px;background:var(--chip);box-shadow:2px 2px 0 #000;transition:transform .08s,box-shadow .08s,background .2s;cursor:pointer}
+.item:active,.item.pressed{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 .item.done{background:#0d2818;border-color:var(--ok)}
-.item input{width:24px;height:24px;margin-top:2px;accent-color:var(--ok);flex:none}
-.t{font-family:var(--pixel);font-size:8px;line-height:1.6;font-weight:400}
-.time{flex:none;font-family:var(--pixel);font-size:8px;color:var(--bg);background:var(--acc);padding:3px 5px;border-radius:2px;margin-top:2px}
-.note{color:var(--mut);font-size:11px;margin-top:4px;line-height:1.4}
-.range{font-family:var(--pixel);font-size:7px;color:var(--warn);margin-left:4px}
-.empty{color:var(--mut);padding:8px 2px;font-family:var(--pixel);font-size:9px;text-align:center}
+.item input{width:24px;height:24px;margin-top:2px;accent-color:var(--ok);flex:none;pointer-events:none}
+.t{font-size:8px;line-height:1.7;font-weight:400;color:var(--ink)}
+.time{flex:none;font-size:8px;color:var(--bg);background:var(--acc);padding:4px 5px;border-radius:2px;margin-top:2px}
+.note{color:var(--mut);font-size:7px;margin-top:5px;line-height:1.8}
+.range{font-size:7px;color:var(--warn);margin-left:4px}
+.empty{color:var(--mut);padding:8px 2px;font-size:9px;text-align:center}
 .tools{display:flex;gap:6px;flex-wrap:wrap}
 .tools button{flex:1;min-width:140px;font-size:8px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:var(--bg);padding:10px 16px;border-radius:4px;font-family:var(--pixel);font-size:9px;
-  box-shadow:3px 3px 0 #000;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:var(--bg);padding:10px 14px;border-radius:4px;font-family:var(--pixel);font-size:8px;box-shadow:3px 3px 0 #000;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;line-height:1.6}
 .toast.show{opacity:1}
-@media(max-width:380px){.time{display:none}.t{font-size:7px}}
+@media(max-width:380px){.time{display:none}.t{font-size:7px}.note{font-size:6px}}
 </style>
 </head>
 <body>
-<div class="stars"></div>
 <div class="wrap">
-<h1>💊 УРОКУРС<span class="blink">_</span><br>ПРОСТАТИТ+ЭПИДИДИМИТ</h1>
+<h1>💊 УРОКУРС<br>ПРОСТАТИТ+ЭПИДИДИМИТ<span class="blink">_</span></h1>
 <div class="sub">СТАРТ 07.09.2026 • 30 ДНЕЙ</div>
 
 <div class="sticky">
@@ -90,10 +90,10 @@ button:active{transform:translate(2px,2px);box-shadow:0 0 0 #000}
  </div>
  <div class="card" style="margin-bottom:0;padding:10px 12px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-   <b id="pt" style="font-family:var(--pixel);font-size:8px;color:var(--acc)"></b>
+   <b id="pt" style="font-size:8px;color:var(--acc)"></b>
    <button id="today" style="padding:5px 8px;font-size:8px">СЕГОДНЯ</button>
   </div>
-  <div class="barwrap"><div class="barfill" id="pb"></div><div class="cat" id="cat">🐱</div></div>
+  <div class="barwrap"><div class="barfill" id="pb"></div><div class="cat" id="cat"></div></div>
  </div>
 </div>
 
@@ -109,29 +109,32 @@ button:active{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 <div class="toast" id="toast"></div>
 
 <script>
+// Генерация звёзд (работает на iOS)
+(function(){const colors=['#fff','#00e5c7','#39ff88','#ffb347'];for(let i=0;i<35;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.background=colors[i%colors.length];s.style.setProperty('--dur',(2+Math.random()*4)+'s');s.style.animationDelay=Math.random()*4+'s';if(Math.random()>.7)s.style.width=s.style.height='3px';document.body.appendChild(s)}})();
+
 const DAY=86400000, START=new Date(2026,8,7);
 const $=s=>document.getElementById(s);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addDays=(b,n)=>new Date(b.getFullYear(),b.getMonth(),b.getDate()+n);
-let state;try{state=JSON.parse(localStorage.getItem('uro_v3'))}catch(e){}
+let state;try{state=JSON.parse(localStorage.getItem('uro_v4'))}catch(e){}
 if(!state)state={checks:{}};
-const save=()=>localStorage.setItem('uro_v3',JSON.stringify(state));
+const save=()=>localStorage.setItem('uro_v4',JSON.stringify(state));
 let sel=new Date();sel.setHours(0,0,0,0);
 const dayNum=d=>Math.round((d-START)/DAY)+1;
 const toast=(msg,col)=>{const t=$('toast');t.textContent=msg;t.style.background=col||'var(--ok)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 
 function items(){
  const a=[];
- a.push({id:'cipro_am',slot:'morning',time:'07:00',title:'ЦИПРОФЛОКСАЦИН 500МГ',note:'Натощак, за 1 ч до завтрака, стакан воды (не молоко).',range:'1–10',on:d=>d>=1&&d<=10});
- a.push({id:'lavomax',slot:'morning',time:'08:30',title:'ЛАВОМАКС 125МГ',note:'После завтрака.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
- a.push({id:'diflucan',slot:'morning',time:'08:30',title:'ДИФЛЮКАН 150МГ',note:'После завтрака.',range:'1,8,15,22',on:d=>[1,8,15,22].includes(d)});
- a.push({id:'prostacor',slot:'day',time:'13:00',title:'ПРОСТАКОР 10МГ В/М',note:'2 амп. по 5 мг; в одно время; хранить в холодильнике.',range:'1–10',on:d=>d>=1&&d<=10});
- a.push({id:'phyto',slot:'day',time:'14:00',title:'ПРОСТАВИТ 420МГ',note:'С обедом (цинк — разнос 4–6 ч от ципрофлоксацина).',range:'1–30',on:d=>d>=1&&d<=30});
- a.push({id:'probio',slot:'day',time:'14:00',title:'ЛИНЕКС ФОРТЕ',note:'После обеда, ≥3 ч от антибиотика.',range:'1–14',on:d=>d>=1&&d<=14});
- a.push({id:'cipro_pm',slot:'evening',time:'20:00',title:'ЦИПРОФЛОКСАЦИН 500МГ',note:'Натощак: через 2 ч после ужина, стакан воды.',range:'1–10',on:d=>d>=1&&d<=10});
- a.push({id:'omnic',slot:'evening',time:'21:00',title:'ОМНИК ОКАС 0,4МГ',note:'В одно время, целиком. Вставать медленно!',range:'1–30',on:d=>d>=1&&d<=30});
- a.push({id:'longidaza',slot:'night',time:'22:30',title:'ЛОНГИДАЗА 3000МЕ СВЕЧА',note:'После гигиены, лёжа. Нечётные ночи.',range:'нечёт 1–19',on:d=>d>=1&&d<=19&&d%2==1});
- a.push({id:'vitaprost',slot:'night',time:'22:30',title:'ВИТАПРОСТ 10МГ СВЕЧА',note:'После гигиены, лёжа. Чётные ночи и с 21 дня.',range:'чёт 2–20, 21–30',on:d=>(d>=2&&d<=20&&d%2==0)||(d>=21&&d<=30)});
+ a.push({id:'cipro_am',slot:'morning',time:'07:00',title:'ЦИПРОФЛОКСАЦИН 500МГ',note:'НАТОЩАК, ЗА 1Ч ДО ЗАВТРАКА, СТАКАН ВОДЫ (НЕ МОЛОКО).',range:'1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'lavomax',slot:'morning',time:'08:30',title:'ЛАВОМАКС 125МГ',note:'ПОСЛЕ ЗАВТРАКА.',range:'НЕЧЁТ 1–19',on:d=>d>=1&&d<=19&&d%2==1});
+ a.push({id:'diflucan',slot:'morning',time:'08:30',title:'ДИФЛЮКАН 150МГ',note:'ПОСЛЕ ЗАВТРАКА.',range:'1,8,15,22',on:d=>[1,8,15,22].includes(d)});
+ a.push({id:'prostacor',slot:'day',time:'13:00',title:'ПРОСТАКОР 10МГ В/М',note:'2 АМП. ПО 5МГ; В ОДНО ВРЕМЯ; ХРАНИТЬ В ХОЛОДИЛЬНИКЕ.',range:'1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'phyto',slot:'day',time:'14:00',title:'ПРОСТАВИТ 420МГ',note:'С ОБЕДОМ (ЦИНК — РАЗНОС 4–6Ч ОТ ЦИПРОФЛОКСАЦИНА).',range:'1–30',on:d=>d>=1&&d<=30});
+ a.push({id:'probio',slot:'day',time:'14:00',title:'ЛИНЕКС ФОРТЕ',note:'ПОСЛЕ ОБЕДА, ≥3Ч ОТ АНТИБИОТИКА.',range:'1–14',on:d=>d>=1&&d<=14});
+ a.push({id:'cipro_pm',slot:'evening',time:'20:00',title:'ЦИПРОФЛОКСАЦИН 500МГ',note:'НАТОЩАК: ЧЕРЕЗ 2Ч ПОСЛЕ УЖИНА, СТАКАН ВОДЫ.',range:'1–10',on:d=>d>=1&&d<=10});
+ a.push({id:'omnic',slot:'evening',time:'21:00',title:'ОМНИК ОКАС 0,4МГ',note:'В ОДНО ВРЕМЯ, ЦЕЛИКОМ. ВСТАВАТЬ МЕДЛЕННО!',range:'1–30',on:d=>d>=1&&d<=30});
+ a.push({id:'longidaza',slot:'night',time:'22:30',title:'ЛОНГИДАЗА 3000МЕ СВЕЧА',note:'ПОСЛЕ ГИГИЕНЫ, ЛЁЖА. НЕЧЁТНЫЕ НОЧИ.',range:'НЕЧЁТ 1–19',on:d=>d>=1&&d<=19&&d%2==1});
+ a.push({id:'vitaprost',slot:'night',time:'22:30',title:'ВИТАПРОСТ 10МГ СВЕЧА',note:'ПОСЛЕ ГИГИЕНЫ, ЛЁЖА. ЧЁТНЫЕ НОЧИ И С 21 ДНЯ.',range:'ЧЁТ 2–20, 21–30',on:d=>(d>=2&&d<=20&&d%2==0)||(d>=21&&d<=30)});
  return a;
 }
 const SLOTS=[['morning','🌅 УТРО'],['day','☀️ ДЕНЬ'],['evening','🌆 ВЕЧЕР'],['night','🌙 НОЧЬ']];
@@ -146,7 +149,7 @@ function render(){
   if(!list.length)continue;
   html+='<div class="slot"><h3>'+label+'</h3>';
   for(const i of list){cnt++;const c=!!chk[i.id];if(c)done++;
-   html+='<label class="item'+(c?' done':'')+'"><input type="checkbox" data-id="'+i.id+'"'+(c?' checked':'')+'><span class="time">'+i.time+'</span><span><span class="t">'+i.title+'</span> <span class="range">'+i.range+'</span><div class="note">'+i.note+'</div></span></label>';}
+   html+='<label class="item'+(c?' done':'')+'" data-id="'+i.id+'"><input type="checkbox" data-id="'+i.id+'"'+(c?' checked':'')+'><span class="time">'+i.time+'</span><span><span class="t">'+i.title+'</span> <span class="range">'+i.range+'</span><div class="note">'+i.note+'</div></span></label>';}
   html+='</div>';
  }
  if(!cnt)html='<div class="empty">НА ЭТОТ ДЕНЬ ПРИЁМОВ НЕТ</div>';
@@ -154,14 +157,28 @@ function render(){
  $('pt').textContent=done+'/'+cnt;
  const pct=cnt?Math.round(done/cnt*100):0;
  $('pb').style.width=pct+'%';
- const cat=$('cat');cat.style.left='calc('+pct+'% )';
+ const cat=$('cat');cat.style.left=pct+'%';
  cat.classList.remove('jump');void cat.offsetWidth;cat.classList.add('jump');
+ attachTouch();
 }
-document.addEventListener('change',e=>{
- const id=e.target.dataset&&e.target.dataset.id;if(!id)return;
- const key=iso(sel);state.checks[key]=state.checks[key]||{};state.checks[key][id]=e.target.checked;save();render();
- if(navigator.vibrate)navigator.vibrate(15);
-});
+
+// Мгновенная реакция на тач (iOS Safari игнорирует :active без JS)
+function attachTouch(){
+ document.querySelectorAll('.item').forEach(el=>{
+  el.addEventListener('touchstart',()=>el.classList.add('pressed'),{passive:true});
+  el.addEventListener('touchend',()=>{
+   el.classList.remove('pressed');
+   const id=el.dataset.id,key=iso(sel);
+   state.checks[key]=state.checks[key]||{};
+   state.checks[key][id]=!state.checks[key][id];
+   save();render();
+   if(navigator.vibrate)navigator.vibrate(15);
+  });
+ });
+}
+// Отключаем стандартный change, чтобы не было двойного срабатывания
+document.addEventListener('click',e=>{if(e.target.closest('.item'))e.preventDefault()});
+
 $('prev').onclick=()=>{sel=addDays(sel,-1);render()};
 $('next').onclick=()=>{sel=addDays(sel,1);render()};
 $('today').onclick=()=>{sel=new Date();sel.setHours(0,0,0,0);render()};
