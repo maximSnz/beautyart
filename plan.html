@@ -48,11 +48,11 @@
  .psectitle{font-weight:700;color:#544273;font-size:.85em;margin-bottom:8px}
  .sec-head{cursor:pointer;user-select:none}
  .sec-caret{display:inline-block;margin-right:6px}
- .protowrap{max-width:1000px}
+ .protowrap{max-width:1200px}
  .pulsewrap{overflow-x:auto}
  .pulsemetric{color:#544273;font-weight:700}
- .pulsetable{width:auto;min-width:0;font-size:.9em;border-collapse:collapse}
- .pulsetable th,.pulsetable td{padding:3px 8px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:center;white-space:nowrap}
+ .pulsetable{width:auto;min-width:0;font-size:.82em;border-collapse:collapse}
+ .pulsetable th,.pulsetable td{padding:2px 4px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:center;white-space:nowrap}
  .pulsetable th{color:#94a3b8;font-size:.8em}
  .pulsetable th:first-child,.pulsetable td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
  .prec{font-size:.85em;color:#544273;padding:4px 0;border-bottom:1px dashed rgba(84,66,115,.08)}
@@ -867,10 +867,10 @@ function toggleSection(id){
 async function loadPulse(pid){
   const offer=(BYID[pid]||{}).offer_id;
   const box=document.getElementById('pulsetbl_'+pid);
-  const [y,m]=MONTH.split('-').map(Number);
-  const T=new Date(y,m,0).getDate();
-  const first=localISO(new Date(y,m-1,1));
-  const last=localISO(new Date(y,m-1,T));
+  if(!WEEKISO.length){ if(box)box.innerHTML='<div class="psub">нет недель</div>'; return; }
+  const start=parseW(WEEKISO[0]);
+  const end=weekEnd(parseW(WEEKISO[WEEKISO.length-1]));
+  const first=localISO(start), last=localISO(end);
   let rows=[],off=0;
   while(true){
     const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${first}&sale_date=lte.${last}&select=sale_date,qty&order=sale_date.asc&limit=1000&offset=${off}`,{headers:HD});
@@ -879,13 +879,14 @@ async function loadPulse(pid){
   }
   const byDay=new Map();
   rows.forEach(r=>{ byDay.set(r.sale_date,(byDay.get(r.sale_date)||0)+Number(r.qty||0)); });
-  const vals=[];
-  for(let d=1;d<=T;d++){ const v=byDay.get(localISO(new Date(y,m-1,d))); vals.push(v==null?null:v); }
+  const days=[];
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ days.push(localISO(new Date(d))); }
+  const vals=days.map(iso=>{ const v=byDay.get(iso); return v==null?null:v; });
   const nums=vals.filter(v=>v!=null);
   const mn=nums.length?Math.min(...nums):0, mx=nums.length?Math.max(...nums):0;
-  const bg=v=>{ if(v==null||!nums.length)return ''; const t=(mx===mn)?0.5:(v-mn)/(mx-mn); return `background:rgba(227,61,120,${(0.06+0.44*t).toFixed(2)});`; };
+  const bg=v=>{ if(v==null||!nums.length)return ''; const t=(mx===mn)?0.5:(v-mn)/(mx-mn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
   let h='<div class="pulsewrap"><table class="pulsetable"><thead><tr><th>Параметр</th>';
-  for(let d=1;d<=T;d++){ h+=`<th>${ddmm(localISO(new Date(y,m-1,d)))}</th>`; }
+  days.forEach(iso=>{ h+=`<th>${ddmm(iso)}</th>`; });
   h+='</tr></thead><tbody><tr><td class="pulsemetric">Заказы, шт</td>';
   vals.forEach(v=>{ h+=`<td class="num" style="${bg(v)}">${v==null?'—':fmt(v)}</td>`; });
   h+='</tr></tbody></table></div>';
