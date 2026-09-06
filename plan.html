@@ -46,6 +46,12 @@
  .protohead{font-size:.9em;color:#1C0D2E;margin-bottom:10px;font-weight:700;border-bottom:1px solid rgba(84,66,115,.1);padding-bottom:6px}
  .psection{border:1px solid rgba(84,66,115,.1);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#fff}
  .psectitle{font-weight:700;color:#544273;font-size:.85em;margin-bottom:8px}
+ .sec-head{cursor:pointer;user-select:none}
+ .sec-caret{display:inline-block;margin-right:6px}
+ .protowrap{max-width:1200px}
+ .pulsetable{width:auto;min-width:0;font-size:.9em;border-collapse:collapse}
+ .pulsetable th,.pulsetable td{padding:3px 10px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:left}
+ .pulsetable th{color:#94a3b8;font-size:.8em}
  .prec{font-size:.85em;color:#544273;padding:4px 0;border-bottom:1px dashed rgba(84,66,115,.08)}
  .prec:last-child{border-bottom:none}
  .prec b{color:#1C0D2E;display:inline-block;min-width:90px}
@@ -220,7 +226,6 @@ const COLLBL={
   pct:{fc:'Ср.взвеш.<br>маржин., %',dv:'Отклонение'}
 };
 const METRICS=[
-  {key:'qty',label:'Заказы, шт',add:true,plan:false},
   {key:'sales',label:'Продажи, шт',add:true,plan:true,edit:'plan_qty'},
   {key:'revn',label:'Выручка, ₽',add:true,plan:true},
   {key:'mar',label:'Маржа, ₽',add:true,plan:true},
@@ -841,9 +846,44 @@ function protoBlock(pid,offer){
   return `<div class="protohead">Протокол действий • ${esc(offer)}</div>
     <div class="psection"><div class="psectitle">📈 Рекомендации на следующую неделю</div>${renderRecs(pid)}</div>
     <div class="psection"><div class="psectitle"><a href="https://maximsnz.github.io/beautyart/weekly.html" target="_blank" class="stocklink">📦 Рекомендации по управлению остатками</a></div>${renderStock(pid)}</div>
-    <div class="psection"><div class="psectitle">💰 Начисления за период (декомпозиция)</div>${renderCharges(pid)}</div>
+    <div class="psection"><div class="psectitle sec-head" onclick="toggleSection('chg_${pid}')"><span class="sec-caret" id="caret_chg_${pid}">▸</span>💰 Начисления за период (декомпозиция)</div><div class="hide" id="chg_${pid}">${renderCharges(pid)}</div></div>
+    <div class="psection"><div class="psectitle sec-head" onclick="toggleSection('pulse_${pid}')"><span class="sec-caret" id="caret_pulse_${pid}">▸</span>🩺 Рука на пульсе</div><div class="hide" id="pulse_${pid}"><div id="pulsetbl_${pid}" class="psub">загрузка…</div></div></div>
     <div class="psection"><div class="psectitle">🎯 SMART-протокол</div>${(PROTO[pid]||[]).map(renderItem).join('')||'<div class="psub">пока нет пунктов</div>'}${renderSmartForm(pid)}</div>
     <div class="psection"><div class="psectitle">📝 Заметки менеджера</div>${renderNotes(pid)}</div>`;
+}
+function toggleSection(id){
+  const el=document.getElementById(id); if(!el)return;
+  el.classList.toggle('hide');
+  const open=!el.classList.contains('hide');
+  const c=document.getElementById('caret_'+id); if(c)c.textContent=open?'▾':'▸';
+  if(open&&id.indexOf('pulse_')===0&&!el.dataset.loaded){
+    el.dataset.loaded='1';
+    loadPulse(Number(id.slice(6)));
+  }
+}
+async function loadPulse(pid){
+  const offer=(BYID[pid]||{}).offer_id;
+  const box=document.getElementById('pulsetbl_'+pid);
+  const [y,m]=MONTH.split('-').map(Number);
+  const T=new Date(y,m,0).getDate();
+  const first=localISO(new Date(y,m-1,1));
+  const last=localISO(new Date(y,m-1,T));
+  let rows=[],off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${first}&sale_date=lte.${last}&select=sale_date,qty&order=sale_date.asc&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json(); rows=rows.concat(j); if(j.length<1000)break; off+=1000;
+  }
+  const byDay=new Map();
+  rows.forEach(r=>{ byDay.set(r.sale_date,(byDay.get(r.sale_date)||0)+Number(r.qty||0)); });
+  let h='<table class="pulsetable"><thead><tr><th>День</th><th>Заказы, шт</th></tr></thead><tbody>';
+  for(let d=1;d<=T;d++){
+    const iso=localISO(new Date(y,m-1,d));
+    const v=byDay.get(iso);
+    h+=`<tr><td>${pad(d)}</td><td class="num">${v==null?'—':fmt(v)}</td></tr>`;
+  }
+  h+='</tbody></table>';
+  if(box)box.innerHTML=h;
 }
 function arcPath(cx,cy,rO,rI,a0,a1){
   const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
@@ -985,7 +1025,7 @@ function render(){
     });
     h+=`</tr>`;
     if(openProto.has(pid)){
-      h+=`<tr class="protorow"><td colspan="${totalCols}">${protoBlock(pid,p.offer_id)}</td></tr>`;
+      h+=`<tr class="protorow"><td colspan="${totalCols}"><div class="protowrap">${protoBlock(pid,p.offer_id)}</div></td></tr>`;
     }
     return h;
   };
