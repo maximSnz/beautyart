@@ -7,7 +7,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="УроКурс">
 <title>УроКурс — трекер</title>
-<link rel="apple-touch-icon" href="https://api.dicebear.com/9.x/pixel-art/svg?seed=uro&backgroundColor=0e7c86">
+
+<!-- ИКОНКИ -->
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<meta name="theme-color" content="#0f1b2d">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 :root{
@@ -15,10 +21,9 @@
   --acc:#00e5c7;--acc2:#00b8a0;--ok:#39ff88;--warn:#ffb347;--line:#2a3f5a;--chip:#243650;
   --pixel:'Press Start 2P',monospace;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--pixel);overflow-x:hidden;min-height:100vh}
 
-/* Звёзды — реальные div, генерируются JS */
 .star{position:fixed;width:2px;height:2px;background:#fff;pointer-events:none;z-index:0;image-rendering:pixelated;animation:twinkle var(--dur) ease-in-out infinite}
 @keyframes twinkle{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
 
@@ -38,31 +43,25 @@ button:active,button.pressed{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 .daylabel{font-size:11px;font-weight:400;text-align:center;color:var(--ink)}
 .daynum{color:var(--acc);font-size:9px;text-align:center;margin-top:3px}
 
-/* Прогресс-бар с пиксельным котом */
 .barwrap{position:relative;height:28px;background:var(--chip);border:2px solid var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
 .barfill{height:100%;background:linear-gradient(90deg,var(--acc2),var(--ok));width:0;transition:width .4s cubic-bezier(.34,1.56,.64,1);background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.15) 4px,rgba(0,0,0,.15) 8px)}
 
-/* ПИКСЕЛЬНЫЙ КОТ 8x8 через box-shadow */
 .cat{position:absolute;top:50%;left:0;transform:translate(-50%,-50%);width:3px;height:3px;background:transparent;transition:left .4s cubic-bezier(.34,1.56,.64,1);
   box-shadow:
-    /* уши */
     -9px -9px 0 #fff, -3px -9px 0 #fff,
-    /* голова */
     -12px -6px 0 #fff, -9px -6px 0 #fff, -6px -6px 0 #fff, -3px -6px 0 #fff, 0px -6px 0 #fff,
     -12px -3px 0 #fff, -9px -3px 0 #000, -6px -3px 0 #fff, -3px -3px 0 #000, 0px -3px 0 #fff,
     -12px 0px 0 #fff, -9px 0px 0 #fff, -6px 0px 0 #ffb3c1, -3px 0px 0 #fff, 0px 0px 0 #fff,
-    /* тело */
     -9px 3px 0 #fff, -6px 3px 0 #fff, -3px 3px 0 #fff,
     -9px 6px 0 #fff, -6px 6px 0 #fff, -3px 6px 0 #fff,
-    /* хвост */
     3px 0px 0 #fff, 6px -3px 0 #fff;
   image-rendering:pixelated}
 .cat.jump{animation:jump .4s ease}
 @keyframes jump{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-110%)}}
 
 .slot h3{margin:14px 0 8px;font-size:9px;color:var(--acc);text-transform:uppercase}
-.item{display:flex;gap:10px;align-items:flex-start;padding:10px;border:2px solid var(--line);border-radius:4px;margin-bottom:8px;background:var(--chip);box-shadow:2px 2px 0 #000;transition:transform .08s,box-shadow .08s,background .2s;cursor:pointer}
-.item:active,.item.pressed{transform:translate(2px,2px);box-shadow:0 0 0 #000}
+.item{display:flex;gap:10px;align-items:flex-start;padding:10px;border:2px solid var(--line);border-radius:4px;margin-bottom:8px;background:var(--chip);box-shadow:2px 2px 0 #000;transition:transform .08s,box-shadow .08s,background .2s;cursor:pointer;touch-action:pan-y}
+.item.pressed{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 .item.done{background:#0d2818;border-color:var(--ok)}
 .item input{width:24px;height:24px;margin-top:2px;accent-color:var(--ok);flex:none;pointer-events:none}
 .t{font-size:8px;line-height:1.7;font-weight:400;color:var(--ink)}
@@ -109,16 +108,16 @@ button:active,button.pressed{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 <div class="toast" id="toast"></div>
 
 <script>
-// Генерация звёзд (работает на iOS)
+// Звёзды
 (function(){const colors=['#fff','#00e5c7','#39ff88','#ffb347'];for(let i=0;i<35;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.background=colors[i%colors.length];s.style.setProperty('--dur',(2+Math.random()*4)+'s');s.style.animationDelay=Math.random()*4+'s';if(Math.random()>.7)s.style.width=s.style.height='3px';document.body.appendChild(s)}})();
 
 const DAY=86400000, START=new Date(2026,8,7);
 const $=s=>document.getElementById(s);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addDays=(b,n)=>new Date(b.getFullYear(),b.getMonth(),b.getDate()+n);
-let state;try{state=JSON.parse(localStorage.getItem('uro_v4'))}catch(e){}
+let state;try{state=JSON.parse(localStorage.getItem('uro_v5'))}catch(e){}
 if(!state)state={checks:{}};
-const save=()=>localStorage.setItem('uro_v4',JSON.stringify(state));
+const save=()=>localStorage.setItem('uro_v5',JSON.stringify(state));
 let sel=new Date();sel.setHours(0,0,0,0);
 const dayNum=d=>Math.round((d-START)/DAY)+1;
 const toast=(msg,col)=>{const t=$('toast');t.textContent=msg;t.style.background=col||'var(--ok)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
@@ -162,12 +161,25 @@ function render(){
  attachTouch();
 }
 
-// Мгновенная реакция на тач (iOS Safari игнорирует :active без JS)
+// ИСПРАВЛЕНИЕ СКРОЛЛА: порог 10px по вертикали
 function attachTouch(){
  document.querySelectorAll('.item').forEach(el=>{
-  el.addEventListener('touchstart',()=>el.classList.add('pressed'),{passive:true});
-  el.addEventListener('touchend',()=>{
+  let startY=0, startX=0, moved=false;
+  el.addEventListener('touchstart',e=>{
+   startY=e.touches[0].clientY;
+   startX=e.touches[0].clientX;
+   moved=false;
+   el.classList.add('pressed');
+  },{passive:true});
+  el.addEventListener('touchmove',e=>{
+   const dy=Math.abs(e.touches[0].clientY-startY);
+   const dx=Math.abs(e.touches[0].clientX-startX);
+   if(dy>10 || dx>10) moved=true; // это скролл, не тап
+  },{passive:true});
+  el.addEventListener('touchend',e=>{
    el.classList.remove('pressed');
+   if(moved) return; // игнорируем, был скролл
+   e.preventDefault();
    const id=el.dataset.id,key=iso(sel);
    state.checks[key]=state.checks[key]||{};
    state.checks[key][id]=!state.checks[key][id];
@@ -176,7 +188,6 @@ function attachTouch(){
   });
  });
 }
-// Отключаем стандартный change, чтобы не было двойного срабатывания
 document.addEventListener('click',e=>{if(e.target.closest('.item'))e.preventDefault()});
 
 $('prev').onclick=()=>{sel=addDays(sel,-1);render()};
