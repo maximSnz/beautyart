@@ -871,25 +871,57 @@ async function loadPulse(pid){
   const start=parseW(WEEKISO[0]);
   const end=weekEnd(parseW(WEEKISO[WEEKISO.length-1]));
   const first=localISO(start), last=localISO(end);
-  let rows=[],off=0;
+  
+  // Загрузка заказов
+  let salesRows=[],off=0;
   while(true){
     const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${first}&sale_date=lte.${last}&select=sale_date,qty&order=sale_date.asc&limit=1000&offset=${off}`,{headers:HD});
     if(!r.ok)break;
-    const j=await r.json(); rows=rows.concat(j); if(j.length<1000)break; off+=1000;
+    const j=await r.json(); salesRows=salesRows.concat(j); if(j.length<1000)break; off+=1000;
   }
-  const byDay=new Map();
-  rows.forEach(r=>{ byDay.set(r.sale_date,(byDay.get(r.sale_date)||0)+Number(r.qty||0)); });
+  const byDaySales=new Map();
+  salesRows.forEach(r=>{ byDaySales.set(r.sale_date,(byDaySales.get(r.sale_date)||0)+Number(r.qty||0)); });
+  
+  // Загрузка остатков
+  let stockRows=[],off2=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/product_stock?offer_id=eq.${encodeURIComponent(offer)}&stock_date=gte.${first}&stock_date=lte.${last}&select=stock_date,stock&order=stock_date.asc&limit=1000&offset=${off2}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json(); stockRows=stockRows.concat(j); if(j.length<1000)break; off2+=1000;
+  }
+  const byDayStock=new Map();
+  stockRows.forEach(r=>{ byDayStock.set(r.stock_date,Number(r.stock||0)); });
+  
+  // Генерация дней
   const days=[];
   for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ days.push(localISO(new Date(d))); }
-  const vals=days.map(iso=>{ const v=byDay.get(iso); return v==null?null:v; });
-  const nums=vals.filter(v=>v!=null);
-  const mn=nums.length?Math.min(...nums):0, mx=nums.length?Math.max(...nums):0;
-  const bg=v=>{ if(v==null||!nums.length)return ''; const t=(mx===mn)?0.5:(v-mn)/(mx-mn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
+  
+  const salesVals=days.map(iso=>{ const v=byDaySales.get(iso); return v==null?null:v; });
+  const stockVals=days.map(iso=>{ const v=byDayStock.get(iso); return v==null?null:v; });
+  
+  // Градиент для заказов
+  const salesNums=salesVals.filter(v=>v!=null);
+  const salesMn=salesNums.length?Math.min(...salesNums):0, salesMx=salesNums.length?Math.max(...salesNums):0;
+  const salesBg=v=>{ if(v==null||!salesNums.length)return ''; const t=(salesMx===salesMn)?0.5:(v-salesMn)/(salesMx-salesMn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
+  
+  // Градиент для остатков (чем меньше — тем краснее)
+  const stockNums=stockVals.filter(v=>v!=null);
+  const stockMn=stockNums.length?Math.min(...stockNums):0, stockMx=stockNums.length?Math.max(...stockNums):0;
+  const stockBg=v=>{ if(v==null||!stockNums.length)return ''; const t=(stockMx===stockMn)?0.5:(v-stockMn)/(stockMx-stockMn); return `background:rgba(227,61,120,${(0.44-0.38*t).toFixed(2)});`; };
+  
   let h='<div class="pulsewrap"><table class="pulsetable"><thead><tr><th>Параметр</th>';
   days.forEach(iso=>{ h+=`<th>${ddmm(iso)}</th>`; });
-  h+='</tr></thead><tbody><tr><td class="pulsemetric">Заказы, шт</td>';
-  vals.forEach(v=>{ h+=`<td class="num" style="${bg(v)}">${v==null?'—':fmt(v)}</td>`; });
-  h+='</tr></tbody></table></div>';
+  h+='</tr></thead><tbody>';
+  
+  h+='<tr><td class="pulsemetric">Заказы, шт</td>';
+  salesVals.forEach(v=>{ h+=`<td class="num" style="${salesBg(v)}">${v==null?'—':fmt(v)}</td>`; });
+  h+='</tr>';
+  
+  h+='<tr><td class="pulsemetric">Остатки, шт</td>';
+  stockVals.forEach(v=>{ h+=`<td class="num" style="${stockBg(v)}">${v==null?'—':fmt(v)}</td>`; });
+  h+='</tr>';
+  
+  h+='</tbody></table></div>';
   if(box)box.innerHTML=h;
 }
 function arcPath(cx,cy,rO,rI,a0,a1){
