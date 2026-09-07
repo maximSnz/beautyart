@@ -293,7 +293,22 @@ function jump(id){
   el.classList.remove('hlflash'); void el.offsetWidth; el.classList.add('hlflash');
   setTimeout(()=>el.classList.remove('hlflash'),2000);
 }
-async function fetchAll(path){let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;}
+ async function fetchAll(path){
+  const sep=path.includes('?')?'&':'?';
+  const r0=await fetch(SUPABASE_URL+path+sep+`limit=1000&offset=0`,{headers:{...HD,Prefer:'count=exact'}});
+  if(!r0.ok)throw new Error('HTTP '+r0.status);
+  const j0=await r0.json();
+  const cr=r0.headers.get('content-range');
+  const total=(cr&&cr.includes('/'))?Number(cr.split('/')[1]):j0.length;
+  if(!total||total<=1000)return j0;
+  const offs=[]; for(let o=1000;o<total;o+=1000)offs.push(o);
+  let out=j0;
+  for(let i=0;i<offs.length;i+=8){
+    const res=await Promise.all(offs.slice(i,i+8).map(o=>fetch(SUPABASE_URL+path+sep+`limit=1000&offset=${o}`,{headers:HD}).then(r=>r.ok?r.json():[])));
+    res.forEach(j=>{out=out.concat(j);});
+  }
+  return out;
+}
 async function go(){
   try{
     const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(document.getElementById('pwd').value));
@@ -538,12 +553,16 @@ async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
     try{
+      const rLast=await fetch(SUPABASE_URL+'/rest/v1/stock_history?select=report_date&order=report_date.desc&limit=1',{headers:HD});
+      let lastSnap=null; if(rLast.ok){const jl=await rLast.json(); if(jl.length)lastSnap=jl[0].report_date;}
+      const b0=lastSnap?parseISO(lastSnap):new Date(Date.now()-86400000);
+      const winFrom=localISO(new Date(b0.getFullYear(),b0.getMonth(),b0.getDate()-9));
       const [rp,rc,rs,rl,rsh]=await Promise.all([
         fetchAll('/rest/v1/products?select=product_id,offer_id,name,stock,supplier,archived,updated_at'),
         fetchAll('/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc'),
         fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present'),
-        fetchAll('/rest/v1/product_sales?select=sale_date,offer_id,warehouse_name,qty'),
-        fetchAll('/rest/v1/stock_history?select=report_date,offer_id,warehouse_name,stock&order=report_date.desc')
+        fetchAll(`/rest/v1/product_sales?sale_date=gte.${winFrom}&select=sale_date,offer_id,warehouse_name,qty`),
+        fetchAll(`/rest/v1/stock_history?report_date=gte.${winFrom}&select=report_date,offer_id,warehouse_name,stock&order=report_date.desc`)
       ]);
       ROWS=rp.filter(x=>!x.archived);
       OFFER_PID={}; const pidOffer={};
