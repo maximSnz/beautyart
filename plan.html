@@ -680,13 +680,15 @@ function recForV2(pid,key){
   const cw=currentWeekISO(); if(!cw) return null;
   const ci=WEEKISO.indexOf(cw); if(ci<0) return null;
   const series=seriesFor({product_id:pid},key);
-  if(series[ci].fact==null) return null;
-  const ni=ci+1; if(ni>=WEEKISO.length) return null;
-  const cur=series[ci].forecast;
+  let bi=ci;
+  while(bi>0&&series[bi].fact==null)bi--;
+  if(series[bi].fact==null)return null;
+  const ni=bi+1; if(ni>=WEEKISO.length)return null;
+  const cur=series[bi].forecast;
   const target=series[ni].forecast;
   const d=target-cur;
   const pct=cur!==0?(d/Math.abs(cur)*100):0;
-  return {cw,nw:WEEKISO[ni],curV:cur,nxtV:target,d,pct};
+  return {cw:WEEKISO[bi],nw:WEEKISO[ni],curV:cur,nxtV:target,d,pct};
 }
 function recText(r,unit){
   if(!r) return {text:'—',cls:'n'};
