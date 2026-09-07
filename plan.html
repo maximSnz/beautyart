@@ -216,7 +216,7 @@ let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-const MLBL={qty:'Заказы',revo:'Выручка (заказы)',sales:'Продажи',revn:'Выручка',mar:'Маржа',price:'Цена',pct:'Марж.%'};
+const MLBL={qty:'Заказы',revo:'Выручка (заказы)',sales:'Продажи',revn:'Выручка',mar:'Маржа',price:'Цена',pct:'Маржин.'};
 const MUNIT={qty:'шт',revo:'₽',sales:'шт',revn:'₽',mar:'₽',price:'₽',pct:'%'};
 const WDKEY={qty:'qty',revo:'rev',sales:'sales',revn:'revn',mar:'mar',price:'price',pct:'pct'};
 const COLLBL={
@@ -693,8 +693,8 @@ function recText(r,unit){
   const abs=Math.abs(r.d);
   const pctF=(r.pct<0?'−':'+')+Math.round(Math.abs(r.pct))+'%';
   const u=unit?(' '+unit):'';
-  if(r.d>0.0001) return {text:`увеличить на ${fmt(abs)}${u} (${pctF})`,cls:'g'};
-  if(r.d<-0.0001) return {text:`уменьшить на ${fmt(abs)}${u} (${pctF})`,cls:'r'};
+  if(r.d>0.0001) return {text:`увеличить на ${fmt(abs)}${u} (${pctF})`,cls:'r'};
+  if(r.d<-0.0001) return {text:`уменьшить на ${fmt(abs)}${u} (${pctF})`,cls:'g'};
   return {text:'без изменений',cls:'n'};
 }
 async function addProto(pid){
@@ -791,8 +791,8 @@ function renderRecs(pid){
       const diff=ap-plan;
       let txt,cls;
       if(Math.abs(diff)<0.005){txt='без изменений';cls='n';}
-      else if(diff>0){txt=`снизить цену на ${fmt2(diff)} ${unit}`;cls='r';}
-      else {txt=`поднять цену на ${fmt2(-diff)} ${unit}`;cls='g';}
+      else if(diff>0){txt=`снизить цену на ${fmt2(diff)} ${unit}`;cls='g';}
+      else {txt=`поднять цену на ${fmt2(-diff)} ${unit}`;cls='r';}
       h+=`<div class="prec"><b>${MLBL[m.key]}, ${unit}</b> ср.взвеш. цена = ${fmt2(ap)} ${unit} → план = ${fmt2(plan)} ${unit} • <span class="${cls}">${txt}</span></div>`;
       return;
     }
@@ -890,8 +890,7 @@ async function loadPulse(pid){
   const days=[];
   for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ days.push(localISO(new Date(d))); }
   const salesVals=days.map(iso=>{ const v=byDaySales.get(iso); return v==null?null:v; });
-  const stockVals=[]; let lastKnown=null;
-  days.forEach(iso=>{ const v=rawStock.get(iso); if(v!=null){lastKnown=v; stockVals.push(v);} else stockVals.push(lastKnown); });
+  const stockVals=days.map(iso=>{ const v=rawStock.get(iso); return v==null?null:v; });
   const salesNums=salesVals.filter(v=>v!=null);
   const sMn=salesNums.length?Math.min(...salesNums):0, sMx=salesNums.length?Math.max(...salesNums):0;
   const salesBg=v=>{ if(v==null||!salesNums.length)return ''; const t=(sMx===sMn)?0.5:(v-sMn)/(sMx-sMn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
