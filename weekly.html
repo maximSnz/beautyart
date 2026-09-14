@@ -695,14 +695,25 @@ function kpiCells(k){
   }).join('');
 }
 let COVTIPS={};
-let tipHover=false, tipHideTimer=null;
-function showCovTip(ev,id){clearTimeout(tipHideTimer);const tip=document.getElementById('tip');tip.innerHTML=COVTIPS[id]||'';tip.style.whiteSpace='normal';tip.style.maxWidth='300px';tip.style.maxHeight='300px';tip.style.overflowY='auto';tip.style.opacity=1;tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';}
-function moveCovTip(ev){if(tipHover)return;const tip=document.getElementById('tip');tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';}
-function hideCovTip(){clearTimeout(tipHideTimer);tipHideTimer=setTimeout(()=>{if(!tipHover)document.getElementById('tip').style.opacity=0;},150);}
-(function(){const t=document.getElementById('tip');
-  t.addEventListener('mouseenter',()=>{tipHover=true;clearTimeout(tipHideTimer);});
-  t.addEventListener('mouseleave',()=>{tipHover=false;t.style.opacity=0;});
-})();
+function showCovTip(ev,id){
+  const tip=document.getElementById('tip');
+  tip.innerHTML=COVTIPS[id]||'';
+  tip.style.whiteSpace='normal';
+  tip.style.maxWidth='460px';
+  tip.style.maxHeight='none';
+  tip.style.overflowY='visible';
+  tip.style.opacity=1;
+  const pad=8;
+  const w=tip.offsetWidth,h=tip.offsetHeight;
+  let x=ev.clientX+14,y=ev.clientY+14;
+  if(x+w>window.innerWidth-pad)x=window.innerWidth-w-pad;
+  if(y+h>window.innerHeight-pad)y=window.innerHeight-h-pad;
+  if(x<pad)x=pad;
+  if(y<pad)y=pad;
+  tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function moveCovTip(ev){}
+function hideCovTip(){document.getElementById('tip').style.opacity=0;}
 function arcPath(cx,cy,rO,rI,a0,a1){
   const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
   const [x0,y0]=p(rO,a0),[x1,y1]=p(rO,a1),[x2,y2]=p(rI,a1),[x3,y3]=p(rI,a0);
@@ -986,7 +997,8 @@ function render(){
       const tipFor=(x)=>{
         const arr=members[x.key]||[];
         if(!arr.length)return '<div class="tiphead">нет позиций</div>';
-        return `<div class="tiphead">${x.label}: ${arr.length} поз.</div>`+arr.map(o=>`<div>${o}</div>`).join('');
+        const cols=arr.length>10?' style="columns:2;column-gap:16px"':'';
+        return `<div class="tiphead">${x.label}: ${arr.length} поз.</div><div${cols}>`+arr.map(o=>`<div>${o}</div>`).join('')+`</div>`;
       };
       const nowCell=(x)=>{
         if(x.key==='gt50'||x.key==='ns'){
