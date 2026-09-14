@@ -108,8 +108,8 @@
  .seg:hover,.seg.hl{transform:scale(1.06)}
  svg.dim .seg:not(:hover):not(.hl){opacity:.4}
  .pieCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 18px}
- .pcVal{font-size:.95em;font-weight:700;color:#1C0D2E;line-height:1.1}
- .pcCap{font-size:.66em;color:#94a3b8;margin-top:2px}
+ .pcVal{font-size:.72em;font-weight:700;color:#1C0D2E;line-height:1.1}
+ .pcCap{font-size:.6em;color:#94a3b8;margin-top:2px}
  .tip{position:fixed;z-index:50;background:#1C0D2E;color:#fff;border-radius:8px;padding:6px 10px;font-size:.78em;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 4px 14px rgba(28,13,46,.4)}
  .legend{font-size:.74em;color:#544273}
  .lrow{display:flex;align-items:center;gap:8px;margin:4px 0;white-space:nowrap;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
@@ -121,8 +121,8 @@
  .kpis{display:flex;flex-direction:column;gap:6px}
  .kgroup{font-size:.75em;color:#94a3b8;font-weight:700;margin-bottom:2px}
  .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:5px 10px;min-width:150px}
- .klabel{font-size:.72em;color:#94a3b8}
- .kval{font-size:1em;font-weight:700;color:#1C0D2E;white-space:nowrap}
+ .klabel{font-size:.68em;color:#94a3b8}
+ .kval{font-size:.9em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  .header{max-width:1200px;margin:20px auto 20px;display:flex;align-items:center;gap:20px;padding:25px 30px;background:rgba(255,255,255,0.15);border-radius:16px;border:2px solid rgba(255,255,255,0.3);box-shadow:0 8px 32px rgba(28,13,46,0.2);position:relative;z-index:200}
  .logo-link{display:inline-block;flex:0 0 auto}
  .logo{width:80px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));transition:transform .3s ease;display:block}
@@ -138,9 +138,11 @@
  .nav-item.open .nav-menu{display:block}
  .nav-menu a{display:block;padding:10px 14px;border-radius:8px;color:#fff;text-decoration:none;font-family:'Forum',serif;font-size:.95em;transition:background .2s;text-shadow:0 1px 3px rgba(0,0,0,.25)}
  .nav-menu a:hover{background:rgba(255,255,255,0.22)}
+ .pmwrap{display:inline-flex;margin-left:12px;border:1px solid rgba(84,66,115,.25);border-radius:8px;overflow:hidden;vertical-align:middle}
+ .pmbtn{padding:2px 10px;border:none;background:#fff;color:#544273;font-family:'Forum';font-size:.72em;cursor:pointer}
+ .pmbtn.on{background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff}
  @media (min-width:961px){
-   .tablewrap{overflow:auto;max-height:78vh}
-   thead{position:sticky;top:0;z-index:10;background:#fff;box-shadow:0 2px 6px rgba(28,13,46,.08)}
+   .tablewrap{overflow-x:auto}
  }
  @media (max-width:640px){
    body{padding:8px}
@@ -220,6 +222,20 @@ const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
+ let PIEMODE='plan';
+function setPieMode(m){PIEMODE=m;render();}
+function pieStats(list,mode){
+  const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
+  let total=0;
+  list.forEach(p=>{
+    let rev,pct;
+    if(mode==='plan'){const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};rev=pl.plan_qty*pl.price;pct=pl.margin_pct;}
+    else{const rv=projVal(p,'revn').ffV,mr=projVal(p,'mar').ffV;rev=rv||0;pct=(rv&&mr!=null)?mr/rv*100:0;}
+    total+=rev;
+    const b=pct<=5?buckets[0]:(pct<=10?buckets[1]:buckets[2]);b.rev+=rev;b.cnt+=1;
+  });
+  return {buckets,total};
+}
 let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 const MLBL={qty:'Заказы',revo:'Выручка (заказы)',sales:'Продажи',revn:'Выручка',mar:'Маржа',price:'Цена',pct:'Маржин.'};
@@ -492,12 +508,17 @@ async function load(){
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
       await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]);
+      const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
+      document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
       render(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]); render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]);
+      const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
+      document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
+      render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -1034,7 +1055,7 @@ function mxCard(id,title,list){
   const h=hypStats(list);
   const wMar=s.tRub>0?s.tMar/s.tRub*100:0;
   const wFMar=s.tFRev>0?s.tFMar/s.tFRev*100:0;
-  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.</div><div class="mxbody">
+  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${PIEMODE==='plan'?'on':''}" onclick="setPieMode('plan')">План</button><button class="pmbtn ${PIEMODE==='forecast'?'on':''}" onclick="setPieMode('forecast')">Прогноз</button></span></div><div class="mxbody">
     <div class="piecard"><div class="ptitle">Выручка по маржинальности</div><div class="piebox">
       <div class="pieWrap"><svg class="pie" id="pieRev${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev${id}"></div><div class="pcCap" id="pcCapRev${id}"></div></div></div>
       <div class="legend" id="legendRev${id}"></div></div></div>
@@ -1067,10 +1088,16 @@ function render(){
   document.getElementById('summary').innerHTML=mxCard('1','Илья',m1)+mxCard('2','Ольга',m2);
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
-  drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},matrixStats(m1p).buckets,matrixStats(m1p).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
-  drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1p).buckets,m1p.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
-  drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2p).buckets,matrixStats(m2p).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
-  drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},matrixStats(m2p).buckets,m2p.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  const p1=PIEMODE==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
+  const p2=PIEMODE==='plan'?pieStats(m2p,'plan'):pieStats(m2,'forecast');
+  const n1=PIEMODE==='plan'?m1p.length:m1.length;
+  const n2=PIEMODE==='plan'?m2p.length:m2.length;
+  const capR=PIEMODE==='plan'?'выручка плана':'выручка прогноза';
+  const capP=PIEMODE==='plan'?'позиции плана':'все позиции';
+  drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},p1.buckets,p1.total,b=>b.rev,v=>fmtM(v)+' ₽',capR,b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
+  drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},p1.buckets,n1,b=>b.cnt,v=>fmt(v)+' поз.',capP,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},p2.buckets,p2.total,b=>b.rev,v=>fmtM(v)+' ₽',capR,b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
+  drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},p2.buckets,n2,b=>b.cnt,v=>fmt(v)+' поз.',capP,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=2;
   METRICS.forEach(mt=>{ const single=(mt.key==='price'||mt.key==='pct'||mt.plan===false); totalCols+=3+(EXP[mt.key]?(single?WEEKS.length:WEEKS.length*2):0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
