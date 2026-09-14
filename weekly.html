@@ -1062,8 +1062,9 @@ function render(){
         return items;
       };
       const renderList=(items,dir,title)=>{
-        if(!items.length) return `<div class="topblock-half"><div class="toptitle">${title}</div><div class="meta">нет позиций</div></div>`;
-        return `<div class="topblock-half"><div class="toptitle">${title}</div>
+        if(!items.length) return `<div class="topblock"><div class="topblock-main">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}: ${title}</div><div class="meta">нет позиций</div></div>`;
+        return `<div class="topblock">
+          <div class="topblock-main">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}: ${title}</div>
           <div class="topnote">Изменение к значению 1/3/7 дней назад, шт/день</div>
           <div class="tophead">
             <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
@@ -1080,11 +1081,8 @@ function render(){
             return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dirSpan}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
           }).join('')+`</div>`;
       };
-      return `<div class="topblock">
-        <div class="topblock-main">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
-        ${renderList(buildList('up'),'up','📦 Дефицит — увеличить продажи')}
-        ${renderList(buildList('down'),'down','⛔ Избыток — снизить продажи')}
-      </div>`;
+      return renderList(buildList('up'),'up','Увеличить продажи')
+           + renderList(buildList('down'),'down','Снизить продажи либо пополнить остаток');
     };
     html+=`<div class="topsrow">`+topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products')+`</div>`;
     if(MODE==='products'){
