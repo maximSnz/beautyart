@@ -660,17 +660,15 @@ function histDom(o,date){
   const up=r.dev_up!=null?+r.dev_up:0, down=r.dev_down!=null?+r.dev_down:0;
   return {up,down};
 }
-function kpiDeltaFromHistory(entityType, entityKey, dir){
+function kpiDeltaFromHistory(entityType, entityKey, dir, curLive){
   const recs=histRows().filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
-  const todayISO=localISO(BASE);
   const val=(r)=>{
     let v=(dir==='up')?r.dev_up:r.dev_down;
     if(v==null) v=(r.deviation!=null?Math.abs(Number(r.deviation)):null);
     return v!=null?Math.abs(Number(v)):null;
   };
-  const curRec=recs.find(r=>r.report_date===todayISO);
-  const cur=curRec?val(curRec):null;
+  const cur=curLive;
   const mk=(n)=>{
     if(cur==null) return null;
     const t=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-n));
@@ -1087,7 +1085,7 @@ function render(){
           </div>`+
           items.map(x=>{
             const dirSpan=dir==='up'?`<span class="topdir r">↑ увеличить продажи</span>`:`<span class="topdir g">↓ снизить продажи</span>`;
-            const kpi=kpiDeltaFromHistory(x.histType,x.histKey,dir);
+            const kpi=kpiDeltaFromHistory(x.histType,x.histKey,dir,x.mag);
             return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dirSpan}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
           }).join('')+`</div>`;
       };
