@@ -106,6 +106,10 @@
  .kpc i{display:block;font-style:normal;font-weight:400;font-size:.85em;opacity:.75;margin-top:1px}
  @keyframes flash{0%{background:rgba(227,61,120,.35)}100%{background:transparent}}
  .hlflash{animation:flash 2s ease}
+ .fdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+ .fdot-ok{background:#16a34a}
+ .fdot-stale{background:#d97706}
+ .fdot-none{background:#E33D78}
  details.matrix{border:3px solid rgba(125,54,115,.3);border-radius:14px;background:#fdf7fb;margin:0 0 18px}
  details.matrix>summary{cursor:pointer;padding:14px 18px;font-family:'Forum';font-weight:700;color:#1C0D2E;font-size:1.15em;list-style:none;display:flex;align-items:center;gap:12px}
  details.matrix>summary::before{content:"▸ "}
@@ -246,6 +250,7 @@ const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 let ROWS=[],COST={},STOCK={},STOCK_NOW={},STOCK_ALL={},WHCLUSTER={},SALES={},SUPPLIER={},OFFER_PID={},DATES=new Set(),BASE=null,SALESCOUNT=0;
 let FIRE=new Set();
+let STOCK_FRESH={},GLOBAL_FRESH=null;
 let importing=false, MODE='summary', INCLUDE_FIRE=false;
 let T_REPORT=11;
 let DEVIATION_HISTORY=[];
@@ -483,7 +488,7 @@ async function syncWeekFacts(weeks){
   }
 }
 async function syncMonthFacts(ym){ const [y,m]=ym.split('-').map(Number); await syncWeekFacts(isoWeeksOfMonth(y,m-1).map(localISO)); }
-function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
+function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c==','){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
   document.getElementById('progWrap').classList.remove('hide');
   const f=document.getElementById('progFill');
@@ -551,6 +556,13 @@ function toggleFire(id,ev){
   setFireWh(id, !FIRE.has(id));
   render();
 }
+function freshMark(offer){
+  const pid=OFFER_PID[offer]; const u=pid?STOCK_FRESH[pid]:null;
+  if(!u) return '<span class="fdot fdot-none" title="Нет данных об остатке в срезе Ozon"></span>';
+  if(GLOBAL_FRESH && new Date(u).getTime()!==new Date(GLOBAL_FRESH).getTime())
+    return `<span class="fdot fdot-stale" title="Сбой загрузки: остаток на ${new Date(u).toLocaleString('ru-RU')}"></span>`;
+  return '<span class="fdot fdot-ok" title="Остаток загружен актуально"></span>';
+}
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
   for(let a=1;a<=3;a++){
@@ -562,7 +574,7 @@ async function load(){
       const [rp,rc,rs,rl,rsh]=await Promise.all([
         fetchAll('/rest/v1/products?select=product_id,offer_id,name,stock,supplier,archived,updated_at'),
         fetchAll('/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc'),
-        fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present'),
+        fetchAll('/rest/v1/product_stocks?select=product_id,warehouse_name,cluster,present,updated_at'),
         fetchAll(`/rest/v1/product_sales?sale_date=gte.${winFrom}&select=sale_date,offer_id,warehouse_name,qty`),
         fetchAll(`/rest/v1/stock_history?report_date=gte.${winFrom}&select=report_date,offer_id,warehouse_name,stock&order=report_date.desc`)
       ]);
@@ -576,6 +588,12 @@ async function load(){
         const o=pidOffer[s.product_id]; if(!o)return;
         (STOCK_NOW[o]=STOCK_NOW[o]||{}); STOCK_NOW[o][s.warehouse_name]=(STOCK_NOW[o][s.warehouse_name]||0)+(s.present||0);
         if(!WHCLUSTER[s.warehouse_name])WHCLUSTER[s.warehouse_name]=s.cluster||'Прочее';
+      });
+      STOCK_FRESH={}; GLOBAL_FRESH=null;
+      rs.forEach(s=>{
+        const u=s.updated_at; if(!u)return;
+        if(!GLOBAL_FRESH||u>GLOBAL_FRESH)GLOBAL_FRESH=u;
+        if(!STOCK_FRESH[s.product_id]||u>STOCK_FRESH[s.product_id])STOCK_FRESH[s.product_id]=u;
       });
       SALES={}; DATES=new Set(); let max=null;
       rl.forEach(x=>{
@@ -600,7 +618,7 @@ async function load(){
       const tStock=ROWS.reduce((s,x)=>s+(x.stock||0),0);
       const tSum=ROWS.reduce((s,x)=>s+(x.stock||0)*(COST[x.product_id]||0),0);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
-      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день (фиксация): ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''}`;
+      document.getElementById('meta').textContent=`Позиций: ${ROWS.length} • ИТОГО FBO: ${fmt(tStock)} шт • ${fmt(tSum)} ₽ • отчётный день (фиксация): ${localISO(BASE)} • норма (${DOW_NAME[BASE.getDay()]}): ${T_REPORT} дн • записей продаж: ${SALESCOUNT} • обновлено: ${last?new Date(last).toLocaleString('ru-RU'):''} • срез: ${GLOBAL_FRESH?new Date(GLOBAL_FRESH).toLocaleString('ru-RU'):'—'}`;
       await loadHistory();
       render();
       return;
@@ -640,7 +658,7 @@ function histDom(o,date){
   const up=r.dev_up!=null?+r.dev_up:0, down=r.dev_down!=null?+r.dev_down:0;
   return {up,down};
 }
-function kpiPctFromHistory(entityType, entityKey, dir){
+function kpiDeltaFromHistory(entityType, entityKey, dir){
   const recs=histRows().filter(r=>r.entity_type===entityType&&r.entity_key===entityKey)
     .sort((a,b)=>a.report_date.localeCompare(b.report_date));
   const todayISO=localISO(BASE);
@@ -651,32 +669,23 @@ function kpiPctFromHistory(entityType, entityKey, dir){
   };
   const curRec=recs.find(r=>r.report_date===todayISO);
   const cur=curRec?val(curRec):null;
-  const prevDays=[...new Set(recs.filter(r=>r.report_date<todayISO).map(r=>r.report_date))].sort();
-  const dayVals=prevDays.map(d=>{const r=recs.find(x=>x.report_date===d);return r?val(r):null;}).filter(v=>v!=null);
   const mk=(n)=>{
     if(cur==null) return null;
-    if(dayVals.length<n) return {pct:null,cur:cur,base:null,abs:null,small:false};
-    const last=dayVals.slice(-n);
-    const base=last.reduce((s,v)=>s+v,0)/n;
-    const abs=cur-base;
-    if(base<MATERIAL) return {pct:null,cur:cur,base:base,abs:abs,small:true};
-    let pct=(cur-base)/base*100;
-    pct=Math.max(-999,Math.min(999,pct));
-    return {pct:pct,cur:cur,base:base,abs:abs,small:false};
+    const t=localISO(new Date(BASE.getFullYear(),BASE.getMonth(),BASE.getDate()-n));
+    const prevRec=recs.find(r=>r.report_date===t);
+    const past=prevRec?val(prevRec):null;
+    if(past==null) return {abs:null,cur:cur,past:null};
+    return {abs:cur-past,cur:cur,past:past};
   };
   return [mk(1),mk(3),mk(7)];
 }
 function kpiCells(k){
   return k.map(o=>{
     if(o==null) return `<span class="kpc n">—<i>—</i></span>`;
-    const baseStr=(o.base!=null)?f1(o.base):'—';
-    if(o.pct==null && !o.small) return `<span class="kpc n">—<i>${baseStr}</i></span>`;
-    if(o.small){
-      const cls=(o.abs<0)?'g':'r';
-      return `<span class="kpc ${cls}" title="база мала — показано абс. изменение, шт/день">${o.abs>0?'+':''}${f1(o.abs)}<i>${baseStr}</i></span>`;
-    }
-    const cls=(o.pct<0)?'g':'r';
-    return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / база ${f1(o.base)} шт/день">${o.pct>0?'+':''}${Math.round(o.pct)}%<i>${f1(o.base)}</i></span>`;
+    if(o.past==null) return `<span class="kpc n">—<i>${f1(o.cur)}</i></span>`;
+    if(o.abs===0) return `<span class="kpc n">0<i>${f1(o.cur)}</i></span>`;
+    const cls=(o.abs<0)?'g':'r';
+    return `<span class="kpc ${cls}" title="сегодня ${f1(o.cur)} шт/день / было ${f1(o.past)} шт/день">${o.abs>0?'+':''}${f1(o.abs)}<i>${f1(o.past)}</i></span>`;
   }).join('');
 }
 let COVTIPS={};
@@ -1038,7 +1047,7 @@ function render(){
       items.sort((a,b)=>b.mag-a.mag).slice(0,isProd?10:4);
       if(!items.length)return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]}</div><div class="meta">нет позиций</div></div>`;
       return `<div class="topblock"><div class="toptitle">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}</div>
-        <div class="topnote">База ≥ ${MATERIAL} шт/день → %; база &lt; ${MATERIAL} → абсолютное изменение (шт/день)</div>
+        <div class="topnote">Изменение к значению 1/3/7 дней назад, шт/день</div>
         <div class="tophead">
           <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
           <span style="grid-column:2;grid-row:1/3"></span>
@@ -1050,7 +1059,7 @@ function render(){
         </div>`+
         items.map(x=>{
           const dir=x.dir==='up'?`<span class="topdir r">↑ увеличить продажи</span>`:`<span class="topdir g">↓ снизить продажи</span>`;
-          const kpi=kpiPctFromHistory(x.histType,x.histKey,x.dir);
+          const kpi=kpiDeltaFromHistory(x.histType,x.histKey,x.dir);
           return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dir}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
         }).join('')+`</div>`;
     };
@@ -1059,7 +1068,7 @@ function render(){
       const prodNode=(p,dir)=>{
         const cl=p.clArr.filter(g=>g.dir===dir);
         const ch=cl.reduce((s,g)=>s+g.change,0);
-        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}:${dir}"><summary><span class="clname" title="${esc(p.name)}">${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
+        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}:${dir}"><summary><span class="clname" title="${esc(p.name)}">${freshMark(p.o)}${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         cl.forEach(g=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
@@ -1090,7 +1099,7 @@ function render(){
         let out=`<details class="cluster" data-jump-id="cl:${mkk}:${dir}:${esc(cname)}"><summary><span class="clname">${esc(cname)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${list.length} поз.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         list.sort((a,b)=>b.change-a.change).forEach(x=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-            <td><span class="caret">▾</span><span title="${esc(x.name)}">${esc(x.o)}</span>${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
+            <td><span class="caret">▾</span>${freshMark(x.o)}<span title="${esc(x.name)}">${esc(x.o)}</span>${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
             <td class="num">${fmt(x.cs)}</td><td class="num">${fmt(x.csum)}</td>${daysCell(x.cs,x.c1)}${cmpCell(x.c3,x.c4)}${cmpCell(x.c2,x.c3)}${cmpCell(x.c1,x.c2)}</tr>`+whRows(x.arr)+`</tbody>`;
         });
         out+=`</table></div></details>`;
@@ -1139,7 +1148,7 @@ function render(){
     const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
     const whBlock=(w,inFire)=>{
       const btn=inFire?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`:`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
+      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${freshMark(o.o)}${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
       return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.sum)} ₽ • ${fmt(w.total)} шт</span></summary>
         <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
     };
