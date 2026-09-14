@@ -63,10 +63,8 @@
  .pitem .pdate{color:#94a3b8;margin-right:8px}
  .pchild{margin:6px 0 6px 18px;padding:6px 10px;border-left:3px solid rgba(84,66,115,.25);background:#f8f9fb;border-radius:6px;font-size:.92em}
  .pchild .pdate{color:#94a3b8;margin-right:8px}
- .addbtn{padding:2px 8px;font-size:.8em;margin-top:4px}
  .pchildform{margin:6px 0 4px 18px;padding:6px 8px;border:1px dashed rgba(84,66,115,.3);border-radius:6px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
  .pchildform input[type=text]{flex:1;min-width:160px}
- .pchildform input[type=number]{width:110px}
  .pmetrics i{font-style:normal;background:rgba(120,166,199,.2);border-radius:5px;padding:1px 6px;margin-right:4px;color:#33506b;font-size:.85em}
  .paction{color:#1C0D2E}
  .psub{font-size:.85em;color:#544273;margin-top:4px}
@@ -399,7 +397,7 @@ async function fixHypotheses(){
   for(const pid in PROTO){
     const items=PROTO[pid];
     for(const it of items){
-      if(!it.deadline||it.deadline>today||it.fact_dev!=null)continue;
+      if(it.parent_id||!it.deadline||it.deadline>today||it.fact_dev!=null)continue;
       const p=BYID[pid];
       if(!p)continue;
       const pv=projVal(p,'mar');
@@ -746,8 +744,8 @@ async function addProto(pid){
   const pv=projVal(p,'mar');
   const B=pv.dev||0;
   if(Math.abs(target-B)<0.01){alert('Нельзя ставить цель, равную текущему отклонению');return;}
-  const hasActive=(PROTO[pid]||[]).some(it=>it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
-  if(hasActive){const active=PROTO[pid].find(it=>it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);alert(`По товару уже есть активная гипотеза до ${ddmm(active.deadline)}`);return;}
+  const hasActive=(PROTO[pid]||[]).some(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
+  if(hasActive){const active=PROTO[pid].find(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);alert(`По товару уже есть активная гипотеза до ${ddmm(active.deadline)}`);return;}
   const ctx={
     sales:projVal(p,'sales').dev,
     revn:projVal(p,'revn').dev,
@@ -801,22 +799,8 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
     return `<div class="psub">${label}: ${parts.join(', ')}</div>`;
   };
   const kids=(PROTO[it.product_id]||[]).filter(c=>c.parent_id===it.id);
-  const kidsHtml=kids.map(k=>{
-    const kv=verdict(k);
-    const kB=Number(k.baseline_dev||0), kT=Number(k.target_dev||0), kF=k.fact_dev!=null?Number(k.fact_dev):null;
-    const kprog=kF!=null&&kT!==kB?Math.round((kF-kB)/(kT-kB)*100):null;
-    const kcls=kv==null?'n':(kv==='success'?'g':(kv==='fail'?'r':'n'));
-    const kstat=kv==null?(k.deadline&&parseW(k.deadline)<today?'ожидает загрузки CSV':'в работе'):(kv==='success'?'успешна':(kv==='partial'?'частичный успех':'неудачна'));
-    return `<div class="pchild"><span class="pdate">${ddmm(localISO(new Date(k.created_at)))}</span><span class="paction">${esc(k.action)}</span>
-      <div class="psub">Цель: от ${fmt(kB)} ₽ к ${fmt(kT)} ₽${kF!=null?` • Факт: ${fmt(kF)} ₽${kprog!=null?` • прогресс ${kprog}%`:''}`:''}</div>
-      <div class="psub"><span class="badge ${kcls}">${kstat}</span></div></div>`;
-  }).join('');
-  const addBtn=v==null?`<button class="addbtn" onclick="toggleChildForm(${it.product_id},${it.id})">Добавить+</button>
-    <div class="pchildform hide" id="pcf_${it.id}">
-      <input type="text" id="pca_${it.id}" placeholder="Текст дополнения">
-      <input type="number" id="pct_${it.id}" placeholder="Цель, ₽" step="0.01">
-      <button onclick="addProtoChild(${it.product_id},${it.id})">Сохранить</button>
-    </div>`:'';
+  const kidsHtml=kids.map(k=>`<div class="pchild"><span class="pdate">${new Date(k.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span><span class="paction">${esc(k.action)}</span></div>`).join('');
+  const addForm=v==null?`<div class="pchildform"><input type="text" id="pca_${it.id}" placeholder="Текст дополнения"><button onclick="addProtoChild(${it.product_id},${it.id})">Сохранить</button></div>`:'';
   return `<div class="pitem" style="border-left-color:${cls==='g'?'#16a34a':cls==='r'?'#E33D78':cls==='n'?'#94a3b8':'#d97706'}">
     <div><span class="pdate">${new Date(it.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
     <span class="paction">${esc(it.action)}</span></div>
@@ -826,28 +810,15 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
     ${F!=null?`<div class="psub">Отклонение маржи на фиксацию (${it.fact_date?ddmm(it.fact_date):''}) составляет ${fmt(F)} ₽${progress!=null?` • прогресс ${progress}%`:''}</div>`:''}
     ${ctxLine(fact,'Созависимые метрики на фиксацию')}
     <div class="psub">${status}</div>
-    ${addBtn}
     ${kidsHtml}
+    ${addForm}
   </div>`;
-}
- function toggleChildForm(pid,id){
-  const el=document.getElementById('pcf_'+id);
-  if(el)el.classList.toggle('hide');
 }
 async function addProtoChild(pid,parentId){
   const aEl=document.getElementById('pca_'+parentId);
-  const tEl=document.getElementById('pct_'+parentId);
   const action=(aEl?aEl.value:'').trim();
-  const tRaw=tEl?tEl.value.trim():'';
-  if(!action||tRaw===''){alert('Заполните текст дополнения и цель');return;}
-  const target=Number(tRaw);
-  if(isNaN(target)){alert('Цель должна быть числом');return;}
-  const parent=(PROTO[pid]||[]).find(x=>x.id===parentId);
-  if(!parent)return;
-  const p=BYID[pid]; if(!p)return;
-  const B=projVal(p,'mar').dev||0;
-  if(Math.abs(target-B)<0.01){alert('Нельзя ставить цель, равную текущему отклонению');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline:parent.deadline,target_dev:target,baseline_dev:B,parent_id:parentId}])});
+  if(!action){alert('Введите текст дополнения');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,parent_id:parentId}])});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status+': '+(await r.text()));return;}
   await loadProto(); render();
 }
@@ -1118,7 +1089,7 @@ function render(){
     const wd=(PPM[pid]&&PPM[pid].work_date)||'';
     const pl=PLAN[pid]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const zp=(pl.plan_qty||0)===0;
-    const hasActive=(PROTO[pid]||[]).some(it=>it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
+    const hasActive=(PROTO[pid]||[]).some(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
     const dateLocked=hasActive;
     let h=`<tr${zp?' class="zeroplan"':''}>
       <td class="num okey" title="${esc(p.name)} — открыть протокол" onclick="toggleProto(${pid})">${esc(p.offer_id)}</td>`;
