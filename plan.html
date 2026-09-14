@@ -1088,8 +1088,12 @@ function render(){
     const hasActive=(PROTO[pid]||[]).some(it=>it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
     const dateLocked=hasActive;
     let h=`<tr${zp?' class="zeroplan"':''}>
-      <td class="num okey" title="${esc(p.name)} — открыть протокол" onclick="toggleProto(${pid})">${esc(p.offer_id)}</td>
-      <td>${dateLocked?`<span class="datelocked" title="дата зафиксирована гипотезой">${wd?ddmm(wd):'—'}</span>`:`<span class="dateshort" title="Дата работы" onclick="openDate(${pid})">${wd?ddmm(wd):'—'}</span><input type="date" class="datehidden" id="dt_${pid}" value="${wd}" onchange="setWorkDate(${pid},this.value)">`}</td>`;
+      <td class="num okey" title="${esc(p.name)} — открыть протокол" onclick="toggleProto(${pid})">${esc(p.offer_id)}</td>`;
+    if(dateLocked){
+      h+=`<td><span class="datelocked" title="дата зафиксирована гипотезой">${wd?ddmm(wd):'—'}</span></td>`;
+    }else{
+      h+=`<td><span class="dateshort" title="Дата работы" onclick="openDate(${pid})">${wd?ddmm(wd):'—'}</span><input type="date" class="datehidden" id="dt_${pid}" value="${wd}" onchange="setWorkDate(${pid},this.value)"></td>`;
+    }
     METRICS.forEach(mt=>{
       const planV=monthlyPlan(p,mt.key);
       let ffV=null, dev=null;
