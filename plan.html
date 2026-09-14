@@ -706,7 +706,7 @@ function recForV2(pid,key){
   const cur=series[bi].forecast;
   const target=series[ni].forecast;
   const d=target-cur;
-  const pct=cur!==0?(d/Math.abs(curV)*100):0;
+  const pct=cur!==0?(d/Math.abs(cur)*100):0;
   return {cw:WEEKISO[bi],nw:WEEKISO[ni],curV:cur,nxtV:target,d,pct};
 }
 function recText(r,unit){
