@@ -986,7 +986,7 @@ function render(){
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
-  document.getElementById('summary').innerHTML=mxCard('1','Алекс',m1)+mxCard('2','Александр',m2);
+  document.getElementById('summary').innerHTML=mxCard('1','Илья',m1)+mxCard('2','Ольга',m2);
   drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},matrixStats(m1).buckets,matrixStats(m1).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},matrixStats(m1).buckets,m1.length,b=>b.cnt,v=>fmt(v)+' поз.','позиции',b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},matrixStats(m2).buckets,matrixStats(m2).tRub,b=>b.rev,v=>fmtM(v)+' ₽','выручка плана',b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
@@ -1054,7 +1054,7 @@ function render(){
     return h;
   };
   let html='';
-  const groups=[['m1','Алекс',m1],['m2','Александр',m2]];
+  const groups=[['m1','Илья',m1],['m2','Ольга',m2]];
   groups.forEach(([gid,gname,list])=>{
     html+=`<tr class="mgroup"><td colspan="${totalCols}"><button onclick="toggleGM('${gid}')">${GM[gid]?'▾':'▸'}</button>${gname} • ${list.length} поз.</td></tr>`;
     if(!GM[gid])return;
