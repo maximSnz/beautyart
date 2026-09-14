@@ -226,15 +226,17 @@ let GM={m1:false,m2:false};
 function setPieMode(m){PIEMODE=m;render();}
 function pieStats(list,mode){
   const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
-  let total=0;
+  let total=0,cnt=0;
   list.forEach(p=>{
-    let rev,pct;
+    let rev=null,pct=null;
     if(mode==='plan'){const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};rev=pl.plan_qty*pl.price;pct=pl.margin_pct;}
-    else{const rv=projVal(p,'revn').ffV,mr=projVal(p,'mar').ffV;rev=rv||0;pct=(rv&&mr!=null)?mr/rv*100:0;}
-    total+=rev;
+    else{const rv=projVal(p,'revn').ffV,mr=projVal(p,'mar').ffV;rev=(rv!=null&&rv>0)?rv:null;pct=(rev!=null&&mr!=null)?mr/rev*100:null;}
+    if(rev==null||rev<=0)return;
+    if(pct==null)pct=0;
+    total+=rev;cnt+=1;
     const b=pct<=5?buckets[0]:(pct<=10?buckets[1]:buckets[2]);b.rev+=rev;b.cnt+=1;
   });
-  return {buckets,total};
+  return {buckets,total,cnt};
 }
 let openProto=new Set();
 const DWN=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
@@ -1090,14 +1092,12 @@ function render(){
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
   const p2=PIEMODE==='plan'?pieStats(m2p,'plan'):pieStats(m2,'forecast');
-  const n1=PIEMODE==='plan'?m1p.length:m1.length;
-  const n2=PIEMODE==='plan'?m2p.length:m2.length;
   const capR=PIEMODE==='plan'?'выручка плана':'выручка прогноза';
-  const capP=PIEMODE==='plan'?'позиции плана':'все позиции';
+  const capP=PIEMODE==='plan'?'позиции с планом':'позиции с прогнозом';
   drawPie({svg:'pieRev1',legend:'legendRev1',val:'pcValRev1',cap:'pcCapRev1'},p1.buckets,p1.total,b=>b.rev,v=>fmtM(v)+' ₽',capR,b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
-  drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},p1.buckets,n1,b=>b.cnt,v=>fmt(v)+' поз.',capP,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},p1.buckets,p1.cnt,b=>b.cnt,v=>fmt(v)+' поз.',capP,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},p2.buckets,p2.total,b=>b.rev,v=>fmtM(v)+' ₽',capR,b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
-  drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},p2.buckets,n2,b=>b.cnt,v=>fmt(v)+' поз.',capP,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},p2.buckets,p2.cnt,b=>b.cnt,v=>fmt(v)+' поз.',capP,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=2;
   METRICS.forEach(mt=>{ const single=(mt.key==='price'||mt.key==='pct'||mt.plan===false); totalCols+=3+(EXP[mt.key]?(single?WEEKS.length:WEEKS.length*2):0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
