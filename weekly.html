@@ -251,7 +251,7 @@ let T_REPORT=11;
 let DEVIATION_HISTORY=[];
 const SMOOTH_DAYS=7;
 const MATERIAL=10;
-const MATRIX_NAME={m1:'Алекс',m2:'Александр'};
+const MATRIX_NAME={m1:'Илья',m2:'Ольга'};
 const C_M1='#E33D78', C_M2='#78A6C7';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1009,10 +1009,10 @@ function render(){
       </div>
       <div class="chart-note">
         <div class="legend-row">
-          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Алекс — увеличить продажи</span>
-          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M1} 0 5px,transparent 5px 9px)"></span>Алекс — снизить продажи</span>
-          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Александр — увеличить продажи</span>
-          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Александр — снизить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M1}"></span>Илья — увеличить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M1} 0 5px,transparent 5px 9px)"></span>Илья — снизить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:${C_M2}"></span>Ольга — увеличить продажи</span>
+          <span class="legend-item"><span class="sw" style="background:repeating-linear-gradient(90deg,${C_M2} 0 5px,transparent 5px 9px)"></span>Ольга — снизить продажи</span>
         </div>
         <div>Цель — обе линии около нуля. Диаграммы справа — распределение товаров по покрытию остатком; ниже — число позиций и изменение за 1/3/7 дн.</div>
       </div></div>`;
