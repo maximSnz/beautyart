@@ -87,7 +87,8 @@
  .tiphead{color:#94a3b8;margin-bottom:4px}
  .tip::-webkit-scrollbar{width:4px}
  .tip::-webkit-scrollbar-thumb{background:#78A6C7;border-radius:2px}
- .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+ .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px;align-items:stretch}
+ .topcol{flex:1;min-width:320px;display:flex;flex-direction:column;gap:12px}
  .topblock::-webkit-scrollbar{width:4px}
  .topblock::-webkit-scrollbar-track{background:rgba(84,66,115,.1);border-radius:2px}
  .topblock::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#78A6C7,#E33D78);border-radius:2px}
@@ -98,7 +99,7 @@
  .tophead span:nth-child(n+4){text-align:center}
  .topitem{width:100%;text-align:left;background:#fff;border:1px solid rgba(84,66,115,.15);border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:pointer;font-family:'Forum';user-select:text;-webkit-user-select:text}
  .topitem:hover{border-color:#E33D78}
- .topblock{flex:1;min-width:320px;max-height:345px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
+ .topblock{width:100%;max-height:345px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
 .topblock-main{font-family:'Forum';font-weight:700;color:#1C0D2E;font-size:1.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid rgba(227,61,120,.15)}
 .topblock-half{margin-bottom:14px;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1)}
 .topblock-half:last-child{margin-bottom:0}
@@ -1061,10 +1062,9 @@ function render(){
         items.sort((a,b)=>b.mag-a.mag);
         return items;
       };
-      const renderList=(items,dir,title)=>{
+      const renderBlock=(items,dir,title)=>{
         if(!items.length) return `<div class="topblock"><div class="topblock-main">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}: ${title}</div><div class="meta">нет позиций</div></div>`;
-        return `<div class="topblock">
-          <div class="topblock-main">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}: ${title}</div>
+        return `<div class="topblock"><div class="topblock-main">🎯 ${MATRIX_NAME[mkk]} — топ ${isProd?'товаров':'кластеров'}: ${title}</div>
           <div class="topnote">Изменение к значению 1/3/7 дней назад, шт/день</div>
           <div class="tophead">
             <span style="grid-column:1;grid-row:1/3">${isProd?'Артикул':'Кластер'}</span>
@@ -1081,8 +1081,10 @@ function render(){
             return `<div class="topitem" role="button" onclick="jump('${x.jumpId}')"><span class="topname" title="${esc(x.ttl)}">${esc(x.label)}</span>${dirSpan}<span class="topchg">${f1(x.mag)}</span>${kpiCells(kpi)}</div>`;
           }).join('')+`</div>`;
       };
-      return renderList(buildList('up'),'up','Увеличить продажи')
-           + renderList(buildList('down'),'down','Снизить продажи либо пополнить остаток');
+      return `<div class="topcol">`
+        +renderBlock(buildList('up'),'up','Увеличить продажи')
+        +renderBlock(buildList('down'),'down','Снизить продажи либо пополнить остаток')
+        +`</div>`;
     };
     html+=`<div class="topsrow">`+topBlock('m1',MODE==='products')+topBlock('m2',MODE==='products')+`</div>`;
     if(MODE==='products'){
