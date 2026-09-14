@@ -87,28 +87,23 @@
  .tiphead{color:#94a3b8;margin-bottom:4px}
  .tip::-webkit-scrollbar{width:4px}
  .tip::-webkit-scrollbar-thumb{background:#78A6C7;border-radius:2px}
- .topsrow{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px;align-items:stretch}
- .topcol{flex:1;min-width:320px;display:flex;flex-direction:column;gap:12px}
+ .topsrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px;align-items:start}
+ .topcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+ .topblock{min-width:0;max-height:410px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
  .topblock::-webkit-scrollbar{width:4px}
  .topblock::-webkit-scrollbar-track{background:rgba(84,66,115,.1);border-radius:2px}
  .topblock::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#78A6C7,#E33D78);border-radius:2px}
- .toptitle{font-family:'Forum';font-weight:700;color:#E33D78;font-size:1em;margin-bottom:4px}
+ .topblock-main{font-family:'Forum';font-weight:700;color:#1C0D2E;font-size:1.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid rgba(227,61,120,.15)}
  .topnote{font-size:.72em;color:#94a3b8;margin-bottom:6px}
- .tophead,.topitem{display:grid;grid-template-columns:minmax(140px,1fr) auto auto 56px 56px 56px;align-items:center;gap:6px}
+ .tophead,.topitem{display:grid;grid-template-columns:minmax(110px,1fr) auto auto 52px 52px 52px;align-items:center;gap:4px;min-width:0}
  .tophead{font-size:.72em;color:#94a3b8;margin-bottom:4px}
  .tophead span:nth-child(n+4){text-align:center}
  .topitem{width:100%;text-align:left;background:#fff;border:1px solid rgba(84,66,115,.15);border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:pointer;font-family:'Forum';user-select:text;-webkit-user-select:text}
  .topitem:hover{border-color:#E33D78}
- .topblock{width:100%;max-height:345px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1);border:2px solid rgba(227,61,120,.3);border-radius:12px;background:#fff5f8;padding:12px 14px}
-.topblock-main{font-family:'Forum';font-weight:700;color:#1C0D2E;font-size:1.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid rgba(227,61,120,.15)}
-.topblock-half{margin-bottom:14px;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#E33D78 rgba(84,66,115,.1)}
-.topblock-half:last-child{margin-bottom:0}
-.topblock-half::-webkit-scrollbar{width:4px}
-.topblock-half::-webkit-scrollbar-track{background:rgba(84,66,115,.1);border-radius:2px}
-.topblock-half::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#78A6C7,#E33D78);border-radius:2px}
- .topname{color:#1C0D2E;font-weight:700;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text;-webkit-user-select:text}
- .topdir{font-size:.78em;font-weight:700;white-space:nowrap}
- .topchg{color:#544273;font-size:.8em;white-space:nowrap}
+ .topname{color:#1C0D2E;font-weight:700;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text;-webkit-user-select:text;min-width:0}
+ .topdir{font-size:.74em;font-weight:700;white-space:nowrap}
+ .topchg{color:#544273;font-size:.78em;white-space:nowrap}
+ @media (max-width:900px){ .topsrow{grid-template-columns:1fr} }
  .kpc{font-size:.8em;font-weight:700;text-align:center;border-radius:5px;padding:2px 0;background:rgba(148,163,184,.12);line-height:1.25}
  .kpc i{display:block;font-style:normal;font-weight:400;font-size:.85em;opacity:.75;margin-top:1px}
  @keyframes flash{0%{background:rgba(227,61,120,.35)}100%{background:transparent}}
