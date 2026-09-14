@@ -444,6 +444,7 @@ async function importCharges(file){
     await syncPnl();
     await loadWeeks();
     await fixHypotheses();
+    await loadProto();  // обновить PROTO после фиксации
     render();
     setP(100,`✔ Готово! Импортировано начислений: ${out.length} (пропущено: ${skipped}). Маржа пересчитана.`);
     setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000);
@@ -730,9 +731,10 @@ function verdict(it){
 }
 async function addProto(pid){
   const deadline=document.getElementById(`pd_${pid}`).value;
-  const target=Number(document.getElementById(`pt_${pid}`).value);
+  const tRaw=document.getElementById(`pt_${pid}`).value.trim();
+  const target=Number(tRaw);
   const action=(document.getElementById(`pa_${pid}`).value||'').trim();
-  if(!deadline||isNaN(target)||!action){alert('Заполните все поля');return;}
+  if(!deadline||tRaw===''||isNaN(target)||!action){alert('Заполните все поля');return;}
   const p=BYID[pid];
   if(!p)return;
   const pv=projVal(p,'mar');
@@ -747,7 +749,7 @@ async function addProto(pid){
     pct:avgPctFact(p)!=null?avgPctFact(p)-monthlyPlan(p,'pct'):null
   };
   const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,target_dev:target,baseline_dev:B,baseline_ctx:JSON.stringify(ctx)}])});
-  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
+  if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status+': '+(await r.text()));return;}
   await upsertPPM(pid,{work_date:deadline});
   await loadProto(); render();
 }
