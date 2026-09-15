@@ -76,6 +76,8 @@
  .pform{border:1px dashed rgba(84,66,115,.3);border-radius:8px;padding:8px 10px;margin-top:6px;background:#fff}
  .pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
  .pform input[type=text]{flex:1;min-width:200px}
+ .pform select,.pform input[type=date],.pform input[type=number],.pform input[type=text]{height:36px;box-sizing:border-box}
+ .datestub{display:inline-flex;align-items:center;height:36px;box-sizing:border-box;padding:0 10px;border:2px solid rgba(84,66,115,.2);border-radius:8px;background:#f8f9fb;color:#94a3b8;font-size:.9em;white-space:nowrap}
  .pnote{border:1px solid rgba(84,66,115,.1);border-radius:6px;padding:6px 10px;margin-bottom:5px;background:#fefefe}
  .pnote .pdate{color:#94a3b8;font-size:.8em;display:block;margin-bottom:3px}
  .pnote .ntxt{color:#1C0D2E;font-size:.88em;white-space:pre-wrap}
@@ -458,12 +460,23 @@ async function fixHypotheses(){
   const today=localISO(new Date());
   for(const pid in PROTO){
     for(const it of PROTO[pid]){
-      if(it.parent_id||!it.deadline||it.deadline>today)continue;
+      if(it.parent_id||!it.deadline)continue;
       if(it.fact_ctx!=null||it.fact_dev!=null)continue;
       const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null;
       if(!base||!('orders' in base))continue;
-      const snap=await snapshotMetrics(pid,localISO(new Date(it.created_at)),it.deadline);
-      await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify(snap),fact_dev:1,fact_date:today})});
+      const metric=it.metric||'orders';
+      const created=localISO(new Date(it.created_at));
+      if(metric==='orders'){
+        if(today<=it.deadline)continue;
+        const f=await ordersAvgWeekdays(pid,addDaysISO(created,1),it.deadline);
+        if(f==null)continue;
+        await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:f,orders_from:addDaysISO(created,1),orders_to:it.deadline,pct:null,pct_date:null,fix_date:today}),fact_dev:1,fact_date:today})});
+      }else{
+        if(today<it.deadline)continue;
+        const f=await marginWithFallback(pid,addDaysISO(it.deadline,-2),addDaysISO(base.pct_date||created,1));
+        if(f==null)continue;
+        await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:null,orders_from:null,orders_to:null,pct:f.pct,pct_date:f.date,fix_date:today}),fact_dev:1,fact_date:today})});
+      }
     }
   }
 }
@@ -795,77 +808,97 @@ function verdict(it){
   }
   if(it.fact_ctx==null)return null;
   const fact=JSON.parse(it.fact_ctx);
-  const mets=(it.metric==='orders')?['orders']:(it.metric==='margin')?['pct']:['orders','pct'];
-  const res=mets.map(m=>{
-    const B=base[m],F=fact[m],T=(m==='orders')?Number(it.target_orders):Number(it.target_pct);
-    if(B==null||F==null||T==null||isNaN(T))return 'skip';
-    if(Math.abs(T-B)<0.01)return F>=B?'success':'fail';
-    const pr=(F-B)/(T-B),tol=Math.abs(T-B)*0.1;
-    if(pr>=1||Math.abs(F-T)<=tol)return 'success';
-    if(pr>0)return 'partial';
-    return 'fail';
-  }).filter(r=>r!=='skip');
-  if(!res.length)return null;
-  if(res.every(r=>r==='success'))return 'success';
-  if(res.some(r=>r==='success'||r==='partial'))return 'partial';
+  const m=it.metric||'orders';
+  const B=(m==='orders')?base.orders:base.pct;
+  const F=(m==='orders')?fact.orders:fact.pct;
+  const T=(m==='orders')?Number(it.target_orders):Number(it.target_pct);
+  if(B==null||F==null||T==null||isNaN(T))return null;
+  if(Math.abs(T-B)<0.01)return F>=B?'success':'fail';
+  const pr=(F-B)/(T-B),tol=Math.abs(T-B)*0.1;
+  if(pr>=1||Math.abs(F-T)<=tol)return 'success';
+  if(pr>0)return 'partial';
   return 'fail';
 }
-async function snapshotMetrics(pid,fromISO,toISO){
-  const offer=(BYID[pid]||{}).offer_id;
-  const days=Math.max(1,Math.round((parseW(toISO)-parseW(fromISO))/86400000)+1);
-  let q=0,off=0;
-  while(true){
-    const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${fromISO}&sale_date=lte.${toISO}&select=qty&limit=1000&offset=${off}`,{headers:HD});
-    if(!r.ok)break;
-    const j=await r.json(); j.forEach(x=>{q+=Number(x.qty||0);}); if(j.length<1000)break; off+=1000;
-  }
-  let pnl=0,gmv=0,sales=0; off=0;
-  while(true){
-    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&event_date=gte.${fromISO}&event_date=lte.${toISO}&select=charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});
-    if(!r.ok)break;
-    const j=await r.json();
-    j.forEach(c=>{
-      const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);
-      pnl+=amt;
-      if(c.charge_type==='Выручка'){gmv+=price*qty;sales+=qty;}
-      else if(c.charge_type==='Возврат выручки'){gmv+=price*qty;sales-=qty;}
-    });
-    if(j.length<1000)break; off+=1000;
-  }
-  const cost=COST[pid]||0;
-  const pct=gmv>0?Math.round(((pnl-cost*sales)/gmv*100)*100)/100:null;
-  return {orders:Math.round(q/days*100)/100,pct};
+function addDaysISO(iso,n){const d=parseW(iso);d.setDate(d.getDate()+n);return localISO(d);}
+function isWeekend(iso){const w=parseW(iso).getDay();return w===0||w===6;}
+function lastWeekdayBefore(iso){let d=addDaysISO(iso,-1);while(isWeekend(d))d=addDaysISO(d,-1);return d;}
+function weekdayOptions(startISO){const out=[];for(let i=1;i<=4;i++){const d=addDaysISO(startISO,i);if(!isWeekend(d))out.push(d);}return out;}
+async function fetchSalesMap(pid,from,to){
+  const offer=(BYID[pid]||{}).offer_id;const map=new Map();let off=0;
+  while(true){const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${from}&sale_date=lte.${to}&select=sale_date,qty&limit=1000&offset=${off}`,{headers:HD});if(!r.ok)break;const j=await r.json();j.forEach(x=>map.set(x.sale_date,(map.get(x.sale_date)||0)+Number(x.qty||0)));if(j.length<1000)break;off+=1000;}
+  return map;
+}
+async function fetchChargesMap(pid,from,to){
+  const offer=(BYID[pid]||{}).offer_id;const map=new Map();let off=0;
+  while(true){const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&event_date=gte.${from}&event_date=lte.${to}&select=event_date,charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});if(!r.ok)break;const j=await r.json();j.forEach(c=>{const d=c.event_date;if(!d)return;let g=map.get(d);if(!g){g={pnl:0,gmv:0,sales:0};map.set(d,g);}const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);g.pnl+=amt;if(c.charge_type==='Выручка'){g.gmv+=price*qty;g.sales+=qty;}else if(c.charge_type==='Возврат выручки'){g.gmv+=price*qty;g.sales-=qty;}});if(j.length<1000)break;off+=1000;}
+  return map;
+}
+function marginOfDay(map,pid,d){const g=map.get(d);if(!g||g.gmv<=0)return null;const cost=COST[pid]||0;return Math.round(((g.pnl-cost*g.sales)/g.gmv*100)*100)/100;}
+async function ordersForDay(pid,iso){const m=await fetchSalesMap(pid,iso,iso);return m.get(iso)||0;}
+async function ordersAvgWeekdays(pid,from,to){
+  const m=await fetchSalesMap(pid,from,to);
+  let sum=0,cnt=0,d=from;
+  while(d<=to){if(!isWeekend(d)){sum+=(m.get(d)||0);cnt++;}d=addDaysISO(d,1);}
+  if(!cnt)return null;
+  return Math.round(sum/cnt*100)/100;
+}
+async function marginWithFallback(pid,fromISO,minISO){
+  const map=await fetchChargesMap(pid,minISO,fromISO);
+  let d=fromISO,steps=0;
+  while(d>=minISO&&steps<30){const v=marginOfDay(map,pid,d);if(v!=null)return {pct:v,date:d};d=addDaysISO(d,-1);steps++;}
+  return null;
+}
+async function loadSmartBase(pid){
+  const el=document.getElementById('smartbase_'+pid);
+  if(!el)return;
+  const start=localISO(new Date());
+  const bd=lastWeekdayBefore(start);
+  const ob=await ordersForDay(pid,bd);
+  const mb=await marginWithFallback(pid,addDaysISO(start,-2),addDaysISO(start,-30));
+  el.textContent=`База: заказы ${f1(ob)} шт/день (${ddmm(bd)}) • маржин. ${mb==null?'—':f1(mb.pct)+'%'} (${mb?ddmm(mb.date):'—'})`;
 }
 function smartMetricChanged(pid){
   const m=document.getElementById('pm_'+pid).value;
-  const o=document.getElementById('po_'+pid), p=document.getElementById('pp_'+pid);
-  if(o)o.style.display=(m==='margin')?'none':'';
-  if(p)p.style.display=(m==='orders')?'none':'';
+  const t=document.getElementById('pt_'+pid);
+  const dw=document.getElementById('pdate_'+pid);
+  const start=localISO(new Date());
+  if(m==='orders'){
+    t.placeholder='Цель: заказы, шт/день';
+    dw.innerHTML=`<select id="pd_${pid}">${weekdayOptions(start).map(o=>`<option value="${o}">${ddmm(o)}</option>`).join('')}</select>`;
+  }else{
+    t.placeholder='Цель: маржин., %';
+    dw.innerHTML=`<span class="datestub">${ddmm(addDaysISO(start,3))} (авто)</span>`;
+  }
 }
 async function addProto(pid){
-  const deadline=document.getElementById(`pd_${pid}`).value;
   const metric=document.getElementById(`pm_${pid}`).value;
-  const tO=document.getElementById(`po_${pid}`).value.trim();
-  const tP=document.getElementById(`pp_${pid}`).value.trim();
+  const tRaw=document.getElementById(`pt_${pid}`).value.trim();
   const action=(document.getElementById(`pa_${pid}`).value||'').trim();
-  if(!deadline||!action){alert('Заполните дату контроля и гипотезу');return;}
-  const needO=metric!=='margin', needP=metric!=='orders';
-  if(needO&&tO===''){alert('Укажите цель: заказы, шт/день');return;}
-  if(needP&&tP===''){alert('Укажите цель: маржинальность, %');return;}
-  const vO=Number(String(tO).replace(',','.')), vP=Number(String(tP).replace(',','.'));
-  if(needO&&(!isFinite(vO)||vO<0)){alert('Цель по заказам — некорректное число');return;}
-  if(needP&&(!isFinite(vP)||vP<0)){alert('Цель по маржинальности — некорректное число');return;}
+  if(!action){alert('Заполните текст гипотезы');return;}
+  if(tRaw===''){alert(metric==='orders'?'Укажите цель: заказы, шт/день':'Укажите цель: маржин., %');return;}
+  const vT=Number(String(tRaw).replace(',','.'));
+  if(!isFinite(vT)||(metric==='orders'&&vT<0)){alert('Некорректное значение цели');return;}
   const today=new Date(); today.setHours(0,0,0,0);
-  const tISO=localISO(today);
-  if(deadline<=tISO){alert('Дата контроля должна быть позже сегодняшнего дня');return;}
-  if(deadline>localISO(new Date(today.getTime()+4*86400000))){alert('Срок тестирования гипотезы — максимум 4 дня от сегодняшнего дня');return;}
+  const start=localISO(today);
+  let deadline;
+  if(metric==='orders'){
+    deadline=document.getElementById(`pd_${pid}`).value;
+    if(!deadline){alert('Выберите дату контроля');return;}
+    if(isWeekend(deadline)){alert('Контроль не может попадать на выходной');return;}
+    if(deadline<=start||deadline>addDaysISO(start,4)){alert('Контроль — в окне до 4 дней, только будни');return;}
+  }else{
+    deadline=addDaysISO(start,3);
+  }
   const p=BYID[pid]; if(!p)return;
-  const active=(PROTO[pid]||[]).find(it=>!it.parent_id&&it.deadline&&it.deadline>=tISO&&it.fact_ctx==null&&it.fact_dev==null);
-  if(active){alert(`По товару уже есть активная гипотеза до ${ddmm(active.deadline)}`);return;}
-  const base=await snapshotMetrics(pid,localISO(new Date(today.getTime()-7*86400000)),localISO(new Date(today.getTime()-86400000)));
-  if(needO&&Math.abs(vO-base.orders)<0.01){alert('Цель по заказам равна базовому уровню — измените цель');return;}
-  if(needP&&base.pct!=null&&Math.abs(vP-base.pct)<0.01){alert('Цель по маржинальности равна базовому уровню — измените цель');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:needO?vO:null,target_pct:needP?vP:null,baseline_ctx:JSON.stringify(base)}])});
+  const active=(PROTO[pid]||[]).find(it=>!it.parent_id&&it.metric===metric&&it.fact_ctx==null&&it.fact_dev==null);
+  if(active){alert(`По товару уже есть активная гипотеза по этой метрике до ${ddmm(active.deadline)}`);return;}
+  const baseDate=lastWeekdayBefore(start);
+  const ob=await ordersForDay(pid,baseDate);
+  const mb=await marginWithFallback(pid,addDaysISO(start,-2),addDaysISO(start,-30));
+  if(metric==='margin'&&mb==null){alert('Нет устаканенной маржинальности для базы — создание невозможно');return;}
+  const B=metric==='orders'?ob:mb.pct;
+  if(Math.abs(vT-B)<0.01){alert('Цель равна базовому значению — измените цель');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:metric==='orders'?vT:null,target_pct:metric==='margin'?vT:null,baseline_ctx:JSON.stringify({orders:ob,orders_date:baseDate,pct:mb?mb.pct:null,pct_date:mb?mb.date:null})}])});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status+': '+(await r.text()));return;}
   await upsertPPM(pid,{work_date:deadline});
   await loadProto(); render();
@@ -908,15 +941,22 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
     body=`<div class="psub">Цель по отклонению маржи: от ${fmt(B)} ₽ к ${fmt(T)} ₽ • Контроль: ${it.deadline?ddmm(it.deadline):'—'}</div>
       ${F!=null?`<div class="psub">Отклонение маржи на фиксацию (${it.fact_date?ddmm(it.fact_date):''}) составляет ${fmt(F)} ₽${progress!=null?` • прогресс ${progress}%`:''}</div>`:''}`;
   }else{
-    const mLbl={orders:'заказы',margin:'маржинальность',both:'заказы и маржинальность'}[it.metric||'both'];
+    const m=it.metric||'orders';
     const fP=x=>x==null?'—':f1(x)+'%';
-    const tgt=[];
-    if((it.metric||'both')!=='margin'&&it.target_orders!=null)tgt.push(`заказы ${f1(it.target_orders)} шт/день`);
-    if((it.metric||'both')!=='orders'&&it.target_pct!=null)tgt.push(`маржин. ${fP(it.target_pct)}`);
-    body=`<div class="psub">Метрика: ${mLbl} • Контроль: ${it.deadline?ddmm(it.deadline):'—'} (срок ≤ 4 дн)</div>
-      <div class="psub">База (7 дн до старта): заказы ${f1(base.orders)} шт/день • маржин. ${fP(base.pct)}</div>
-      <div class="psub">Цель: ${tgt.join(' • ')||'—'}</div>
-      ${fact?`<div class="psub">Факт за период теста: заказы ${f1(fact.orders)} шт/день • маржин. ${fP(fact.pct)}</div>`:''}`;
+    let baseLine,tgtLine,factLine='';
+    if(m==='orders'){
+      baseLine=`База: ${f1(base.orders)} шт/день (${base.orders_date?ddmm(base.orders_date):'—'}, будний)`;
+      tgtLine=`Цель: ${f1(it.target_orders)} шт/день`;
+      if(fact)factLine=`Факт (${fact.orders_from?ddmm(fact.orders_from):'—'}…${fact.orders_to?ddmm(fact.orders_to):'—'}, будни): ${f1(fact.orders)} шт/день`;
+    }else{
+      baseLine=`База: ${fP(base.pct)} (${base.pct_date?ddmm(base.pct_date):'—'}, устаканена)`;
+      tgtLine=`Цель: ${fP(it.target_pct)}`;
+      if(fact)factLine=`Факт: ${fP(fact.pct)} (${fact.pct_date?ddmm(fact.pct_date):'—'})`;
+    }
+    body=`<div class="psub">Метрика: ${m==='orders'?'заказы':'маржинальность'} • Контроль: ${it.deadline?ddmm(it.deadline):'—'}</div>
+      <div class="psub">${baseLine}</div>
+      <div class="psub">${tgtLine}</div>
+      ${factLine?`<div class="psub">${factLine}</div>`:''}`;
   }
   const kids=(PROTO[it.product_id]||[]).filter(c=>c.parent_id===it.id);
   const kidsHtml=kids.map(k=>`<div class="pchild"><span class="pdate">${new Date(k.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span><span class="paction">${esc(k.action)}</span></div>`).join('');
@@ -942,19 +982,19 @@ async function addProtoChild(pid,parentId){
 function renderSmartForm(pid){
   const p=BYID[pid];
   if(!p)return '';
+  const start=localISO(new Date());
   return `<div class="pform">
     <div class="pfrow">
       <select id="pm_${pid}" onchange="smartMetricChanged(${pid})">
         <option value="orders">Заказы</option>
         <option value="margin">Маржинальность</option>
-        <option value="both" selected>Заказы и маржинальность</option>
       </select>
-      <input type="date" id="pd_${pid}">
-      <input type="number" id="po_${pid}" placeholder="Цель: заказы, шт/день" step="0.01">
-      <input type="number" id="pp_${pid}" placeholder="Цель: маржин., %" step="0.01">
+      <input type="number" id="pt_${pid}" step="0.01" placeholder="Цель: заказы, шт/день">
+      <span id="pdate_${pid}"><select id="pd_${pid}">${weekdayOptions(start).map(o=>`<option value="${o}">${ddmm(o)}</option>`).join('')}</select></span>
     </div>
     <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Гипотеза (действие)"><button onclick="addProto(${pid})">Добавить</button></div>
-    <div class="psub">Срок теста — до 4 дней. База: заказы и маржинальность за 7 дней до старта; факт — за период теста.</div>
+    <div class="psub" id="smartbase_${pid}">База: расчёт…</div>
+    <div class="psub">Заказы: контроль — будний день в окне до 4 дней, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически, база — устаканенный день до старта.</div>
   </div>`;
 }
 function renderRecs(pid){
@@ -1319,6 +1359,7 @@ function render(){
     }
   });
   document.getElementById('tb').innerHTML=html||`<tr><td colspan="${totalCols}" style="color:#94a3b8">нет данных</td></tr>`;
+  openProto.forEach(pid=>{loadSmartBase(pid);});
 }
 </script>
 </body>
