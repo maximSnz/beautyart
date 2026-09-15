@@ -198,6 +198,7 @@
       <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
       <input type="month" id="month" onchange="onMonth(this.value)">
       <button id="btnCharges" onclick="chargesInput.click()">⬆ CSV начислений</button>
+      <button id="btnExcel" onclick="exportPlanExcel()">📥 Excel</button>
       <input type="file" id="chargesInput" accept=".csv" style="display:none" onchange="importCharges(this.files[0])">
     </div>
     <div class="progress hide" id="progWrap">
@@ -214,6 +215,7 @@
     <div class="tip" id="tip"></div>
   </div>
 </div>
+ <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 function toggleNav(btn){const item=btn.closest('.nav-item');const wasOpen=item.classList.contains('open');document.querySelectorAll('.nav-item.open').forEach(i=>i.classList.remove('open'));if(!wasOpen)item.classList.add('open');}
 document.addEventListener('click',(e)=>{if(!e.target.closest('.nav-item')){document.querySelectorAll('.nav-item.open').forEach(i=>i.classList.remove('open'));}});
@@ -525,6 +527,54 @@ async function importCharges(file){
   }finally{
     btn.disabled=false;btn.textContent='⬆ CSV начислений';document.getElementById('chargesInput').value='';
   }
+}
+async function exportPlanExcel(){
+  if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
+  const btn=document.getElementById('btnExcel'); btn.disabled=true; btn.textContent='⏃ Формирование…';
+  try{
+    const today=new Date(); today.setHours(0,0,0,0);
+    const tISO=localISO(today);
+    const yISO=addDaysISO(tISO,-1);
+    if(!WEEKISO.length){alert('Нет недель в периоде');return;}
+    const periodStart=WEEKISO[0];
+    const periodEnd=localISO(weekEnd(parseW(WEEKISO[WEEKISO.length-1])));
+    const baseDays=[]; let d=addDaysISO(tISO,-2);
+    while(baseDays.length<3){ if(!isWeekend(d))baseDays.unshift(d); d=addDaysISO(d,-1); }
+    const fetchFrom=baseDays[0]<periodStart?baseDays[0]:periodStart;
+    let B=0,W=0; d=tISO;
+    while(d<=periodEnd){ if(isWeekend(d))W++; else B++; d=addDaysISO(d,1); }
+    const eff=B+0.5*W;
+    const wb=XLSX.utils.book_new();
+    for(const [gid,gname] of [['m1','Илья'],['m2','Ольга']]){
+      const list=ROWS.filter(r=>matrixOf(r.offer_id)===gid&&((PLAN[r.product_id]||{}).plan_qty||0)>0);
+      const out=[];
+      for(const p of list){
+        const pid=p.product_id;
+        const map=await fetchSalesMap(pid,fetchFrom,yISO);
+        let sum=0; baseDays.forEach(x=>{sum+=(map.get(x)||0);});
+        const avg=sum/3;
+        const yest=map.get(yISO)||0;
+        let exec=0; map.forEach((v,k)=>{ if(k>=periodStart&&k<=yISO)exec+=v; });
+        const needOrders=PLAN[pid].plan_qty/0.95;
+        const remain=needOrders-exec;
+        const R=eff>0?remain/eff:0;
+        const dev=avg-R;
+        out.push({dev:dev,row:{
+          'Артикул':p.offer_id,
+          'Средние заказы (3 будн. дня)':Math.round(avg),
+          'Заказы вчера':yest,
+          'Требуемые заказы':Math.round(R),
+          'Отклонение':Math.round(dev)
+        }});
+      }
+      out.sort((a,b)=>a.dev-b.dev);
+      const ws=XLSX.utils.json_to_sheet(out.map(o=>o.row));
+      ws['!cols']=[{wch:24},{wch:26},{wch:14},{wch:17},{wch:12}];
+      XLSX.utils.book_append_sheet(wb,ws,gname);
+    }
+    XLSX.writeFile(wb,`plan_orders_${tISO}.xlsx`);
+  }catch(e){alert('Ошибка экспорта: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='📥 Excel';}
 }
 function renderCharges(pid,rows){
   if(!rows||!rows.length)return '<div class="psub">нет начислений за период</div>';
