@@ -457,23 +457,13 @@ async function syncPnl(extraWeeks){
 async function fixHypotheses(){
   const today=localISO(new Date());
   for(const pid in PROTO){
-    const items=PROTO[pid];
-    for(const it of items){
-      if(it.parent_id||!it.deadline||it.deadline>today||it.fact_dev!=null)continue;
-      const p=BYID[pid];
-      if(!p)continue;
-      const pv=projVal(p,'mar');
-      const ctx={
-        sales:projVal(p,'sales').dev,
-        revn:projVal(p,'revn').dev,
-        price:avgPriceFact(p)!=null?avgPriceFact(p)-monthlyPlan(p,'price'):null,
-        pct:avgPctFact(p)!=null?avgPctFact(p)-monthlyPlan(p,'pct'):null
-      };
-      await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{
-        method:'PATCH',
-        headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},
-        body:JSON.stringify({fact_dev:pv.dev,fact_ctx:JSON.stringify(ctx),fact_date:today})
-      });
+    for(const it of PROTO[pid]){
+      if(it.parent_id||!it.deadline||it.deadline>today)continue;
+      if(it.fact_ctx!=null||it.fact_dev!=null)continue;
+      const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null;
+      if(!base||!('orders' in base))continue;
+      const snap=await snapshotMetrics(pid,localISO(new Date(it.created_at)),it.deadline);
+      await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify(snap),fact_dev:1,fact_date:today})});
     }
   }
 }
@@ -794,35 +784,88 @@ function recText(r,unit){
   return {text:'без изменений',cls:'n'};
 }
 function verdict(it){
-  if(it.fact_dev==null) return null;
-  const B=Number(it.baseline_dev||0), T=Number(it.target_dev||0), F=Number(it.fact_dev||0);
-  if(B===T) return F>=B ? 'success' : 'fail';
-  const progress=(F-B)/(T-B);
-  const tolerance=Math.abs(T-B)*0.1;
-  if(progress>=1 || Math.abs(F-T)<=tolerance) return 'success';
-  if(progress>0) return 'partial';
+  const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null;
+  if(!base||!('orders' in base)){
+    if(it.fact_dev==null)return null;
+    const B=Number(it.baseline_dev||0),T=Number(it.target_dev||0),F=Number(it.fact_dev||0);
+    if(B===T)return F>=B?'success':'fail';
+    const pr=(F-B)/(T-B),tol=Math.abs(T-B)*0.1;
+    if(pr>=1||Math.abs(F-T)<=tol)return 'success';
+    return pr>0?'partial':'fail';
+  }
+  if(it.fact_ctx==null)return null;
+  const fact=JSON.parse(it.fact_ctx);
+  const mets=(it.metric==='orders')?['orders']:(it.metric==='margin')?['pct']:['orders','pct'];
+  const res=mets.map(m=>{
+    const B=base[m],F=fact[m],T=(m==='orders')?Number(it.target_orders):Number(it.target_pct);
+    if(B==null||F==null||T==null||isNaN(T))return 'skip';
+    if(Math.abs(T-B)<0.01)return F>=B?'success':'fail';
+    const pr=(F-B)/(T-B),tol=Math.abs(T-B)*0.1;
+    if(pr>=1||Math.abs(F-T)<=tol)return 'success';
+    if(pr>0)return 'partial';
+    return 'fail';
+  }).filter(r=>r!=='skip');
+  if(!res.length)return null;
+  if(res.every(r=>r==='success'))return 'success';
+  if(res.some(r=>r==='success'||r==='partial'))return 'partial';
   return 'fail';
+}
+async function snapshotMetrics(pid,fromISO,toISO){
+  const offer=(BYID[pid]||{}).offer_id;
+  const days=Math.max(1,Math.round((parseW(toISO)-parseW(fromISO))/86400000)+1);
+  let q=0,off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${fromISO}&sale_date=lte.${toISO}&select=qty&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json(); j.forEach(x=>{q+=Number(x.qty||0);}); if(j.length<1000)break; off+=1000;
+  }
+  let pnl=0,gmv=0,sales=0; off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&event_date=gte.${fromISO}&event_date=lte.${toISO}&select=charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json();
+    j.forEach(c=>{
+      const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);
+      pnl+=amt;
+      if(c.charge_type==='Выручка'){gmv+=price*qty;sales+=qty;}
+      else if(c.charge_type==='Возврат выручки'){gmv+=price*qty;sales-=qty;}
+    });
+    if(j.length<1000)break; off+=1000;
+  }
+  const cost=COST[pid]||0;
+  const pct=gmv>0?Math.round(((pnl-cost*sales)/gmv*100)*100)/100:null;
+  return {orders:Math.round(q/days*100)/100,pct};
+}
+function smartMetricChanged(pid){
+  const m=document.getElementById('pm_'+pid).value;
+  const o=document.getElementById('po_'+pid), p=document.getElementById('pp_'+pid);
+  if(o)o.style.display=(m==='margin')?'none':'';
+  if(p)p.style.display=(m==='orders')?'none':'';
 }
 async function addProto(pid){
   const deadline=document.getElementById(`pd_${pid}`).value;
-  const tRaw=document.getElementById(`pt_${pid}`).value.trim();
-  const target=Number(tRaw);
+  const metric=document.getElementById(`pm_${pid}`).value;
+  const tO=document.getElementById(`po_${pid}`).value.trim();
+  const tP=document.getElementById(`pp_${pid}`).value.trim();
   const action=(document.getElementById(`pa_${pid}`).value||'').trim();
-  if(!deadline||tRaw===''||isNaN(target)||!action){alert('Заполните все поля');return;}
-  const p=BYID[pid];
-  if(!p)return;
-  const pv=projVal(p,'mar');
-  const B=pv.dev||0;
-  if(Math.abs(target-B)<0.01){alert('Нельзя ставить цель, равную текущему отклонению');return;}
-  const hasActive=(PROTO[pid]||[]).some(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
-  if(hasActive){const active=PROTO[pid].find(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);alert(`По товару уже есть активная гипотеза до ${ddmm(active.deadline)}`);return;}
-  const ctx={
-    sales:projVal(p,'sales').dev,
-    revn:projVal(p,'revn').dev,
-    price:avgPriceFact(p)!=null?avgPriceFact(p)-monthlyPlan(p,'price'):null,
-    pct:avgPctFact(p)!=null?avgPctFact(p)-monthlyPlan(p,'pct'):null
-  };
-  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,target_dev:target,baseline_dev:B,baseline_ctx:JSON.stringify(ctx)}])});
+  if(!deadline||!action){alert('Заполните дату контроля и гипотезу');return;}
+  const needO=metric!=='margin', needP=metric!=='orders';
+  if(needO&&tO===''){alert('Укажите цель: заказы, шт/день');return;}
+  if(needP&&tP===''){alert('Укажите цель: маржинальность, %');return;}
+  const vO=Number(String(tO).replace(',','.')), vP=Number(String(tP).replace(',','.'));
+  if(needO&&(!isFinite(vO)||vO<0)){alert('Цель по заказам — некорректное число');return;}
+  if(needP&&(!isFinite(vP)||vP<0)){alert('Цель по маржинальности — некорректное число');return;}
+  const today=new Date(); today.setHours(0,0,0,0);
+  const tISO=localISO(today);
+  if(deadline<=tISO){alert('Дата контроля должна быть позже сегодняшнего дня');return;}
+  if(deadline>localISO(new Date(today.getTime()+4*86400000))){alert('Срок тестирования гипотезы — максимум 4 дня от сегодняшнего дня');return;}
+  const p=BYID[pid]; if(!p)return;
+  const active=(PROTO[pid]||[]).find(it=>!it.parent_id&&it.deadline&&it.deadline>=tISO&&it.fact_ctx==null&&it.fact_dev==null);
+  if(active){alert(`По товару уже есть активная гипотеза до ${ddmm(active.deadline)}`);return;}
+  const base=await snapshotMetrics(pid,localISO(new Date(today.getTime()-7*86400000)),localISO(new Date(today.getTime()-86400000)));
+  if(needO&&Math.abs(vO-base.orders)<0.01){alert('Цель по заказам равна базовому уровню — измените цель');return;}
+  if(needP&&base.pct!=null&&Math.abs(vP-base.pct)<0.01){alert('Цель по маржинальности равна базовому уровню — измените цель');return;}
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:needO?vO:null,target_pct:needP?vP:null,baseline_ctx:JSON.stringify(base)}])});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status+': '+(await r.text()));return;}
   await upsertPPM(pid,{work_date:deadline});
   await loadProto(); render();
@@ -842,13 +885,14 @@ async function deleteNote(id){
 }
 function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b===1?'день':(b>=2&&b<=4?'дня':'дней');}
  function renderItem(it){
-  const v=verdict(it);
   const today=new Date(); today.setHours(0,0,0,0);
   const dl=it.deadline?parseW(it.deadline):null;
   const daysLeft=dl?Math.round((dl-today)/86400000):null;
   const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null;
   const fact=it.fact_ctx?JSON.parse(it.fact_ctx):null;
+  const legacy=!base||!('orders' in base);
   const created=ddmm(localISO(new Date(it.created_at)));
+  const v=verdict(it);
   let status,cls;
   if(v==null){
     if(daysLeft!=null&&daysLeft<0){status=`<span class="n">ожидает загрузки CSV</span>`;cls='n';}
@@ -857,28 +901,31 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
   }else if(v==='success'){status=`<span class="badge g">успешна</span>`;cls='g';}
   else if(v==='partial'){status=`<span class="badge n">частичный успех</span>`;cls='n';}
   else{status=`<span class="badge r">неудачна</span>`;cls='r';}
-  const B=Number(it.baseline_dev||0), T=Number(it.target_dev||0), F=it.fact_dev!=null?Number(it.fact_dev):null;
-  const progress=F!=null&&T!==B?Math.round((F-B)/(T-B)*100):null;
-  const ctxLine=(c,label)=>{
-    if(!c)return '';
-    const parts=[];
-    if(c.sales!=null)parts.push(`продажи ${fmt(c.sales)}`);
-    if(c.revn!=null)parts.push(`выручка ${fmt(c.revn)}`);
-    if(c.price!=null)parts.push(`цена ${fmt2(c.price)}`);
-    if(c.pct!=null)parts.push(`маржин. ${fmt2(c.pct)}`);
-    return `<div class="psub">${label}: ${parts.join(', ')}</div>`;
-  };
+  let body;
+  if(legacy){
+    const B=Number(it.baseline_dev||0), T=Number(it.target_dev||0), F=it.fact_dev!=null?Number(it.fact_dev):null;
+    const progress=F!=null&&T!==B?Math.round((F-B)/(T-B)*100):null;
+    body=`<div class="psub">Цель по отклонению маржи: от ${fmt(B)} ₽ к ${fmt(T)} ₽ • Контроль: ${it.deadline?ddmm(it.deadline):'—'}</div>
+      ${F!=null?`<div class="psub">Отклонение маржи на фиксацию (${it.fact_date?ddmm(it.fact_date):''}) составляет ${fmt(F)} ₽${progress!=null?` • прогресс ${progress}%`:''}</div>`:''}`;
+  }else{
+    const mLbl={orders:'заказы',margin:'маржинальность',both:'заказы и маржинальность'}[it.metric||'both'];
+    const fP=x=>x==null?'—':f1(x)+'%';
+    const tgt=[];
+    if((it.metric||'both')!=='margin'&&it.target_orders!=null)tgt.push(`заказы ${f1(it.target_orders)} шт/день`);
+    if((it.metric||'both')!=='orders'&&it.target_pct!=null)tgt.push(`маржин. ${fP(it.target_pct)}`);
+    body=`<div class="psub">Метрика: ${mLbl} • Контроль: ${it.deadline?ddmm(it.deadline):'—'} (срок ≤ 4 дн)</div>
+      <div class="psub">База (7 дн до старта): заказы ${f1(base.orders)} шт/день • маржин. ${fP(base.pct)}</div>
+      <div class="psub">Цель: ${tgt.join(' • ')||'—'}</div>
+      ${fact?`<div class="psub">Факт за период теста: заказы ${f1(fact.orders)} шт/день • маржин. ${fP(fact.pct)}</div>`:''}`;
+  }
   const kids=(PROTO[it.product_id]||[]).filter(c=>c.parent_id===it.id);
   const kidsHtml=kids.map(k=>`<div class="pchild"><span class="pdate">${new Date(k.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span><span class="paction">${esc(k.action)}</span></div>`).join('');
-  const addForm=v==null?`<div class="pchildform"><input type="text" id="pca_${it.id}" placeholder="Текст дополнения"><button onclick="addProtoChild(${it.product_id},${it.id})">Сохранить</button></div>`:'';
+  const canAdd=legacy?(it.fact_dev==null):(it.fact_ctx==null);
+  const addForm=canAdd?`<div class="pchildform"><input type="text" id="pca_${it.id}" placeholder="Текст дополнения"><button onclick="addProtoChild(${it.product_id},${it.id})">Сохранить</button></div>`:'';
   return `<div class="pitem" style="border-left-color:${cls==='g'?'#16a34a':cls==='r'?'#E33D78':cls==='n'?'#94a3b8':'#d97706'}">
-    <div><span class="pdate">${new Date(it.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
+    <div><span class="pdate">${created}</span>
     <span class="paction">${esc(it.action)}</span></div>
-    <div class="psub">Цель по отклонению маржи: от ${fmt(B)} ₽ к ${fmt(T)} ₽ • Контроль: ${it.deadline?ddmm(it.deadline):'—'}</div>
-    <div class="psub">Отклонение маржи на ${created} составляет ${fmt(B)} ₽</div>
-    ${ctxLine(base,'Созависимые метрики на создание')}
-    ${F!=null?`<div class="psub">Отклонение маржи на фиксацию (${it.fact_date?ddmm(it.fact_date):''}) составляет ${fmt(F)} ₽${progress!=null?` • прогресс ${progress}%`:''}</div>`:''}
-    ${ctxLine(fact,'Созависимые метрики на фиксацию')}
+    ${body}
     <div class="psub">${status}</div>
     ${kidsHtml}
     ${addForm}
@@ -895,14 +942,19 @@ async function addProtoChild(pid,parentId){
 function renderSmartForm(pid){
   const p=BYID[pid];
   if(!p)return '';
-  const pv=projVal(p,'mar');
-  const B=pv.dev||0;
   return `<div class="pform">
-    <div class="pfrow"><input type="date" id="pd_${pid}" placeholder="Дата контроля">
-    <input type="number" id="pt_${pid}" placeholder="Целевое отклонение маржи, ₽" step="0.01">
-    <input type="text" id="pa_${pid}" placeholder="Гипотеза">
-    <button onclick="addProto(${pid})">Добавить</button></div>
-    <div class="psub">текущее отклонение: ${fmt(B)} ₽</div>
+    <div class="pfrow">
+      <select id="pm_${pid}" onchange="smartMetricChanged(${pid})">
+        <option value="orders">Заказы</option>
+        <option value="margin">Маржинальность</option>
+        <option value="both" selected>Заказы и маржинальность</option>
+      </select>
+      <input type="date" id="pd_${pid}">
+      <input type="number" id="po_${pid}" placeholder="Цель: заказы, шт/день" step="0.01">
+      <input type="number" id="pp_${pid}" placeholder="Цель: маржин., %" step="0.01">
+    </div>
+    <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Гипотеза (действие)"><button onclick="addProto(${pid})">Добавить</button></div>
+    <div class="psub">Срок теста — до 4 дней. База: заказы и маржинальность за 7 дней до старта; факт — за период теста.</div>
   </div>`;
 }
 function renderRecs(pid){
@@ -1062,7 +1114,7 @@ async function loadPulse(pid){
   stockVals.forEach(v=>{ h+=`<td class="num" style="${stockBg(v)}">${v==null?'—':fmt(v)}</td>`; });
   h+='</tr>';
   h+='<tr><td class="pulsemetric">Маржинальность, %</td>';
-  marginVals.forEach(v=>{ h+=`<td class="num ${v==null?'n':(v<0?'r':'g')}" style="${marginBg(v)}">${v==null?'—':f1(v)}</td>`; });
+  marginVals.forEach(v=>{ h+=`<td class="num" style="${marginBg(v)}">${v==null?'—':f1(v)}</td>`; });
   h+='</tr>';
   h+='</tbody></table><div class="psub" style="margin-top:6px">* — предварительный день (последние 7 дней): маржинальность уточняется по мере доезда начислений. Дни старше 7 дней устойчивы; редкие поздние возвраты возможны и по ним — это нормальная ревизия.</div></div>';
   if(box)box.innerHTML=h;
