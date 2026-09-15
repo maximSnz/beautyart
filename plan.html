@@ -842,6 +842,13 @@ async function ordersAvgWeekdays(pid,from,to){
   if(!cnt)return null;
   return Math.round(sum/cnt*100)/100;
 }
+ function lastWeekdaysBefore(iso,n){const out=[];let d=addDaysISO(iso,-1);while(out.length<n){if(!isWeekend(d))out.unshift(d);d=addDaysISO(d,-1);}return out;}
+async function ordersBaseWindow(pid,startISO){
+  const days=lastWeekdaysBefore(startISO,3);
+  const m=await fetchSalesMap(pid,days[0],days[days.length-1]);
+  let sum=0;days.forEach(d=>{sum+=(m.get(d)||0);});
+  return {avg:Math.round(sum/days.length*100)/100,from:days[0],to:days[days.length-1],days:days.length};
+}
 async function marginAggPeriod(pid,fromISO,toISO){
   const map=await fetchChargesMap(pid,fromISO,toISO);
   let pnl=0,gmv=0,sales=0,cnt=0,d=fromISO;
@@ -858,10 +865,9 @@ async function loadSmartBase(pid){
   const el=document.getElementById('smartbase_'+pid);
   if(!el)return;
   const start=localISO(new Date());
-  const bd=lastWeekdayBefore(start);
-  const ob=await ordersForDay(pid,bd);
+  const obw=await ordersBaseWindow(pid,start);
   const mb=await marginAggPeriod(pid,addDaysISO(start,-4),addDaysISO(start,-2));
-  el.textContent=`База: заказы ${f1(ob)} шт/день (${ddmm(bd)}) • маржин. ${mb==null?'—':f1(mb.pct)+'%'} (${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, за период ${mb?mb.days:0} дн)`;
+  el.textContent=`База: заказы ${f1(obw.avg)} шт/день (${ddmm(obw.from)}…${ddmm(obw.to)}, 3 будн. дн) • маржин. ${mb==null?'—':f1(mb.pct)+'%'} (${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, за период ${mb?mb.days:0} дн)`;
 }
 function smartMetricChanged(pid){
   const m=document.getElementById('pm_'+pid).value;
@@ -898,13 +904,13 @@ async function addProto(pid){
   const p=BYID[pid]; if(!p)return;
   const active=(PROTO[pid]||[]).find(it=>!it.parent_id&&it.metric===metric&&it.fact_ctx==null&&it.fact_dev==null);
   if(active){alert(`По товару уже есть активная гипотеза по этой метрике до ${ddmm(active.deadline)}`);return;}
-  const baseDate=lastWeekdayBefore(start);
-  const ob=await ordersForDay(pid,baseDate);
+  const obw=await ordersBaseWindow(pid,start);
+  const ob=obw.avg;
   const mb=await marginAggPeriod(pid,addDaysISO(start,-4),addDaysISO(start,-2));
   if(metric==='margin'&&mb==null){alert('Нет данных по маржинальности за 3 дня до старта — создание невозможно');return;}
   const B=metric==='orders'?ob:mb.pct;
   if(Math.abs(vT-B)<0.01){alert('Цель равна базовому значению — измените цель');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:metric==='orders'?vT:null,target_pct:metric==='margin'?vT:null,baseline_ctx:JSON.stringify({orders:ob,orders_date:baseDate,pct:mb?mb.pct:null,pct_from:mb?mb.from:null,pct_to:mb?mb.to:null,pct_days:mb?mb.days:null})}])});
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:metric==='orders'?vT:null,target_pct:metric==='margin'?vT:null,baseline_ctx:JSON.stringify({orders:ob,orders_from:obw.from,orders_to:obw.to,orders_days:obw.days,pct:mb?mb.pct:null,pct_from:mb?mb.from:null,pct_to:mb?mb.to:null,pct_days:mb?mb.days:null})}])});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status+': '+(await r.text()));return;}
   await upsertPPM(pid,{work_date:deadline});
   await loadProto(); render();
@@ -951,7 +957,8 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
     const fP=x=>x==null?'—':f1(x)+'%';
     let baseLine,tgtLine,factLine='';
     if(m==='orders'){
-      baseLine=`База: ${f1(base.orders)} шт/день (${base.orders_date?ddmm(base.orders_date):'—'}, будний)`;
+      const bWinO=base.orders_from?`${ddmm(base.orders_from)}…${ddmm(base.orders_to)}`:(base.orders_date?ddmm(base.orders_date):'—');
+      baseLine=`База: ${f1(base.orders)} шт/день (${bWinO}, будни)`;
       tgtLine=`Цель: ${f1(it.target_orders)} шт/день`;
       if(fact)factLine=`Факт (${fact.orders_from?ddmm(fact.orders_from):'—'}…${fact.orders_to?ddmm(fact.orders_to):'—'}, будни): ${f1(fact.orders)} шт/день`;
     }else{
@@ -1004,7 +1011,7 @@ function renderSmartForm(pid){
     </div>
     <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Гипотеза (действие)"><button onclick="addProto(${pid})">Добавить</button></div>
     <div class="psub" id="smartbase_${pid}">База: расчёт…</div>
-    <div class="psub">Заказы: контроль — будний день в окне до 4 дней, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически; база — агрегированная за ${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, факт — агрегированная за 3 дня до контроля включительно.</div>
+    <div class="psub">Заказы: контроль — будний день в окне до 4 дней, база — среднее за 3 будних дня до старта, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически; база — агрегированная за ${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, факт — агрегированная за 3 дня до контроля включительно.</div>
   </div>`;
 }
 function renderRecs(pid){
