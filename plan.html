@@ -472,10 +472,10 @@ async function fixHypotheses(){
         if(f==null)continue;
         await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:f,orders_from:addDaysISO(created,1),orders_to:it.deadline,pct:null,pct_date:null,fix_date:today}),fact_dev:1,fact_date:today})});
       }else{
-        if(today<it.deadline)continue;
-        const f=await marginWithFallback(pid,addDaysISO(it.deadline,-2),addDaysISO(base.pct_date||created,1));
+        if(today<addDaysISO(it.deadline,1))continue;
+        const f=await marginAggPeriod(pid,addDaysISO(it.deadline,-2),it.deadline);
         if(f==null)continue;
-        await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:null,orders_from:null,orders_to:null,pct:f.pct,pct_date:f.date,fix_date:today}),fact_dev:1,fact_date:today})});
+        await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:null,orders_from:null,orders_to:null,pct:f.pct,pct_from:f.from,pct_to:f.to,pct_days:f.days,fix_date:today}),fact_dev:1,fact_date:today})});
       }
     }
   }
@@ -842,11 +842,17 @@ async function ordersAvgWeekdays(pid,from,to){
   if(!cnt)return null;
   return Math.round(sum/cnt*100)/100;
 }
-async function marginWithFallback(pid,fromISO,minISO){
-  const map=await fetchChargesMap(pid,minISO,fromISO);
-  let d=fromISO,steps=0;
-  while(d>=minISO&&steps<30){const v=marginOfDay(map,pid,d);if(v!=null)return {pct:v,date:d};d=addDaysISO(d,-1);steps++;}
-  return null;
+async function marginAggPeriod(pid,fromISO,toISO){
+  const map=await fetchChargesMap(pid,fromISO,toISO);
+  let pnl=0,gmv=0,sales=0,cnt=0,d=fromISO;
+  while(d<=toISO){
+    const g=map.get(d);
+    if(g&&g.gmv>0){pnl+=g.pnl;gmv+=g.gmv;sales+=g.sales;cnt++;}
+    d=addDaysISO(d,1);
+  }
+  if(!cnt||gmv<=0)return null;
+  const cost=COST[pid]||0;
+  return {pct:Math.round(((pnl-cost*sales)/gmv*100)*100)/100,from:fromISO,to:toISO,days:cnt};
 }
 async function loadSmartBase(pid){
   const el=document.getElementById('smartbase_'+pid);
@@ -854,8 +860,8 @@ async function loadSmartBase(pid){
   const start=localISO(new Date());
   const bd=lastWeekdayBefore(start);
   const ob=await ordersForDay(pid,bd);
-  const mb=await marginWithFallback(pid,addDaysISO(start,-2),addDaysISO(start,-30));
-  el.textContent=`База: заказы ${f1(ob)} шт/день (${ddmm(bd)}) • маржин. ${mb==null?'—':f1(mb.pct)+'%'} (${mb?ddmm(mb.date):'—'})`;
+  const mb=await marginAggPeriod(pid,addDaysISO(start,-4),addDaysISO(start,-2));
+  el.textContent=`База: заказы ${f1(ob)} шт/день (${ddmm(bd)}) • маржин. ${mb==null?'—':f1(mb.pct)+'%'} (${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, за период ${mb?mb.days:0} дн)`;
 }
 function smartMetricChanged(pid){
   const m=document.getElementById('pm_'+pid).value;
@@ -894,11 +900,11 @@ async function addProto(pid){
   if(active){alert(`По товару уже есть активная гипотеза по этой метрике до ${ddmm(active.deadline)}`);return;}
   const baseDate=lastWeekdayBefore(start);
   const ob=await ordersForDay(pid,baseDate);
-  const mb=await marginWithFallback(pid,addDaysISO(start,-2),addDaysISO(start,-30));
-  if(metric==='margin'&&mb==null){alert('Нет устаканенной маржинальности для базы — создание невозможно');return;}
+  const mb=await marginAggPeriod(pid,addDaysISO(start,-4),addDaysISO(start,-2));
+  if(metric==='margin'&&mb==null){alert('Нет данных по маржинальности за 3 дня до старта — создание невозможно');return;}
   const B=metric==='orders'?ob:mb.pct;
   if(Math.abs(vT-B)<0.01){alert('Цель равна базовому значению — измените цель');return;}
-  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:metric==='orders'?vT:null,target_pct:metric==='margin'?vT:null,baseline_ctx:JSON.stringify({orders:ob,orders_date:baseDate,pct:mb?mb.pct:null,pct_date:mb?mb.date:null})}])});
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_protocol',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{product_id:pid,month:MONTH,action,deadline,metric,target_orders:metric==='orders'?vT:null,target_pct:metric==='margin'?vT:null,baseline_ctx:JSON.stringify({orders:ob,orders_date:baseDate,pct:mb?mb.pct:null,pct_from:mb?mb.from:null,pct_to:mb?mb.to:null,pct_days:mb?mb.days:null})}])});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status+': '+(await r.text()));return;}
   await upsertPPM(pid,{work_date:deadline});
   await loadProto(); render();
@@ -949,9 +955,13 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
       tgtLine=`Цель: ${f1(it.target_orders)} шт/день`;
       if(fact)factLine=`Факт (${fact.orders_from?ddmm(fact.orders_from):'—'}…${fact.orders_to?ddmm(fact.orders_to):'—'}, будни): ${f1(fact.orders)} шт/день`;
     }else{
-      baseLine=`База: ${fP(base.pct)} (${base.pct_date?ddmm(base.pct_date):'—'}, устаканена)`;
+      const bWin=base.pct_from?`${ddmm(base.pct_from)}…${ddmm(base.pct_to)}`:(base.pct_date?ddmm(base.pct_date):'—');
+      baseLine=`База: ${fP(base.pct)} (${bWin}, за период)`;
       tgtLine=`Цель: ${fP(it.target_pct)}`;
-      if(fact)factLine=`Факт: ${fP(fact.pct)} (${fact.pct_date?ddmm(fact.pct_date):'—'})`;
+      if(fact){
+        const fWin=fact.pct_from?`${ddmm(fact.pct_from)}…${ddmm(fact.pct_to)}`:(fact.pct_date?ddmm(fact.pct_date):'—');
+        factLine=`Факт: ${fP(fact.pct)} (${fWin}, за период ${fact.pct_days||'—'} дн)`;
+      }
     }
     body=`<div class="psub">Метрика: ${m==='orders'?'заказы':'маржинальность'} • Контроль: ${it.deadline?ddmm(it.deadline):'—'}</div>
       <div class="psub">${baseLine}</div>
@@ -994,7 +1004,7 @@ function renderSmartForm(pid){
     </div>
     <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Гипотеза (действие)"><button onclick="addProto(${pid})">Добавить</button></div>
     <div class="psub" id="smartbase_${pid}">База: расчёт…</div>
-    <div class="psub">Заказы: контроль — будний день в окне до 4 дней, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически, база — устаканенный день до старта.</div>
+    <div class="psub">Заказы: контроль — будний день в окне до 4 дней, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически; база — агрегированная за ${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, факт — агрегированная за 3 дня до контроля включительно.</div>
   </div>`;
 }
 function renderRecs(pid){
