@@ -367,6 +367,26 @@ async function loadCosts(){
   COST={};
   (await r.json()).forEach(p=>{ if(COST[p.product_id]==null) COST[p.product_id]=Number(p.cost||0); });
 }
+ let COST_HIST={};
+async function loadCostHistory(){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.asc&limit=10000',{headers:HD});
+  if(!r.ok){COST_HIST={};return;}
+  COST_HIST={};
+  (await r.json()).forEach(p=>{ (COST_HIST[p.product_id]=COST_HIST[p.product_id]||[]).push({t:String(p.created_at||'').slice(0,10),c:Number(p.cost||0)}); });
+}
+function costAt(pid,dISO){
+  const arr=COST_HIST[pid];
+  if(!arr||!arr.length) return {cost:COST[pid]||0, prov:true};
+  let best=null;
+  for(const rec of arr){ if(rec.t<=dISO) best=rec; else break; }
+  if(best) return {cost:best.c, prov:false};
+  return {cost:arr[0].c, prov:true};
+}
+async function provisionalWeeks(){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?cost_provisional=eq.true&select=week&limit=1000',{headers:HD});
+  if(!r.ok)return [];
+  return [...new Set((await r.json()).map(x=>x.week))];
+}
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==';'){row.push(cur);cur='';}else if(c==','){row.push(cur);cur='';}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!='\r')cur+=c;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
 function setP(pct,txt,bad){
   document.getElementById('progWrap').classList.remove('hide');
@@ -377,33 +397,57 @@ function setP(pct,txt,bad){
 function parseMoney(s){let t=String(s||'').replace(/[^0-9\-,\.]/g,'');if(t.includes(',')&&t.includes('.'))t=t.replace(/,/g,'');else t=t.replace(',','.');const n=Number(t);return isFinite(n)?n:0;}
 function parseDateRu(s){const m=String(s||'').match(/(\d{2})\.(\d{2})\.(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:null;}
 function weekStartOf(iso){const d=parseW(iso);d.setDate(d.getDate()-((d.getDay()+6)%7));return localISO(d);}
-async function syncPnl(){
-  if(!WEEKISO.length)return;
-  const inList='('+WEEKISO.map(w=>`"${w}"`).join(',')+')';
+async function syncPnl(extraWeeks){
+  const weeks=[...new Set([...WEEKISO,...(extraWeeks||[])])].sort();
+  if(!weeks.length)return;
+  const first=weeks[0], last=localISO(weekEnd(parseW(weeks[weeks.length-1])));
   let rows=[],off=0;
   while(true){
     let j=null;
     for(let a=0;a<3;a++){
-      const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges_weekly?week=in.${inList}&select=offer_id,week,pnl,ug,retq,revg,retn&limit=1000&offset=${off}`,{headers:HD});
+      const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?charge_date=gte.${first}&charge_date=lte.${last}&select=offer_id,charge_date,charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});
       if(r.ok){j=await r.json();break;}
       await sleep(700*(a+1));
     }
     if(j==null)break;
     rows=rows.concat(j); if(j.length<1000)break; off+=1000;
   }
-  const body=[];
+  const day=new Map();
   rows.forEach(c=>{
     const pid=OFFER_PID[c.offer_id]; if(!pid)return;
-    const cost=COST[pid]||0;
-    const ug=+c.ug||0, retq=+c.retq||0, revg=+c.revg||0, retn=+c.retn||0, pnl=+c.pnl||0;
-    const sales=ug-retq, mar=pnl-cost*sales;
-    body.push({product_id:pid,week:c.week,metric:'sales',fact:sales});
-    body.push({product_id:pid,week:c.week,metric:'revn',fact:Math.round(retn*100)/100});
-    body.push({product_id:pid,week:c.week,metric:'mar',fact:Math.round(mar*100)/100});
-    body.push({product_id:pid,week:c.week,metric:'revg',fact:Math.round(revg*100)/100});
-    body.push({product_id:pid,week:c.week,metric:'ug',fact:ug});
-    if(ug>0)body.push({product_id:pid,week:c.week,metric:'price',fact:Math.round(revg/ug*100)/100});
-    if(retn!==0)body.push({product_id:pid,week:c.week,metric:'pct',fact:Math.round(mar/retn*10000)/100});
+    const d=c.charge_date; if(!d)return;
+    let m=day.get(pid); if(!m){m=new Map();day.set(pid,m);}
+    let g=m.get(d); if(!g){g={pnl:0,sales:0,gmv:0,revg:0,ug:0};m.set(d,g);}
+    const amt=Number(c.amount||0), qty=Number(c.qty||0), price=Number(c.price||0);
+    g.pnl+=amt;
+    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.revg+=price*qty; g.ug+=qty; g.sales+=qty; }
+    else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; }
+  });
+  const body=[];
+  weeks.forEach(w=>{
+    const ws=parseW(w); const wDays=[];
+    for(let i=0;i<7;i++){ const d=new Date(ws); d.setDate(d.getDate()+i); wDays.push(localISO(d)); }
+    day.forEach((m,pid)=>{
+      let pnl=0,sales=0,gmv=0,revg=0,ug=0,cogs=0,prov=false,any=false;
+      wDays.forEach(d=>{
+        const g=m.get(d); if(!g)return;
+        any=true;
+        pnl+=g.pnl; sales+=g.sales; gmv+=g.gmv; revg+=g.revg; ug+=g.ug;
+        const ci=costAt(pid,d);
+        cogs+=ci.cost*g.sales;
+        if(ci.prov)prov=true;
+      });
+      if(!any)return;
+      const mar=pnl-cogs, retn=gmv;
+      const row=(metric,fact)=>({product_id:pid,week:w,metric,fact,cogs:Math.round(cogs*100)/100,cost_provisional:prov});
+      body.push(row('sales',sales));
+      body.push(row('revn',Math.round(retn*100)/100));
+      body.push(row('mar',Math.round(mar*100)/100));
+      body.push(row('revg',Math.round(revg*100)/100));
+      body.push(row('ug',ug));
+      if(ug>0)body.push(row('price',Math.round(revg/ug*100)/100));
+      if(retn!==0)body.push(row('pct',Math.round(mar/retn*10000)/100));
+    });
   });
   for(let i=0;i<body.length;i+=500){
     const part=body.slice(i,i+500);
@@ -442,7 +486,7 @@ async function importCharges(file){
     const text=await file.text();
     setP(15,'Разбор строк…');
     const rows=parseCSV(text);
-    const out=[]; const seen=new Set(); let skipped=0;
+    const out=[]; const seen=new Set(); let skipped=0; let noEvent=0;
     for(const r of rows){
       const id=(r[0]||'').trim();
       if(!id||/период:/i.test(id)||/ID начисления/i.test(id))continue;
@@ -451,9 +495,11 @@ async function importCharges(file){
       const amt=parseMoney(r[15]);
       const qty=Number(String(r[7]||'0').replace(/[^\d-]/g,''))||0;
       const price=parseMoney(r[8]);
+      const ev=parseDateRu(r[9]||'');
+      if(!ev)noEvent++;
       const row_key=[id,grp,type,offer,String(r[5]||''),String(r[7]||''),String(r[9]||''),amt].join('|');
       if(seen.has(row_key))continue; seen.add(row_key);
-      out.push({row_key,source_id:id,charge_date:d,offer_id:offer,group_name:grp,charge_type:type,amount:amt,qty:qty,price:price});
+      out.push({row_key,source_id:id,charge_date:d,event_date:ev,offer_id:offer,group_name:grp,charge_type:type,amount:amt,qty:qty,price:price});
     }
     if(!out.length){ setP(100,'В файле нет подходящих строк (все пропущены).',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
     for(let i=0;i<out.length;i+=500){
@@ -463,12 +509,13 @@ async function importCharges(file){
       if(!r.ok)throw new Error('HTTP '+r.status);
     }
     setP(90,'Пересчёт маржи по неделям…');
-    await syncPnl();
+    const provW=await provisionalWeeks();
+    await syncPnl(provW);
     await loadWeeks();
     await fixHypotheses();
     await loadProto();  // обновить PROTO после фиксации
     render();
-    setP(100,`✔ Готово! Импортировано начислений: ${out.length} (пропущено: ${skipped}). Маржа пересчитана.`);
+    setP(100,`✔ Готово! Импортировано начислений: ${out.length} (пропущено: ${skipped}). Строк без даты J: ${noEvent}. Маржа пересчитана.`);
     setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000);
   }catch(e){
     setP(100,'Ошибка импорта: '+e.message,true);
@@ -509,7 +556,7 @@ async function load(){
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory()]);
       const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
       document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
       render(); return;
@@ -517,7 +564,7 @@ async function load(){
   }
 }
 async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementById('err'); err.textContent='';
-  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts()]);
+  try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory()]);
       const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
       document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
       render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
@@ -967,18 +1014,46 @@ async function loadPulse(pid){
   }
   const rawStock=new Map();
   stockRows.forEach(r=>{ rawStock.set(r.report_date,(rawStock.get(r.report_date)||0)+Number(r.stock||0)); });
+  let chargeRows=[],off3=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&event_date=gte.${first}&event_date=lte.${last}&select=event_date,charge_type,amount,qty,price&limit=1000&offset=${off3}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json(); chargeRows=chargeRows.concat(j); if(j.length<1000)break; off3+=1000;
+  }
+  const byDayCh=new Map();
+  chargeRows.forEach(c=>{
+    const d=c.event_date; if(!d)return;
+    let g=byDayCh.get(d); if(!g){g={gmv:0,sales:0,pnl:0};byDayCh.set(d,g);}
+    const amt=Number(c.amount||0), qty=Number(c.qty||0), price=Number(c.price||0);
+    g.pnl+=amt;
+    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.sales+=qty; }
+    else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; }
+  });
   const days=[];
   for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ days.push(localISO(new Date(d))); }
   const salesVals=days.map(iso=>{ const v=byDaySales.get(iso); return v==null?null:v; });
   const stockVals=days.map(iso=>{ const v=rawStock.get(iso); return v==null?null:v; });
+  const cost=COST[pid]||0;
+  const marginVals=days.map(iso=>{
+    const g=byDayCh.get(iso);
+    if(!g||g.gmv<=0) return null;
+    return (g.pnl-cost*g.sales)/g.gmv*100;
+  });
   const salesNums=salesVals.filter(v=>v!=null);
   const sMn=salesNums.length?Math.min(...salesNums):0, sMx=salesNums.length?Math.max(...salesNums):0;
   const salesBg=v=>{ if(v==null||!salesNums.length)return ''; const t=(sMx===sMn)?0.5:(v-sMn)/(sMx-sMn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
   const stockNums=stockVals.filter(v=>v!=null);
   const kMn=stockNums.length?Math.min(...stockNums):0, kMx=stockNums.length?Math.max(...stockNums):0;
   const stockBg=v=>{ if(v==null||!stockNums.length)return ''; const t=(kMx===kMn)?0.5:(v-kMn)/(kMx-kMn); return `background:rgba(227,61,120,${(0.44-0.38*t).toFixed(2)});`; };
+  const mNums=marginVals.filter(v=>v!=null);
+  const mMn=mNums.length?Math.min(...mNums):0, mMx=mNums.length?Math.max(...mNums):1;
+  const marginBg=v=>{ if(v==null)return ''; if(v<0)return 'background:rgba(227,61,120,.18);'; const t=(mMx===mMn)?0.5:(v-mMn)/(mMx-mMn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
+  const nowMs=new Date().getTime();
   let h='<div class="pulsewrap"><table class="pulsetable"><thead><tr><th>Параметр</th>';
-  days.forEach(iso=>{ h+=`<th>${ddmm(iso)}</th>`; });
+  days.forEach(iso=>{
+    const prov=(nowMs-parseW(iso).getTime())<7*86400000;
+    h+=prov?`<th title="предварительно: начисления за этот день ещё доезжают (логистика, возвраты и отмены приходят с задержкой); значение уточнится само">${ddmm(iso)}*</th>`:`<th>${ddmm(iso)}</th>`;
+  });
   h+='</tr></thead><tbody>';
   h+='<tr><td class="pulsemetric">Заказы, шт</td>';
   salesVals.forEach(v=>{ h+=`<td class="num" style="${salesBg(v)}">${v==null?'—':fmt(v)}</td>`; });
@@ -986,7 +1061,10 @@ async function loadPulse(pid){
   h+='<tr><td class="pulsemetric">Остатки, шт</td>';
   stockVals.forEach(v=>{ h+=`<td class="num" style="${stockBg(v)}">${v==null?'—':fmt(v)}</td>`; });
   h+='</tr>';
-  h+='</tbody></table></div>';
+  h+='<tr><td class="pulsemetric">Маржинальность, %</td>';
+  marginVals.forEach(v=>{ h+=`<td class="num ${v==null?'n':(v<0?'r':'g')}" style="${marginBg(v)}">${v==null?'—':f1(v)}</td>`; });
+  h+='</tr>';
+  h+='</tbody></table><div class="psub" style="margin-top:6px">* — предварительный день (последние 7 дней): маржинальность уточняется по мере доезда начислений. Дни старше 7 дней устойчивы; редкие поздние возвраты возможны и по ним — это нормальная ревизия.</div></div>';
   if(box)box.innerHTML=h;
 }
 function arcPath(cx,cy,rO,rI,a0,a1){
