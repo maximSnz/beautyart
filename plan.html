@@ -99,7 +99,7 @@
  tr.mgroup button{background:none;border:1px solid rgba(125,54,115,.4);border-radius:5px;color:#7D3673;cursor:pointer;padding:0 6px;margin-right:6px}
  .mxcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
  .mxtitle{font-family:'Forum';font-weight:700;color:#544273;font-size:1em;margin-bottom:8px}
- .mxbody{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+ .mxbody{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
  .piecard{display:flex;flex-direction:column}
  .ptitle{font-size:.82em;color:#544273;font-weight:700;margin-bottom:5px}
  .piebox{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
@@ -122,7 +122,7 @@
  .kpiswrap{display:flex;gap:12px;margin-left:auto;flex-wrap:nowrap}
  .kpis{display:flex;flex-direction:column;gap:6px}
  .kgroup{font-size:.75em;color:#94a3b8;font-weight:700;margin-bottom:2px}
- .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:5px 10px;min-width:150px}
+ .kpi{background:#f8f9fb;border:1px solid rgba(84,66,115,.12);border-radius:10px;padding:5px 10px;min-width:138px}
  .klabel{font-size:.68em;color:#94a3b8}
  .kval{font-size:.9em;font-weight:700;color:#1C0D2E;white-space:nowrap}
  .header{max-width:1200px;margin:20px auto 20px;display:flex;align-items:center;gap:20px;padding:25px 30px;background:rgba(255,255,255,0.15);border-radius:16px;border:2px solid rgba(255,255,255,0.3);box-shadow:0 8px 32px rgba(28,13,46,0.2);position:relative;z-index:200}
@@ -143,28 +143,32 @@
  .pmwrap{display:inline-flex;margin-left:12px;border:1px solid rgba(84,66,115,.25);border-radius:8px;overflow:hidden;vertical-align:middle}
  .pmbtn{padding:2px 10px;border:none;background:#fff;color:#544273;font-family:'Forum';font-size:.72em;cursor:pointer}
  .pmbtn.on{background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff}
-  .mxbody{height:280px}
- .tempwrap{height:100%;overflow:auto;width:100%}
+ .mxbody{min-height:280px}
+ .tempwrap{height:280px;overflow:auto;width:100%}
  table.temp{width:100%;border-collapse:collapse;font-size:.8em;min-width:680px}
- table.temp th,table.temp td{padding:3px 6px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:right;white-space:nowrap}
- table.temp th{color:#666;font-size:.85em}
+ table.temp th,table.temp td{padding:5px 7px;border-bottom:1px dashed #cbd5e1;text-align:right;white-space:nowrap}
+ table.temp th{color:#666;font-size:.85em;text-align:left;vertical-align:middle}
  table.temp th:first-child,table.temp td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
- table.temp th{text-align:center;vertical-align:middle}
+ table.temp th.ghead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
+ table.temp th.shead{background:rgba(120,166,199,.1)}
  table.temp .sep{border-left:1px dashed rgba(84,66,115,.3)}
- .progcard{flex:0 1 280px;min-width:230px;margin:0 auto;display:flex;flex-direction:column;gap:6px;align-items:stretch;cursor:pointer;border:1px solid rgba(84,66,115,.15);border-radius:12px;padding:10px 14px;background:#fff;transition:transform .15s ease,box-shadow .15s ease}
+ .progcard{flex:0 0 auto;width:150px;height:240px;margin:0 auto;display:flex;flex-direction:column;gap:6px;cursor:pointer;border:1px solid rgba(84,66,115,.15);border-radius:12px;padding:10px 12px;background:#fff;transition:transform .15s ease,box-shadow .15s ease}
  .progcard:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(28,13,46,.18)}
- .progtitle{font-size:.78em;color:#544273;font-weight:700;text-align:center}
- .progval{font-family:'Forum';font-size:2.1em;font-weight:700;text-align:center;line-height:1.15}
+ .progtitle{font-size:.72em;color:#544273;font-weight:700;text-align:center}
+ .thermobody{flex:1;display:flex;gap:10px;align-items:stretch;justify-content:center}
+ .thermo{position:relative;width:26px;border-radius:14px;background:#eef0f4;border:1px solid rgba(84,66,115,.15);overflow:visible}
+ .thermofill{position:absolute;bottom:0;left:0;right:0;border-radius:14px;background:linear-gradient(0deg,#E33D78,#d97706);transition:height .6s ease}
+ .thermofill.warn{background:linear-gradient(0deg,#d97706,#f59e0b)}
+ .thermofill.ok{background:linear-gradient(0deg,#16a34a,#4ade80)}
+ .thermoemoji{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:16px;line-height:1}
+ .thermoinfo{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+ .progval{font-family:'Forum';font-size:1.9em;font-weight:700;line-height:1.1}
  .progval.ok{color:#16a34a}
  .progval.warn{color:#d97706}
  .progval.bad{color:#E33D78;animation:pulseBad 1.2s ease-in-out infinite}
  .progval.n{color:#94a3b8}
  @keyframes pulseBad{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
- .progtrack{height:12px;border-radius:8px;background:#eef0f4;overflow:hidden}
- .progbarfill{height:100%;width:0%;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#16a34a);transition:width .6s ease}
- .progbarfill.warn{background:linear-gradient(90deg,#78A6C7,#d97706)}
- .progbarfill.bad{background:linear-gradient(90deg,#78A6C7,#E33D78)}
- .progsub{font-size:.75em;color:#94a3b8;text-align:center}
+ .progsub{font-size:.72em;color:#94a3b8}
  @media (min-width:961px){
    .tablewrap{overflow-x:auto}
  }
@@ -182,7 +186,8 @@
    .mxbody{flex-direction:column;align-items:stretch}
     .mxbody{height:auto}
    .tempwrap{max-height:320px}
-   .progcard{margin:0;min-width:0;flex:1 1 auto}
+   .progcard{margin:0;width:100%;height:auto}
+   .thermobody{height:160px}
    .kpiswrap{flex-wrap:wrap;margin-left:0}
  }
 </style></head>
@@ -612,30 +617,33 @@ async function renderOrderTemps(gid){
   if(!box)return;
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
-  let h='<table class="temp"><thead><tr><th rowspan="2">Артикул</th><th rowspan="2" class="sep">Заказы<br>вчера</th><th colspan="2" class="sep">Средний темп (3 будн. дня)</th><th colspan="2" class="sep">Догоняющий темп</th><th colspan="2" class="sep">Плановый темп</th></tr><tr><th class="sep">Средние</th><th>Откл.</th><th class="sep">Требуемые</th><th>Откл.</th><th class="sep">Требуемые</th><th>Откл.</th></tr></thead><tbody>';
+  let h='<table class="temp"><thead><tr><th rowspan="2">Артикул</th><th rowspan="2" class="ghead sep">Заказы<br>вчера</th><th colspan="2" class="ghead sep">Средний темп (3 будн. дня)</th><th colspan="2" class="ghead sep">Догоняющий темп</th><th colspan="2" class="ghead sep">Плановый темп</th></tr><tr><th class="shead sep">Средние</th><th class="shead">Откл.</th><th class="shead sep">Требуемые</th><th class="shead">Откл.</th><th class="shead sep">Требуемые</th><th class="shead">Откл.</th></tr></thead><tbody>';
   rows.forEach(r=>{
     h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep">${Math.round(r.rp)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
   });
   h+='</tbody></table>';
   box.innerHTML=h;
 }
- async function renderProgBar(gid){
+async function renderProgBar(gid){
   const val=document.getElementById('progval_'+gid);
   const fill=document.getElementById('progfill_'+gid);
   const sub=document.getElementById('progsub_'+gid);
+  const emo=document.getElementById('progemoji_'+gid);
   if(!val||!fill||!sub)return;
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
   let y=0,rp=0;
   rows.forEach(x=>{y+=x.yest;rp+=x.rp;});
-  if(!rows.length||rp<=0){val.textContent='—';val.className='progval n';fill.style.width='0%';sub.textContent='нет данных плана';return;}
+  if(!rows.length||rp<=0){val.textContent='—';val.className='progval n';fill.style.height='0%';if(emo)emo.textContent='🚫';sub.textContent='нет данных плана';return;}
   const pct=y/rp*100;
   const cls=pct>=100?'ok':(pct>=80?'warn':'bad');
+  const emoji=pct>=100?'🚀':(pct>=90?'🔥':(pct>=75?'🙂':(pct>=50?'😐':'💩')));
   val.textContent=Math.round(pct)+'%';
   val.className='progval '+cls;
-  fill.className='progbarfill'+(cls==='ok'?'':' '+cls);
-  fill.style.width=Math.min(pct,100)+'%';
-  sub.textContent=`${fmt(y)} / ${fmt(Math.round(rp))} шт • клик — темпы подробнее`;
+  fill.className='thermofill'+(cls==='ok'?' ok':(cls==='warn'?' warn':''));
+  fill.style.height=Math.min(pct,100)+'%';
+  if(emo)emo.textContent=emoji;
+  sub.innerHTML=`${fmt(y)} / ${fmt(Math.round(rp))} шт<br>клик — темпы`;
 }
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
@@ -1390,9 +1398,13 @@ function mxCard(id,title,list,gid){
       <div class="legend" id="legendPos${id}"></div></div></div>
     <div class="progcard" title="Заказы вчера к плановому темпу. Клик — слайд темпов заказов" onclick="setOrdMode('${gid}','orders')">
       <div class="progtitle">Заказы вчера к плану</div>
-      <div class="progval n" id="progval_${gid}">…</div>
-      <div class="progtrack"><div class="progbarfill" id="progfill_${gid}"></div></div>
-      <div class="progsub" id="progsub_${gid}">расчёт…</div>
+      <div class="thermobody">
+        <div class="thermo"><div class="thermofill" id="progfill_${gid}" style="height:0%"><span class="thermoemoji" id="progemoji_${gid}">💩</span></div></div>
+        <div class="thermoinfo">
+          <div class="progval n" id="progval_${gid}">…</div>
+          <div class="progsub" id="progsub_${gid}">расчёт…</div>
+        </div>
+      </div>
     </div>
     <div class="kpiswrap">
       <div class="kpis"><div class="kgroup">План (PNL)</div>
