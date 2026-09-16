@@ -95,6 +95,7 @@
  th.wsub{background:rgba(227,61,120,.05);font-size:.75em}
  .mtoggle{padding:0 5px;margin-right:4px;background:none;border:1px solid rgba(84,66,115,.3);border-radius:5px;color:#544273;cursor:pointer;font-size:.8em}
  td.wcell{background:rgba(227,61,120,.03)}
+ th.sep,td.sep{border-left:1px dashed rgba(84,66,115,.3)}
  tr.mgroup td{background:linear-gradient(90deg,rgba(125,54,115,.18),transparent);font-weight:700;color:#7D3673;padding-top:12px;border-bottom:2px solid rgba(125,54,115,.25)}
  tr.mgroup button{background:none;border:1px solid rgba(125,54,115,.4);border-radius:5px;color:#7D3673;cursor:pointer;padding:0 6px;margin-right:6px}
  .mxcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
@@ -1480,8 +1481,8 @@ function render(){
     const exp=EXP[mt.key];
     const isPrice=(mt.key==='price'||mt.key==='pct'||mt.plan===false);
     const span=3+(exp?(isPrice?WEEKS.length:WEEKS.length*2):0);
-    r1+=`<th colspan="${span}" class="mhead"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
-    r2+=`<th rowspan="2" class="sub">План</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].fc}</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].dv}</th>`;
+    r1+=`<th colspan="${span}" class="mhead sep"><button class="mtoggle" onclick="toggleMetric('${mt.key}')">${exp?'▾':'▸'}</button>${mt.label}</th>`;
+    r2+=`<th rowspan="2" class="sub sep">План</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].fc}</th><th rowspan="2" class="sub wrap2">${COLLBL[mt.key].dv}</th>`;
     if(exp){ WEEKS.forEach(w=>{ r2+=`<th colspan="${isPrice?1:2}" class="whead">${wlabel(w)}</th>`; });
              WEEKS.forEach(w=>{ r3+= isPrice?`<th class="wsub">Ф</th>`:`<th class="wsub">Пр</th><th class="wsub">Ф</th>`; }); }
   });
@@ -1509,7 +1510,7 @@ function render(){
       else { const pv=projVal(p,mt.key); ffV=pv.ffV; dev=pv.dev; }
       const dcls=dev==null?'n':(dev>0?'g':dev<0?'r':'n');
       const editKey=mt.edit;
-      h+=`<td class="num ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${pid},'${editKey}')"`:''}>${planV==null?'—':fmtFor(mt.key,planV)}</td>`;
+      h+=`<td class="num sep ${editKey?'editable':''}" ${editKey?`title="Изменить план" onclick="editField(${pid},'${editKey}')"`:''}>${planV==null?'—':fmtFor(mt.key,planV)}</td>`;
       h+=`<td class="num calc">${ffV==null?'—':fmtFor(mt.key,ffV)}</td>`;
       h+=`<td class="num ${dcls}">${dev==null?'—':(dev>0?'+':'')+fmtFor(mt.key,dev)}</td>`;
       if(EXP[mt.key]){
