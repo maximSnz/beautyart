@@ -149,9 +149,22 @@
  table.temp th,table.temp td{padding:3px 6px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:right;white-space:nowrap}
  table.temp th{color:#666;font-size:.85em}
  table.temp th:first-child,table.temp td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
- .th-avg{background:rgba(154,144,86,.14)}
- .th-catch{background:rgba(227,120,61,.12)}
- .th-plan{background:rgba(120,166,199,.16)}
+ table.temp th{text-align:center;vertical-align:middle}
+ table.temp .sep{border-left:1px dashed rgba(84,66,115,.3)}
+ .progcard{flex:0 1 280px;min-width:230px;margin:0 auto;display:flex;flex-direction:column;gap:6px;align-items:stretch;cursor:pointer;border:1px solid rgba(84,66,115,.15);border-radius:12px;padding:10px 14px;background:#fff;transition:transform .15s ease,box-shadow .15s ease}
+ .progcard:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(28,13,46,.18)}
+ .progtitle{font-size:.78em;color:#544273;font-weight:700;text-align:center}
+ .progval{font-family:'Forum';font-size:2.1em;font-weight:700;text-align:center;line-height:1.15}
+ .progval.ok{color:#16a34a}
+ .progval.warn{color:#d97706}
+ .progval.bad{color:#E33D78;animation:pulseBad 1.2s ease-in-out infinite}
+ .progval.n{color:#94a3b8}
+ @keyframes pulseBad{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+ .progtrack{height:12px;border-radius:8px;background:#eef0f4;overflow:hidden}
+ .progbarfill{height:100%;width:0%;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#16a34a);transition:width .6s ease}
+ .progbarfill.warn{background:linear-gradient(90deg,#78A6C7,#d97706)}
+ .progbarfill.bad{background:linear-gradient(90deg,#78A6C7,#E33D78)}
+ .progsub{font-size:.75em;color:#94a3b8;text-align:center}
  @media (min-width:961px){
    .tablewrap{overflow-x:auto}
  }
@@ -169,6 +182,7 @@
    .mxbody{flex-direction:column;align-items:stretch}
     .mxbody{height:auto}
    .tempwrap{max-height:320px}
+   .progcard{margin:0;min-width:0;flex:1 1 auto}
    .kpiswrap{flex-wrap:wrap;margin-left:0}
  }
 </style></head>
@@ -598,12 +612,30 @@ async function renderOrderTemps(gid){
   if(!box)return;
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
-  let h='<table class="temp"><thead><tr><th rowspan="2">Артикул</th><th rowspan="2">Заказы<br>вчера</th><th colspan="2" class="th-avg">Средний темп (3 будн. дня)</th><th colspan="2" class="th-catch">Догоняющий темп</th><th colspan="2" class="th-plan">Плановый темп</th></tr><tr><th class="th-avg">Средние</th><th class="th-avg">Откл.</th><th class="th-catch">Требуемые</th><th class="th-catch">Откл.</th><th class="th-plan">Требуемые</th><th class="th-plan">Откл.</th></tr></thead><tbody>';
+  let h='<table class="temp"><thead><tr><th rowspan="2">Артикул</th><th rowspan="2" class="sep">Заказы<br>вчера</th><th colspan="2" class="sep">Средний темп (3 будн. дня)</th><th colspan="2" class="sep">Догоняющий темп</th><th colspan="2" class="sep">Плановый темп</th></tr><tr><th class="sep">Средние</th><th>Откл.</th><th class="sep">Требуемые</th><th>Откл.</th><th class="sep">Требуемые</th><th>Откл.</th></tr></thead><tbody>';
   rows.forEach(r=>{
-    h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num">${r.yest}</td><td class="num">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num">${Math.round(r.rp)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
+    h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep">${Math.round(r.rp)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
   });
   h+='</tbody></table>';
   box.innerHTML=h;
+}
+ async function renderProgBar(gid){
+  const val=document.getElementById('progval_'+gid);
+  const fill=document.getElementById('progfill_'+gid);
+  const sub=document.getElementById('progsub_'+gid);
+  if(!val||!fill||!sub)return;
+  const data=await computeOrderTemps();
+  const rows=data[gid]||[];
+  let y=0,rp=0;
+  rows.forEach(x=>{y+=x.yest;rp+=x.rp;});
+  if(!rows.length||rp<=0){val.textContent='—';val.className='progval n';fill.style.width='0%';sub.textContent='нет данных плана';return;}
+  const pct=y/rp*100;
+  const cls=pct>=100?'ok':(pct>=80?'warn':'bad');
+  val.textContent=Math.round(pct)+'%';
+  val.className='progval '+cls;
+  fill.className='progbarfill'+(cls==='ok'?'':' '+cls);
+  fill.style.width=Math.min(pct,100)+'%';
+  sub.textContent=`${fmt(y)} / ${fmt(Math.round(rp))} шт • клик — темпы подробнее`;
 }
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
@@ -1356,6 +1388,12 @@ function mxCard(id,title,list,gid){
     <div class="piecard"><div class="ptitle">Позиции по маржинальности</div><div class="piebox">
       <div class="pieWrap"><svg class="pie" id="piePos${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValPos${id}"></div><div class="pcCap" id="pcCapPos${id}"></div></div></div>
       <div class="legend" id="legendPos${id}"></div></div></div>
+    <div class="progcard" title="Заказы вчера к плановому темпу. Клик — слайд темпов заказов" onclick="setOrdMode('${gid}','orders')">
+      <div class="progtitle">Заказы вчера к плану</div>
+      <div class="progval n" id="progval_${gid}">…</div>
+      <div class="progtrack"><div class="progbarfill" id="progfill_${gid}"></div></div>
+      <div class="progsub" id="progsub_${gid}">расчёт…</div>
+    </div>
     <div class="kpiswrap">
       <div class="kpis"><div class="kgroup">План (PNL)</div>
         <div class="kpi"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tRub)}</div></div>
@@ -1373,7 +1411,8 @@ function mxCard(id,title,list,gid){
         <div class="kpi"><div class="klabel">Неудачных</div><div class="kval">${h.fail}</div></div>
       </div>
     </div>`;
-  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${PIEMODE==='plan'?'on':''}" onclick="setPieMode('plan')">План</button><button class="pmbtn ${PIEMODE==='forecast'?'on':''}" onclick="setPieMode('forecast')">Прогноз</button></span><span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="setOrdMode('${gid}','orders')">Заказы</button></span></div><div class="mxbody">${body}</div></div>`;
+  const pieToggle=ordOn?'':`<span class="pmwrap"><button class="pmbtn ${PIEMODE==='plan'?'on':''}" onclick="setPieMode('plan')">План</button><button class="pmbtn ${PIEMODE==='forecast'?'on':''}" onclick="setPieMode('forecast')">Прогноз</button></span>`;
+  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.${pieToggle}<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="setOrdMode('${gid}','orders')">Заказы</button></span></div><div class="mxbody">${body}</div></div>`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
@@ -1381,8 +1420,8 @@ function render(){
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
   document.getElementById('summary').innerHTML=mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
-  if(ORDMODE.m1==='orders')renderOrderTemps('m1');
-  if(ORDMODE.m2==='orders')renderOrderTemps('m2');
+  if(ORDMODE.m1==='orders')renderOrderTemps('m1'); else renderProgBar('m1');
+  if(ORDMODE.m2==='orders')renderOrderTemps('m2'); else renderProgBar('m2');
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
