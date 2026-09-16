@@ -164,6 +164,10 @@
  table.temp{width:100%;border-collapse:collapse;font-size:.8em;min-width:680px}
  table.temp th,table.temp td{padding:5px 7px;border-bottom:1px dashed #cbd5e1;text-align:right;white-space:nowrap}
  table.temp th{color:#666;font-size:.85em;text-align:left;vertical-align:middle}
+ table.temp th.sortable{cursor:pointer;user-select:none}
+ table.temp th.sortable:hover{color:#E33D78}
+ table.temp th .sortArrow{display:inline-block;margin-left:3px;color:#E33D78;opacity:.85;font-size:.75em}
+ table.temp th.sortable:not(.sorted) .sortArrow{opacity:.25}
  table.temp th:first-child,table.temp td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
  table.temp th.ghead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em}
  table.temp th.shead{background:rgba(120,166,199,.1)}
@@ -274,6 +278,13 @@ let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
  let PIEMODE={m1:'plan',m2:'plan'};
 let ORDMODE={m1:'summary',m2:'summary'};
+let TEMP_SORT={m1:{col:'devPlan',dir:'desc'},m2:{col:'devPlan',dir:'desc'}};
+function toggleTempSort(gid,col){
+  const s=TEMP_SORT[gid];
+  if(s.col===col){ s.dir=s.dir==='desc'?'asc':'desc'; }
+  else{ s.col=col; s.dir='desc'; }
+  renderOrderTemps(gid);
+}
 function setOrdMode(gid,m){ORDMODE[gid]=m;render();}
 function togglePieMode(gid){PIEMODE[gid]=PIEMODE[gid]==='plan'?'forecast':'plan';render();}
 function pieStats(list,mode){
@@ -632,8 +643,24 @@ async function renderOrderTemps(gid){
   const box=document.getElementById('ordbody_'+gid);
   if(!box)return;
   const data=await computeOrderTemps();
-  const rows=data[gid]||[];
-  let h='<table class="temp"><thead><tr><th rowspan="2">Артикул</th><th rowspan="2" class="ghead sep">Заказы<br>вчера</th><th colspan="2" class="ghead sep">Средний темп (3 будн. дня)</th><th colspan="2" class="ghead sep">Догоняющий темп</th><th colspan="2" class="ghead sep">Плановый темп</th></tr><tr><th class="shead sep">Средние</th><th class="shead">Откл.</th><th class="shead sep">Требуемые</th><th class="shead">Откл.</th><th class="shead sep">Требуемые</th><th class="shead">Откл.</th></tr></thead><tbody>';
+  const rows=(data[gid]||[]).slice();
+  const s=TEMP_SORT[gid];
+  const cmp=(a,b)=>{
+    const va=a[s.col], vb=b[s.col];
+    if(typeof va==='string'&&typeof vb==='string'){
+      const c=va.localeCompare(vb,'ru');
+      return s.dir==='asc'?c:-c;
+    }
+    return s.dir==='asc'?(va-vb):(vb-va);
+  };
+  rows.sort(cmp);
+  const arrow=(col)=>{
+    const active=s.col===col;
+    const mark=s.dir==='asc'?'▴':'▾';
+    return `<span class="sortArrow">${active?mark:'⇅'}</span>`;
+  };
+  const sortCls=(col)=>`shead sortable${s.col===col?' sorted':''}`;
+  let h=`<table class="temp"><thead><tr><th rowspan="2" class="shead sortable${s.col==='offer'?' sorted':''}" onclick="toggleTempSort('${gid}','offer')">Артикул${arrow('offer')}</th><th rowspan="2" class="ghead sep shead sortable${s.col==='yest'?' sorted':''}" onclick="toggleTempSort('${gid}','yest')">Заказы<br>вчера${arrow('yest')}</th><th colspan="2" class="ghead sep">Средний темп (3 будн. дня)</th><th colspan="2" class="ghead sep">Догоняющий темп</th><th colspan="2" class="ghead sep">Плановый темп</th></tr><tr><th class="shead sep sortable${s.col==='avg'?' sorted':''}" onclick="toggleTempSort('${gid}','avg')">Средние${arrow('avg')}</th><th class="${sortCls('devAvg')}" onclick="toggleTempSort('${gid}','devAvg')">Откл.${arrow('devAvg')}</th><th class="shead sep sortable${s.col==='rc'?' sorted':''}" onclick="toggleTempSort('${gid}','rc')">Требуемые${arrow('rc')}</th><th class="${sortCls('devCatch')}" onclick="toggleTempSort('${gid}','devCatch')">Откл.${arrow('devCatch')}</th><th class="shead sep sortable${s.col==='rp'?' sorted':''}" onclick="toggleTempSort('${gid}','rp')">Требуемые${arrow('rp')}</th><th class="${sortCls('devPlan')}" onclick="toggleTempSort('${gid}','devPlan')">Откл.${arrow('devPlan')}</th></tr></thead><tbody>`;
   rows.forEach(r=>{
     h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep">${Math.round(r.rp)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
   });
