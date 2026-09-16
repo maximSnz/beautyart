@@ -872,7 +872,16 @@ function verdict(it){
 function addDaysISO(iso,n){const d=parseW(iso);d.setDate(d.getDate()+n);return localISO(d);}
 function isWeekend(iso){const w=parseW(iso).getDay();return w===0||w===6;}
 function lastWeekdayBefore(iso){let d=addDaysISO(iso,-1);while(isWeekend(d))d=addDaysISO(d,-1);return d;}
-function weekdayOptions(startISO){const out=[];for(let i=1;i<=4;i++){const d=addDaysISO(startISO,i);if(!isWeekend(d))out.push(d);}return out;}
+function weekdayOptions(startISO){
+  const out=[];
+  let i=1;
+  while(out.length<3){
+    const d=addDaysISO(startISO,i);
+    if(!isWeekend(d))out.push(d);
+    i++;
+  }
+  return out;
+}
 async function fetchSalesMap(pid,from,to){
   const offer=(BYID[pid]||{}).offer_id;const map=new Map();let off=0;
   while(true){const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${from}&sale_date=lte.${to}&select=sale_date,qty&limit=1000&offset=${off}`,{headers:HD});if(!r.ok)break;const j=await r.json();j.forEach(x=>map.set(x.sale_date,(map.get(x.sale_date)||0)+Number(x.qty||0)));if(j.length<1000)break;off+=1000;}
@@ -946,8 +955,6 @@ async function addProto(pid){
   if(metric==='orders'){
     deadline=document.getElementById(`pd_${pid}`).value;
     if(!deadline){alert('Выберите дату контроля');return;}
-    if(isWeekend(deadline)){alert('Контроль не может попадать на выходной');return;}
-    if(deadline<=start||deadline>addDaysISO(start,4)){alert('Контроль — в окне до 4 дней, только будни');return;}
   }else{
     deadline=addDaysISO(start,3);
   }
@@ -1061,7 +1068,7 @@ function renderSmartForm(pid){
     </div>
     <div class="pfrow"><input type="text" id="pa_${pid}" placeholder="Гипотеза (действие)"><button onclick="addProto(${pid})">Добавить</button></div>
     <div class="psub" id="smartbase_${pid}">База: расчёт…</div>
-    <div class="psub">Заказы: контроль — будний день в окне до 4 дней, база — среднее за 3 будних дня до старта, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически; база — агрегированная за ${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, факт — агрегированная за 3 дня до контроля включительно.</div>
+    <div class="psub">Заказы: контроль — один из 3 следующих будних дней, база — среднее за 3 будних дня до старта, факт — среднее по будням периода. Маржинальность: контроль ${ddmm(addDaysISO(start,3))} автоматически; база — агрегированная за ${ddmm(addDaysISO(start,-4))}…${ddmm(addDaysISO(start,-2))}, факт — агрегированная за 3 дня до контроля включительно.</div>
   </div>`;
 }
 function renderRecs(pid){
