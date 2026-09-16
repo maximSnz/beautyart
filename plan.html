@@ -143,6 +143,15 @@
  .pmwrap{display:inline-flex;margin-left:12px;border:1px solid rgba(84,66,115,.25);border-radius:8px;overflow:hidden;vertical-align:middle}
  .pmbtn{padding:2px 10px;border:none;background:#fff;color:#544273;font-family:'Forum';font-size:.72em;cursor:pointer}
  .pmbtn.on{background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff}
+  .mxbody{height:280px}
+ .tempwrap{height:100%;overflow:auto;width:100%}
+ table.temp{width:100%;border-collapse:collapse;font-size:.8em;min-width:680px}
+ table.temp th,table.temp td{padding:3px 6px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:right;white-space:nowrap}
+ table.temp th{color:#666;font-size:.85em}
+ table.temp th:first-child,table.temp td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
+ .th-avg{background:rgba(154,144,86,.14)}
+ .th-catch{background:rgba(227,120,61,.12)}
+ .th-plan{background:rgba(120,166,199,.16)}
  @media (min-width:961px){
    .tablewrap{overflow-x:auto}
  }
@@ -158,6 +167,8 @@
    .header{flex-wrap:wrap}
    .header-nav{margin-left:0;width:100%}
    .mxbody{flex-direction:column;align-items:stretch}
+    .mxbody{height:auto}
+   .tempwrap{max-height:320px}
    .kpiswrap{flex-wrap:wrap;margin-left:0}
  }
 </style></head>
@@ -227,6 +238,8 @@ let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},D
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
  let PIEMODE='plan';
+let ORDMODE={m1:'summary',m2:'summary'};
+function setOrdMode(gid,m){ORDMODE[gid]=m;render();}
 function setPieMode(m){PIEMODE=m;render();}
 function pieStats(list,mode){
   const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
@@ -517,6 +530,7 @@ async function importCharges(file){
     const provW=await provisionalWeeks();
     await syncPnl(provW);
     await loadWeeks();
+    TEMPS_CACHE={key:'',data:null};
     await fixHypotheses();
     await loadProto();  // обновить PROTO после фиксации
     render();
@@ -528,47 +542,80 @@ async function importCharges(file){
     btn.disabled=false;btn.textContent='⬆ CSV начислений';document.getElementById('chargesInput').value='';
   }
 }
+ let TEMPS_CACHE={key:'',data:null};
+function tempsKey(){return MONTH+'|'+localISO(new Date());}
+async function computeOrderTemps(){
+  if(TEMPS_CACHE.key===tempsKey()&&TEMPS_CACHE.data)return TEMPS_CACHE.data;
+  const today=new Date();today.setHours(0,0,0,0);
+  const tISO=localISO(today);
+  const yISO=addDaysISO(tISO,-1);
+  if(!WEEKISO.length)return {m1:[],m2:[]};
+  const periodStart=WEEKISO[0];
+  const periodEnd=localISO(weekEnd(parseW(WEEKISO[WEEKISO.length-1])));
+  const baseDays=[];let d=addDaysISO(tISO,-2);
+  while(baseDays.length<3){if(!isWeekend(d))baseDays.unshift(d);d=addDaysISO(d,-1);}
+  const fetchFrom=baseDays[0]<periodStart?baseDays[0]:periodStart;
+  const byOffer=new Map();let off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?sale_date=gte.${fetchFrom}&sale_date=lte.${yISO}&select=offer_id,sale_date,qty&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json();
+    j.forEach(x=>{let m=byOffer.get(x.offer_id);if(!m){m=new Map();byOffer.set(x.offer_id,m);}m.set(x.sale_date,(m.get(x.sale_date)||0)+Number(x.qty||0));});
+    if(j.length<1000)break;off+=1000;
+  }
+  let B=0,W=0;d=tISO;
+  while(d<=periodEnd){if(isWeekend(d))W++;else B++;d=addDaysISO(d,1);}
+  const effRemain=B+0.5*W;
+  let BT=0,WT=0;d=periodStart;
+  while(d<=periodEnd){if(isWeekend(d))WT++;else BT++;d=addDaysISO(d,1);}
+  const effTotal=BT+0.5*WT;
+  const res={m1:[],m2:[]};
+  ROWS.forEach(p=>{
+    const pl=PLAN[p.product_id];
+    if(!pl||!(pl.plan_qty>0))return;
+    const gid=matrixOf(p.offer_id);
+    const m=byOffer.get(p.offer_id);
+    let sum=0;baseDays.forEach(x=>{sum+=m?(m.get(x)||0):0;});
+    const avg=sum/3;
+    const yest=m?(m.get(yISO)||0):0;
+    let exec=0;
+    if(m)m.forEach((v,k)=>{if(k>=periodStart&&k<=yISO)exec+=v;});
+    const need=pl.plan_qty/0.95;
+    const remain=need-exec;
+    const rc=effRemain>0?remain/effRemain:0;
+    const rp=effTotal>0?need/effTotal:0;
+    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,devCatch:avg-rc,rp:rp,devPlan:avg-rp});
+  });
+  res.m1.sort((a,b)=>a.devPlan-b.devPlan);
+  res.m2.sort((a,b)=>a.devPlan-b.devPlan);
+  TEMPS_CACHE={key:tempsKey(),data:res};
+  return res;
+}
+function clsDev(v){return v<0?'r':(v>0?'g':'n');}
+function rndDev(v){return (v>0?'+':'')+Math.round(v);}
+async function renderOrderTemps(gid){
+  const box=document.getElementById('ordbody_'+gid);
+  if(!box)return;
+  const data=await computeOrderTemps();
+  const rows=data[gid]||[];
+  let h='<table class="temp"><thead><tr><th rowspan="2">Артикул</th><th rowspan="2">Заказы<br>вчера</th><th colspan="2" class="th-avg">Средний темп (3 будн. дня)</th><th colspan="2" class="th-catch">Догоняющий темп</th><th colspan="2" class="th-plan">Плановый темп</th></tr><tr><th class="th-avg">Средние</th><th class="th-avg">Откл.</th><th class="th-catch">Требуемые</th><th class="th-catch">Откл.</th><th class="th-plan">Требуемые</th><th class="th-plan">Откл.</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num">${r.yest}</td><td class="num">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num">${Math.round(r.rp)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  box.innerHTML=h;
+}
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
   const btn=document.getElementById('btnExcel'); btn.disabled=true; btn.textContent='⏃ Формирование…';
   try{
-    const today=new Date(); today.setHours(0,0,0,0);
-    const tISO=localISO(today);
-    const yISO=addDaysISO(tISO,-1);
-    if(!WEEKISO.length){alert('Нет недель в периоде');return;}
-    const periodStart=WEEKISO[0];
-    const periodEnd=localISO(weekEnd(parseW(WEEKISO[WEEKISO.length-1])));
-    const baseDays=[]; let d=addDaysISO(tISO,-2);
-    while(baseDays.length<3){ if(!isWeekend(d))baseDays.unshift(d); d=addDaysISO(d,-1); }
-    const fetchFrom=baseDays[0]<periodStart?baseDays[0]:periodStart;
-    let B=0,W=0; d=tISO;
-    while(d<=periodEnd){ if(isWeekend(d))W++; else B++; d=addDaysISO(d,1); }
-    const eff=B+0.5*W;
+    const data=await computeOrderTemps();
+    const tISO=localISO(new Date());
     const wb=XLSX.utils.book_new();
     for(const [gid,gname] of [['m1','Илья'],['m2','Ольга']]){
-      const list=ROWS.filter(r=>matrixOf(r.offer_id)===gid&&((PLAN[r.product_id]||{}).plan_qty||0)>0);
-      const out=[];
-      for(const p of list){
-        const pid=p.product_id;
-        const map=await fetchSalesMap(pid,fetchFrom,yISO);
-        let sum=0; baseDays.forEach(x=>{sum+=(map.get(x)||0);});
-        const avg=sum/3;
-        const yest=map.get(yISO)||0;
-        let exec=0; map.forEach((v,k)=>{ if(k>=periodStart&&k<=yISO)exec+=v; });
-        const needOrders=PLAN[pid].plan_qty/0.95;
-        const remain=needOrders-exec;
-        const R=eff>0?remain/eff:0;
-        const dev=avg-R;
-        out.push({dev:dev,row:{
-          'Артикул':p.offer_id,
-          'Средние заказы (3 будн. дня)':Math.round(avg),
-          'Заказы вчера':yest,
-          'Требуемые заказы':Math.round(R),
-          'Отклонение':Math.round(dev)
-        }});
-      }
-      out.sort((a,b)=>a.dev-b.dev);
-      const ws=XLSX.utils.json_to_sheet(out.map(o=>o.row));
+      const list=(data[gid]||[]).slice().sort((a,b)=>a.devCatch-b.devCatch);
+      const rowsOut=list.map(r=>({'Артикул':r.offer,'Средние заказы (3 будн. дня)':Math.round(r.avg),'Заказы вчера':r.yest,'Требуемые заказы':Math.round(r.rc),'Отклонение':Math.round(r.devCatch)}));
+      const ws=XLSX.utils.json_to_sheet(rowsOut);
       ws['!cols']=[{wch:24},{wch:26},{wch:14},{wch:17},{wch:12}];
       XLSX.utils.book_append_sheet(wb,ws,gname);
     }
@@ -1296,12 +1343,13 @@ function hypStats(list){
   });
   return {active,success,fail};
 }
-function mxCard(id,title,list){
+function mxCard(id,title,list,gid){
   const s=matrixStats(list);
   const h=hypStats(list);
   const wMar=s.tRub>0?s.tMar/s.tRub*100:0;
   const wFMar=s.tFRev>0?s.tFMar/s.tFRev*100:0;
-  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${PIEMODE==='plan'?'on':''}" onclick="setPieMode('plan')">План</button><button class="pmbtn ${PIEMODE==='forecast'?'on':''}" onclick="setPieMode('forecast')">Прогноз</button></span></div><div class="mxbody">
+  const ordOn=(ORDMODE[gid]==='orders');
+  const body=ordOn?`<div class="tempwrap" id="ordbody_${gid}"><div class="psub" style="padding:10px">загрузка…</div></div>`:`
     <div class="piecard"><div class="ptitle">Выручка по маржинальности</div><div class="piebox">
       <div class="pieWrap"><svg class="pie" id="pieRev${id}" viewBox="0 0 220 220"></svg><div class="pieCenter"><div class="pcVal" id="pcValRev${id}"></div><div class="pcCap" id="pcCapRev${id}"></div></div></div>
       <div class="legend" id="legendRev${id}"></div></div></div>
@@ -1324,14 +1372,17 @@ function mxCard(id,title,list){
         <div class="kpi"><div class="klabel">Успешных</div><div class="kval">${h.success}</div></div>
         <div class="kpi"><div class="klabel">Неудачных</div><div class="kval">${h.fail}</div></div>
       </div>
-    </div></div></div>`;
+    </div>`;
+  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${PIEMODE==='plan'?'on':''}" onclick="setPieMode('plan')">План</button><button class="pmbtn ${PIEMODE==='forecast'?'on':''}" onclick="setPieMode('forecast')">Прогноз</button></span><span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="setOrdMode('${gid}','orders')">Заказы</button></span></div><div class="mxbody">${body}</div></div>`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
-  document.getElementById('summary').innerHTML=mxCard('1','Илья',m1)+mxCard('2','Ольга',m2);
+  document.getElementById('summary').innerHTML=mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
+  if(ORDMODE.m1==='orders')renderOrderTemps('m1');
+  if(ORDMODE.m2==='orders')renderOrderTemps('m2');
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
