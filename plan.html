@@ -599,10 +599,10 @@ async function computeOrderTemps(){
   }
   let B=0,W=0;d=tISO;
   while(d<=periodEnd){if(isWeekend(d))W++;else B++;d=addDaysISO(d,1);}
-  const effRemain=B+0.5*W;
+  const effRemain=B+0.7*W;
   let BT=0,WT=0;d=periodStart;
   while(d<=periodEnd){if(isWeekend(d))WT++;else BT++;d=addDaysISO(d,1);}
-  const effTotal=BT+0.5*WT;
+  const effTotal=BT+0.7*WT;
   const res={m1:[],m2:[]};
   ROWS.forEach(p=>{
     const pl=PLAN[p.product_id];
