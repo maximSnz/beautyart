@@ -84,6 +84,7 @@
  .pnote button{padding:1px 6px;font-size:.75em;margin-top:4px}
  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
  .toolbar input[type=text]{flex:1;min-width:180px}
+ .toolbar select{height:36px;box-sizing:border-box}
  .progress{margin:10px 0}
  .progtext{font-size:.85em;color:#544273;margin-bottom:4px}
  .progbar{height:8px;border-radius:8px;background:#e2e8f0;overflow:hidden}
@@ -656,6 +657,13 @@ function rndDev(v){return (v>0?'+':'')+Math.round(v);}
 async function renderOrderTemps(gid){
   const box=document.getElementById('ordbody_'+gid);
   if(!box)return;
+  const [y,m]=MONTH.split('-').map(Number);
+  const now=new Date(); now.setHours(0,0,0,0);
+  const monthStart=new Date(y,m-1,1);
+  if(monthStart>now){
+    box.innerHTML='<div class="psub" style="padding:10px;text-align:center">⏳ Месяц ещё не начался — данные появятся после 1-го числа</div>';
+    return;
+  }
   const data=await computeOrderTemps();
   const rows=(data[gid]||[]).slice();
   const s=TEMP_SORT[gid];
@@ -687,6 +695,13 @@ async function renderProgBar(gid){
   const sub=document.getElementById('progsub_'+gid);
   const emo=document.getElementById('progemoji_'+gid);
   if(!val||!fill||!sub)return;
+  const [y,m]=MONTH.split('-').map(Number);
+  const now=new Date(); now.setHours(0,0,0,0);
+  const monthStart=new Date(y,m-1,1);
+  if(monthStart>now){
+    val.textContent='—';val.className='progval n';fill.style.height='0%';
+    if(emo)emo.textContent='⏳';sub.textContent='месяц ещё не начался';return;
+  }
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
   let F=0,P=0;
