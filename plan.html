@@ -675,18 +675,18 @@ async function renderProgBar(gid){
   if(!val||!fill||!sub)return;
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
-  let y=0,rp=0;
-  rows.forEach(x=>{y+=x.yest;rp+=x.rp;});
-  if(!rows.length||rp<=0){val.textContent='—';val.className='progval n';fill.style.height='0%';if(emo)emo.textContent='🚫';sub.textContent='нет данных плана';return;}
-  const pct=y/rp*100;
-  const cls=pct>=100?'ok':(pct>=80?'warn':'bad');
-  const emoji=pct>=100?'🚀':(pct>=90?'🔥':(pct>=75?'🙂':(pct>=50?'😐':'💩')));
+  let F=0,P=0;
+  rows.forEach(x=>{P+=x.rp;F+=Math.min(x.yest,x.rp);});
+  if(!rows.length||P<=0){val.textContent='—';val.className='progval n';fill.style.height='0%';if(emo)emo.textContent='🚫';sub.textContent='нет данных плана';return;}
+  const pct=F/P*100;
+  const cls=pct>=90?'ok':(pct>=80?'warn':'bad');
+  const emoji=pct>=95?'🚀':(pct>=90?'🔥':(pct>=80?'🙂':(pct>=60?'😐':'💩')));
   val.textContent=Math.round(pct)+'%';
   val.className='progval '+cls;
   fill.className='thermofill'+(cls==='ok'?' ok':(cls==='warn'?' warn':''));
   fill.style.height=Math.min(pct,100)+'%';
   if(emo)emo.textContent=emoji;
-  sub.innerHTML=`${fmt(y)} / ${fmt(Math.round(rp))} шт<br>клик — темпы`;
+  sub.textContent=`${fmt(Math.round(F))} / ${fmt(Math.round(P))} шт`;
 }
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
