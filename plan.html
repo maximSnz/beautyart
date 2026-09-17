@@ -187,6 +187,10 @@
  .progval.n{color:#94a3b8}
  @keyframes pulseBad{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
  .progsub{font-size:.72em;color:#94a3b8}
+ .upwrap{position:relative;display:inline-block}
+ .upmenu{position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid rgba(84,66,115,.25);border-radius:8px;padding:4px;display:flex;flex-direction:column;gap:4px;min-width:210px;box-shadow:0 6px 18px rgba(28,13,46,.15);z-index:300}
+ .upmenu button{background:#f8f9fb;color:#544273;text-align:left}
+ .upmenu button:hover{background:rgba(120,166,199,.2)}
  @media (max-width:1100px){
    .mxbody{flex-wrap:wrap}
    .panel-charts,.panel-thermo,.panel-kpi{flex:1 1 100%;width:100%}
@@ -248,9 +252,17 @@
     <div class="toolbar">
       <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
       <select id="month" onchange="onMonth(this.value)"></select>
-      <button id="btnCharges" onclick="chargesInput.click()">⬆ CSV начислений</button>
+      <span class="upwrap">
+        <button id="btnUpload" onclick="toggleUploadMenu(event)">⬆ CSV</button>
+        <div class="upmenu hide" id="upmenu">
+          <button onclick="startChargesUpload()">Начисления Ozon</button>
+          <button onclick="startAdsUpload()">Аналитика продвижения</button>
+        </div>
+      </span>
       <button id="btnExcel" onclick="exportPlanExcel()">📥 Excel</button>
       <input type="file" id="chargesInput" accept=".csv" style="display:none" onchange="importCharges(this.files[0])">
+      <input type="file" id="adsInput" accept=".csv" style="display:none" onchange="importAds(this.files[0])">
+      <input type="date" id="adsDate" style="display:none" onchange="onAdsDate(this.value)">
     </div>
     <div class="progress hide" id="progWrap">
       <div class="progtext" id="progText">Загрузка…</div>
@@ -270,6 +282,7 @@
 <script>
 function toggleNav(btn){const item=btn.closest('.nav-item');const wasOpen=item.classList.contains('open');document.querySelectorAll('.nav-item.open').forEach(i=>i.classList.remove('open'));if(!wasOpen)item.classList.add('open');}
 document.addEventListener('click',(e)=>{if(!e.target.closest('.nav-item')){document.querySelectorAll('.nav-item.open').forEach(i=>i.classList.remove('open'));}});
+document.addEventListener('click',(e)=>{if(!e.target.closest('.upwrap')){const m=document.getElementById('upmenu');if(m)m.classList.add('hide');}});
 const PASSWORD_HASH='6dd81b2b2385ffaeae34bc09050f3258110c5c7f1db578c69bcbc30ad8a121e0';
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
@@ -436,7 +449,10 @@ async function loadChargesFor(pid){
     if(!r.ok)break;
     const j=await r.json(); rows=rows.concat(j); if(j.length<1000)break; off+=1000;
   }
-  if(box)box.innerHTML=renderCharges(pid,rows);
+  const adsMap=await loadAdSpend(first,last);
+  const adsByDay=adsMap.get(pid)||new Map();
+  let ads=0; adsByDay.forEach((v,d)=>{ if(d>=first&&d<=last) ads+=v; });
+  if(box)box.innerHTML=renderCharges(pid,rows,ads);
 }
  let COST={};
 async function loadCosts(){
@@ -490,6 +506,7 @@ async function syncPnl(extraWeeks){
     if(j==null)break;
     rows=rows.concat(j); if(j.length<1000)break; off+=1000;
   }
+  const adsMap=await loadAdSpend(first,last);
   const day=new Map();
   rows.forEach(c=>{
     const pid=OFFER_PID[c.offer_id]; if(!pid)return;
@@ -506,17 +523,19 @@ async function syncPnl(extraWeeks){
     const ws=parseW(w); const wDays=[];
     for(let i=0;i<7;i++){ const d=new Date(ws); d.setDate(d.getDate()+i); wDays.push(localISO(d)); }
     day.forEach((m,pid)=>{
-      let pnl=0,sales=0,gmv=0,revg=0,ug=0,cogs=0,prov=false,any=false;
+      let pnl=0,sales=0,gmv=0,revg=0,ug=0,cogs=0,ads=0,prov=false,any=false;
+      const am=adsMap.get(pid);
       wDays.forEach(d=>{
         const g=m.get(d); if(!g)return;
         any=true;
         pnl+=g.pnl; sales+=g.sales; gmv+=g.gmv; revg+=g.revg; ug+=g.ug;
+        ads+=am?(am.get(d)||0):0;
         const ci=costAt(pid,d);
         cogs+=ci.cost*g.sales;
         if(ci.prov)prov=true;
       });
       if(!any)return;
-      const mar=pnl-cogs, retn=gmv;
+      const mar=pnl-cogs-ads, retn=gmv;
       const row=(metric,fact)=>({product_id:pid,week:w,metric,fact,cogs:Math.round(cogs*100)/100,cost_provisional:prov});
       body.push(row('sales',sales));
       body.push(row('revn',Math.round(retn*100)/100));
@@ -558,7 +577,7 @@ async function fixHypotheses(){
 }
 async function importCharges(file){
   if(!file)return;
-  const btn=document.getElementById('btnCharges'); btn.disabled=true; btn.textContent='⏳ Загрузка…';
+  const btn=document.getElementById('btnUpload'); btn.disabled=true; btn.textContent='⏳ Загрузка…';
   document.getElementById('progFill').classList.remove('bad');
   try{
     setP(5,'Чтение файла…');
@@ -600,8 +619,77 @@ async function importCharges(file){
   }catch(e){
     setP(100,'Ошибка импорта: '+e.message,true);
   }finally{
-    btn.disabled=false;btn.textContent='⬆ CSV начислений';document.getElementById('chargesInput').value='';
+    btn.disabled=false;btn.textContent='⬆ CSV';document.getElementById('chargesInput').value='';
   }
+}
+ function toggleUploadMenu(e){e.stopPropagation();document.getElementById('upmenu').classList.toggle('hide');}
+function startChargesUpload(){document.getElementById('upmenu').classList.add('hide');document.getElementById('chargesInput').click();}
+function startAdsUpload(){
+  document.getElementById('upmenu').classList.add('hide');
+  const d=document.getElementById('adsDate');
+  d.style.display='';d.focus();
+  try{ if(d.showPicker)d.showPicker(); }catch(e){}
+}
+function onAdsDate(v){
+  if(!v)return;
+  ADS_DATE=v;
+  const d=document.getElementById('adsDate');
+  d.style.display='none';d.value='';
+  document.getElementById('adsInput').click();
+}
+let ADS_DATE=null;
+const ADS_MEMO=new Map();
+async function loadAdSpend(from,to){
+  const key=from+'|'+to;
+  if(ADS_MEMO.has(key))return ADS_MEMO.get(key);
+  const map=new Map();let off=0;
+  while(true){
+    const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_ad_spend?spend_date=gte.${from}&spend_date=lte.${to}&select=offer_id,spend_date,amount&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)break;
+    const j=await r.json();
+    j.forEach(x=>{const pid=OFFER_PID[x.offer_id];if(!pid)return;let m=map.get(pid);if(!m){m=new Map();map.set(pid,m);}m.set(x.spend_date,(m.get(x.spend_date)||0)+Number(x.amount||0));});
+    if(j.length<1000)break;off+=1000;
+  }
+  ADS_MEMO.set(key,map);
+  return map;
+}
+async function importAds(file){
+  if(!file)return;
+  if(!ADS_DATE){alert('Сначала выберите дату отчёта');return;}
+  const btn=document.getElementById('btnUpload'); btn.disabled=true; btn.textContent='⏳ Загрузка…';
+  try{
+    setP(5,'Чтение аналитики продвижения…');
+    const text=await file.text();
+    const rows=parseCSV(text);
+    const bySku=new Map();
+    for(const r of rows){
+      const sku=(r[0]||'').trim();
+      if(!sku||/период:/i.test(sku)||sku==='SKU')continue;
+      if(!/^\d+$/.test(sku))continue;
+      bySku.set(sku,(bySku.get(sku)||0)+parseMoney(r[5]));
+    }
+    const body=[];const unknown=[];
+    bySku.forEach((amt,sku)=>{
+      if(OFFER_PID[sku])body.push({offer_id:sku,spend_date:ADS_DATE,amount:Math.round(amt*100)/100,updated_at:new Date().toISOString()});
+      else unknown.push(sku);
+    });
+    if(!body.length){ setP(100,'В файле нет расходов по известным SKU.',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
+    for(let i=0;i<body.length;i+=500){
+      const part=body.slice(i,i+500);
+      const r=await fetch(SUPABASE_URL+'/rest/v1/ozon_ad_spend?on_conflict=offer_id,spend_date',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+    }
+    setP(90,'Пересчёт маржи с учётом рекламы…');
+    ADS_MEMO.clear();
+    const provW=await provisionalWeeks();
+    await syncPnl(provW);
+    await loadWeeks();
+    document.querySelectorAll('[id^="chg_"],[id^="pulse_"]').forEach(el=>{delete el.dataset.loaded;});
+    render();
+    setP(100,`✔ Готово! SKU с расходами: ${body.length}.${unknown.length?` Неизвестных SKU: ${unknown.length} (${unknown.slice(0,5).join(', ')}${unknown.length>5?'…':''}).`:''} Маржа пересчитана с рекламой.`);
+    setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),6000);
+  }catch(e){ setP(100,'Ошибка загрузки рекламы: '+e.message,true); }
+  finally{ btn.disabled=false;btn.textContent='⬆ CSV';document.getElementById('adsInput').value='';ADS_DATE=null; }
 }
  let TEMPS_CACHE={key:'',data:null};
 function tempsKey(){return MONTH+'|'+localISO(new Date());}
@@ -735,7 +823,8 @@ async function exportPlanExcel(){
   }catch(e){alert('Ошибка экспорта: '+e.message);}
   finally{btn.disabled=false;btn.textContent='📥 Excel';}
 }
-function renderCharges(pid,rows){
+function renderCharges(pid,rows,ads){
+  ads=ads||0;
   if(!rows||!rows.length)return '<div class="psub">нет начислений за период</div>';
   const byType=new Map(); let ug=0,retq=0,pnl=0,revG=0,retG=0;
   rows.forEach(c=>{
@@ -745,7 +834,9 @@ function renderCharges(pid,rows){
     if(c.charge_type==='Выручка'){ ug+=Number(c.qty||0); revG+=pr; }
     else if(c.charge_type==='Возврат выручки'){ retq+=Number(c.qty||0); retG+=pr; }
   });
-  const cost=COST[pid]||0, sales=ug-retq, mar=pnl-cost*sales;
+  const cost=COST[pid]||0, sales=ug-retq, marOp=pnl-cost*sales, marNet=marOp-ads;
+  let gmvNet=0;
+  rows.forEach(c=>{ const pr=Number(c.price||0), q=Number(c.qty||0); if(c.charge_type==='Выручка'||c.charge_type==='Возврат выручки') gmvNet+=pr*q; });
   const arr=[...byType.entries()].sort((a,b)=>a[1]-b[1]);
   const line=([t,v])=>{
     if(t==='Выручка')return `<div class="prec"><b>${esc(t)}</b> <span class="g">${fmt2(revG)} ₽</span></div>`;
@@ -755,7 +846,9 @@ function renderCharges(pid,rows){
   return arr.map(line).join('')
     +`<div class="prec"><b>PNL до себестоимости</b> <span class="${pnl<0?'r':'g'}">${fmt2(pnl)} ₽</span></div>`
     +`<div class="prec"><b>− себестоимость × продажи</b> <span class="r">−${fmt2(cost*sales)} ₽</span> <span style="opacity:.5;font-size:.85em">(${fmt2(cost)} ₽ × ${sales} шт)</span></div>`
-    +`<div class="prec"><b>Маржа</b> <span class="${mar<0?'r':'g'}">${fmt2(mar)} ₽</span></div>`;
+    +`<div class="prec"><b>Маржа операционная</b> <span class="${marOp<0?'r':'g'}">${fmt2(marOp)} ₽</span></div>`
+    +`<div class="prec"><b>Рекламные расходы</b> <span class="r">−${fmt2(ads)} ₽</span></div>`
+    +`<div class="prec"><b>Маржа чистая</b> <span class="${marNet<0?'r':'g'}">${fmt2(marNet)} ₽</span>${gmvNet>0?` <span style="opacity:.5;font-size:.85em">• маржинальность ${fmt2(marNet/gmvNet*100)}%</span>`:''}</div>`;
 }
 async function load(){
   const err=document.getElementById('err'); err.textContent='';
@@ -1069,15 +1162,18 @@ async function ordersBaseWindow(pid,startISO){
 }
 async function marginAggPeriod(pid,fromISO,toISO){
   const map=await fetchChargesMap(pid,fromISO,toISO);
-  let pnl=0,gmv=0,sales=0,cnt=0,d=fromISO;
+  const adsMap=await loadAdSpend(fromISO,toISO);
+  const adsByDay=adsMap.get(pid)||new Map();
+  let pnl=0,gmv=0,sales=0,cnt=0,ads=0,d=fromISO;
   while(d<=toISO){
     const g=map.get(d);
     if(g&&g.gmv>0){pnl+=g.pnl;gmv+=g.gmv;sales+=g.sales;cnt++;}
+    ads+=adsByDay.get(d)||0;
     d=addDaysISO(d,1);
   }
   if(!cnt||gmv<=0)return null;
   const cost=COST[pid]||0;
-  return {pct:Math.round(((pnl-cost*sales)/gmv*100)*100)/100,from:fromISO,to:toISO,days:cnt};
+  return {pct:Math.round(((pnl-cost*sales-ads)/gmv*100)*100)/100,from:fromISO,to:toISO,days:cnt};
 }
 async function loadSmartBase(pid){
   const el=document.getElementById('smartbase_'+pid);
@@ -1348,21 +1444,32 @@ async function loadPulse(pid){
   const byDayCh=new Map();
   chargeRows.forEach(c=>{
     const d=c.event_date; if(!d)return;
-    let g=byDayCh.get(d); if(!g){g={gmv:0,sales:0,pnl:0};byDayCh.set(d,g);}
+    let g=byDayCh.get(d); if(!g){g={gmv:0,sales:0,pnl:0,revg:0};byDayCh.set(d,g);}
     const amt=Number(c.amount||0), qty=Number(c.qty||0), price=Number(c.price||0);
     g.pnl+=amt;
-    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.sales+=qty; }
+    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.sales+=qty; g.revg+=price*qty; }
     else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; }
   });
   const days=[];
   for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ days.push(localISO(new Date(d))); }
   const salesVals=days.map(iso=>{ const v=byDaySales.get(iso); return v==null?null:v; });
   const stockVals=days.map(iso=>{ const v=rawStock.get(iso); return v==null?null:v; });
+  const adsMap=await loadAdSpend(first,last);
+  const adsByDay=adsMap.get(pid)||new Map();
   const cost=COST[pid]||0;
   const marginVals=days.map(iso=>{
     const g=byDayCh.get(iso);
+    const ads=adsByDay.get(iso)||0;
     if(!g||g.gmv<=0) return null;
-    return (g.pnl-cost*g.sales)/g.gmv*100;
+    return (g.pnl-cost*g.sales-ads)/g.gmv*100;
+  });
+  const drrVals=days.map(iso=>{
+    const ads=adsByDay.get(iso)||0;
+    if(ads===0) return null;
+    const g=byDayCh.get(iso);
+    const revg=g?g.revg:0;
+    if(!revg||revg<=0) return Infinity;
+    return ads/revg*100;
   });
   const salesNums=salesVals.filter(v=>v!=null);
   const sMn=salesNums.length?Math.min(...salesNums):0, sMx=salesNums.length?Math.max(...salesNums):0;
@@ -1388,6 +1495,12 @@ async function loadPulse(pid){
   h+='</tr>';
   h+='<tr><td class="pulsemetric">Маржинальность, %</td>';
   marginVals.forEach(v=>{ h+=`<td class="num" style="${marginBg(v)}">${v==null?'—':f1(v)}</td>`; });
+  h+='</tr>';
+  const drrFin=drrVals.filter(v=>v!=null&&isFinite(v));
+  const dMn=drrFin.length?Math.min(...drrFin):0, dMx=drrFin.length?Math.max(...drrFin):1;
+  const drrBg=v=>{ if(v==null)return ''; if(!isFinite(v))return 'background:rgba(227,61,120,.18);'; if(!drrFin.length)return ''; const t=(dMx===dMn)?0.5:(dMx-v)/(dMx-dMn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
+  h+='<tr><td class="pulsemetric">ДРР, %</td>';
+  drrVals.forEach(v=>{ h+=`<td class="num" style="${drrBg(v)}">${v==null?'—':(isFinite(v)?f1(v):'∞')}</td>`; });
   h+='</tr>';
   h+='</tbody></table><div class="psub" style="margin-top:6px">* — предварительный день (последние 7 дней): маржинальность уточняется по мере доезда начислений. Дни старше 7 дней устойчивы; редкие поздние возвраты возможны и по ним — это нормальная ревизия.</div></div>';
   if(box)box.innerHTML=h;
