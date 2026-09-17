@@ -262,8 +262,9 @@
       </span>
       <button id="btnExcel" onclick="exportPlanExcel()">📥 Excel</button>
       <input type="file" id="chargesInput" accept=".csv" style="display:none" onchange="importCharges(this.files[0])">
-      <input type="file" id="adsInput" accept=".csv" style="display:none" onchange="importAds(this.files[0])">
       <input type="date" id="adsDate" style="display:none" onchange="onAdsDate(this.value)">
+      <button id="btnAdsFile" class="hide" onclick="document.getElementById('adsInput').click()">📄 Файл за <span id="adsDateLabel"></span></button>
+      <input type="file" id="adsInput" accept=".csv" style="display:none" onchange="importAds(this.files[0])">
     </div>
     <div class="progress hide" id="progWrap">
       <div class="progtext" id="progText">Загрузка…</div>
@@ -634,9 +635,12 @@ function startAdsUpload(){
 function onAdsDate(v){
   if(!v)return;
   ADS_DATE=v;
+  const lbl=document.getElementById('adsDateLabel');
+  if(lbl)lbl.textContent=v.split('-').reverse().join('.');
   const d=document.getElementById('adsDate');
-  d.style.display='none';d.value='';
-  document.getElementById('adsInput').click();
+  d.style.display='none';
+  const b=document.getElementById('btnAdsFile');
+  if(b)b.classList.remove('hide');
 }
 let ADS_DATE=null;
 const ADS_MEMO=new Map();
@@ -690,7 +694,12 @@ async function importAds(file){
     setP(100,`✔ Готово! SKU с расходами: ${body.length}.${unknown.length?` Неизвестных SKU: ${unknown.length} (${unknown.slice(0,5).join(', ')}${unknown.length>5?'…':''}).`:''} Маржа пересчитана с рекламой.`);
     setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),6000);
   }catch(e){ setP(100,'Ошибка загрузки рекламы: '+e.message,true); }
-  finally{ btn.disabled=false;btn.textContent='⬆ CSV';document.getElementById('adsInput').value='';ADS_DATE=null; }
+  finally{
+    btn.disabled=false;btn.textContent='⬆ CSV';
+    document.getElementById('adsInput').value='';ADS_DATE=null;
+    const b=document.getElementById('btnAdsFile'); if(b)b.classList.add('hide');
+    const d=document.getElementById('adsDate'); d.value=''; d.style.display='none';
+  }
 }
  let TEMPS_CACHE={key:'',data:null};
 function tempsKey(){return MONTH+'|'+localISO(new Date());}
