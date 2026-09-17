@@ -246,7 +246,7 @@
     <div class="err" id="err"></div>
     <div class="toolbar">
       <input type="text" id="q" placeholder="Поиск по названию / артикулу" oninput="render()">
-      <input type="month" id="month" onchange="onMonth(this.value)">
+      <select id="month" onchange="onMonth(this.value)"></select>
       <button id="btnCharges" onclick="chargesInput.click()">⬆ CSV начислений</button>
       <button id="btnExcel" onclick="exportPlanExcel()">📥 Excel</button>
       <input type="file" id="chargesInput" accept=".csv" style="display:none" onchange="importCharges(this.files[0])">
@@ -324,6 +324,19 @@ const METRICS=[
 ];
 const now0=new Date();
 let MONTH=now0.getFullYear()+'-'+String(now0.getMonth()+1).padStart(2,'0');
+const MNAMES=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+function fillMonthSelect(){
+  const sel=document.getElementById('month');
+  if(!sel)return;
+  const now=new Date();
+  let h='';
+  for(let i=-2;i<=3;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()+i,1);
+    const v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    h+=`<option value="${v}">${MNAMES[d.getMonth()]} ${d.getFullYear()}</option>`;
+  }
+  sel.innerHTML=h;
+}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const pad=n=>String(n).padStart(2,'0');
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -367,6 +380,7 @@ async function go(){
   if(h!==PASSWORD_HASH){alert('Неверный пароль');return;}
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
+  fillMonthSelect();
   document.getElementById('month').value=MONTH;
   load();
 }
