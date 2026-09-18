@@ -289,7 +289,7 @@ const PASSWORD_HASH='6dd81b2b2385ffaeae34bc09050f3258110c5c7f1db578c69bcbc30ad8a
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={},SKU_PID={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
  let PIEMODE={m1:'plan',m2:'plan'};
@@ -652,7 +652,7 @@ async function loadAdSpend(from,to){
     const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_ad_spend?spend_date=gte.${from}&spend_date=lte.${to}&select=offer_id,spend_date,amount&limit=1000&offset=${off}`,{headers:HD});
     if(!r.ok)break;
     const j=await r.json();
-    j.forEach(x=>{const pid=OFFER_PID[x.offer_id];if(!pid)return;let m=map.get(pid);if(!m){m=new Map();map.set(pid,m);}m.set(x.spend_date,(m.get(x.spend_date)||0)+Number(x.amount||0));});
+    j.forEach(x=>{const pid=SKU_PID[x.offer_id]||OFFER_PID[x.offer_id];if(!pid)return;let m=map.get(pid);if(!m){m=new Map();map.set(pid,m);}m.set(x.spend_date,(m.get(x.spend_date)||0)+Number(x.amount||0));});
     if(j.length<1000)break;off+=1000;
   }
   ADS_MEMO.set(key,map);
@@ -675,7 +675,8 @@ async function importAds(file){
     }
     const body=[];const unknown=[];
     bySku.forEach((amt,sku)=>{
-      if(OFFER_PID[sku])body.push({offer_id:sku,spend_date:ADS_DATE,amount:Math.round(amt*100)/100,updated_at:new Date().toISOString()});
+      const pid=SKU_PID[sku];
+      if(pid)body.push({offer_id:sku,spend_date:ADS_DATE,amount:Math.round(amt*100)/100,updated_at:new Date().toISOString()});
       else unknown.push(sku);
     });
     if(!body.length){ setP(100,'В файле нет расходов по известным SKU.',true); setTimeout(()=>document.getElementById('progWrap').classList.add('hide'),5000); return; }
@@ -866,11 +867,12 @@ async function load(){
     try{
       const [y,m]=MONTH.split('-').map(Number);
       WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO);
-      const rp=await fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,price,archived&order=name.asc&limit=1000',{headers:HD});
+      const rp=await fetch(SUPABASE_URL+'/rest/v1/products?select=product_id,offer_id,name,price,archived,raw&order=name.asc&limit=1000',{headers:HD});
       if(!rp.ok)throw new Error('HTTP '+rp.status);
       ROWS=(await rp.json()).filter(x=>!x.archived);
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
+      SKU_PID={}; ROWS.forEach(p=>{const sku=p.raw&&p.raw.sku!=null?String(p.raw.sku):'';if(sku)SKU_PID[sku]=p.product_id;});
       await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory()]);
       const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
       document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
