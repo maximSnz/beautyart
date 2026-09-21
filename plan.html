@@ -73,6 +73,7 @@
  .badge.g{background:rgba(22,163,74,.15);color:#16a34a}
  .badge.r{background:rgba(227,61,120,.15);color:#E33D78}
  .badge.n{background:rgba(148,163,184,.2);color:#64748b}
+ .badge.w{background:rgba(217,119,6,.15);color:#d97706}
  .pform{border:1px dashed rgba(84,66,115,.3);border-radius:8px;padding:8px 10px;margin-top:6px;background:#fff}
  .pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
  .pform input[type=text]{flex:1;min-width:200px}
@@ -1285,7 +1286,7 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
     else if(daysLeft===0){status=`<span class="badge n">в работе (сегодня)</span>`;cls='n';}
     else{status=`<span class="badge n">в работе (осталось ${daysLeft} ${dform(daysLeft)})</span>`;cls='n';}
   }else if(v==='success'){status=`<span class="badge g">успешна</span>`;cls='g';}
-  else if(v==='partial'){status=`<span class="badge n">частичный успех</span>`;cls='n';}
+  else if(v==='partial'){status=`<span class="badge w">частичный успех</span>`;cls='w';}
   else{status=`<span class="badge r">неудачна</span>`;cls='r';}
   let body;
   if(legacy){
@@ -1320,7 +1321,7 @@ function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b=
   const kidsHtml=kids.map(k=>`<div class="pchild"><span class="pdate">${new Date(k.created_at).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span><span class="paction">${esc(k.action)}</span></div>`).join('');
   const canAdd=legacy?(it.fact_dev==null):(it.fact_ctx==null);
   const addForm=canAdd?`<div class="pchildform"><input type="text" id="pca_${it.id}" placeholder="Текст дополнения"><button onclick="addProtoChild(${it.product_id},${it.id})">Сохранить</button></div>`:'';
-  return `<div class="pitem" style="border-left-color:${cls==='g'?'#16a34a':cls==='r'?'#E33D78':cls==='n'?'#94a3b8':'#d97706'}">
+  return `<div class="pitem" style="border-left-color:${cls==='g'?'#16a34a':cls==='w'?'#d97706':cls==='r'?'#E33D78':'rgba(84,66,115,.25)'}">
     <div><span class="pdate">${created}</span>
     <span class="paction">${esc(it.action)}</span></div>
     ${body}
