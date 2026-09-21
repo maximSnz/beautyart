@@ -842,7 +842,7 @@ async function exportPlanExcel(){
     const wb=XLSX.utils.book_new();
     for(const [gid,gname] of [['m1','Илья'],['m2','Ольга']]){
       const list=(data[gid]||[]).slice().sort((a,b)=>a.devCatch-b.devCatch);
-      const rowsOut=list.map(r=>({'Артикул':r.offer,'Средние заказы ('+baseLbl+')':Math.round(r.avg),'Заказы вчера':r.yest,'Требуемые заказы':Math.round(r.rcExp),'Отклонение':Math.round(r.devCatch)}));
+      const rowsOut=list.map(r=>({'Артикул':r.offer,['Средние заказы ('+baseLbl+')']:Math.round(r.avg),'Заказы вчера':r.yest,'Требуемые заказы':Math.round(r.rcExp),'Отклонение':Math.round(r.devCatch)}));
       const ws=XLSX.utils.json_to_sheet(rowsOut);
       ws['!cols']=[{wch:24},{wch:26},{wch:14},{wch:17},{wch:12}];
       XLSX.utils.book_append_sheet(wb,ws,gname);
