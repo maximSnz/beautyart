@@ -1569,12 +1569,14 @@ async function loadPulse(pid){
   h+='<tr><td class="pulsemetric">Маржинальность, %</td>';
   marginVals.forEach(v=>{ h+=`<td class="num" style="${marginBg(v)}">${v==null?'—':f1(v)}</td>`; });
   h+='</tr>';
-  const DRR_TARGET=5, DRR_MAX_DIST=15;
+  const DRR_TARGET=5, DRR_MAX_DIST=30;
   const drrBg=v=>{
     if(v==null)return '';
     if(!isFinite(v))return 'background:rgba(227,61,120,0.45);';
     const t=Math.min(Math.abs(v-DRR_TARGET),DRR_MAX_DIST)/DRR_MAX_DIST;
-    return `background:rgba(227,61,120,${(0.45*t).toFixed(2)});`;
+    const ease=Math.pow(t,0.65);
+    const a=0.05+0.40*ease;
+    return `background:rgba(227,61,120,${a.toFixed(2)});`;
   };
   h+='<tr><td class="pulsemetric">ДРР, %</td>';
   drrVals.forEach(v=>{ h+=`<td class="num" style="${drrBg(v)}">${v==null?'—':(isFinite(v)?f1(v):'∞')}</td>`; });
