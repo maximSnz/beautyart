@@ -744,7 +744,8 @@ async function computeOrderTemps(){
     const remain=need-exec;
     const rc=effRemain>0?remain/effRemain:0;
     const rp=effTotal>0?need/effTotal:0;
-    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,devCatch:avg-rc,rp:rp,devPlan:avg-rp});
+    const expected=rp*(isWeekend(yISO)?0.7:1);
+    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,devCatch:avg-rc,rp:rp,expected:expected,devPlan:yest-expected});
   });
   res.m1.sort((a,b)=>a.devPlan-b.devPlan);
   res.m2.sort((a,b)=>a.devPlan-b.devPlan);
@@ -783,7 +784,7 @@ async function renderOrderTemps(gid){
   const sortCls=(col)=>`shead sortable${s.col===col?' sorted':''}`;
   let h=`<table class="temp"><thead><tr><th rowspan="2" class="shead sortable${s.col==='offer'?' sorted':''}" onclick="toggleTempSort('${gid}','offer')">Артикул${arrow('offer')}</th><th rowspan="2" class="ghead sep shead sortable${s.col==='yest'?' sorted':''}" onclick="toggleTempSort('${gid}','yest')">Заказы<br>вчера${arrow('yest')}</th><th colspan="2" class="ghead sep">Средний темп (3 будн. дня)</th><th colspan="2" class="ghead sep">Догоняющий темп</th><th colspan="2" class="ghead sep">Плановый темп</th></tr><tr><th class="shead sep sortable${s.col==='avg'?' sorted':''}" onclick="toggleTempSort('${gid}','avg')">Средние${arrow('avg')}</th><th class="${sortCls('devAvg')}" onclick="toggleTempSort('${gid}','devAvg')">Откл.${arrow('devAvg')}</th><th class="shead sep sortable${s.col==='rc'?' sorted':''}" onclick="toggleTempSort('${gid}','rc')">Требуемые${arrow('rc')}</th><th class="${sortCls('devCatch')}" onclick="toggleTempSort('${gid}','devCatch')">Откл.${arrow('devCatch')}</th><th class="shead sep sortable${s.col==='rp'?' sorted':''}" onclick="toggleTempSort('${gid}','rp')">Требуемые${arrow('rp')}</th><th class="${sortCls('devPlan')}" onclick="toggleTempSort('${gid}','devPlan')">Откл.${arrow('devPlan')}</th></tr></thead><tbody>`;
   rows.forEach(r=>{
-    h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep">${Math.round(r.rp)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
+  h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep" title="плановый темп, скорректированный под тип вчерашнего дня (×0,7 для выходных)">${Math.round(r.expected)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
   });
   h+='</tbody></table>';
   box.innerHTML=h;
@@ -804,7 +805,7 @@ async function renderProgBar(gid){
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
   let F=0,P=0;
-  rows.forEach(x=>{P+=x.rp;F+=Math.min(x.yest,x.rp);});
+  rows.forEach(x=>{P+=x.expected;F+=Math.min(x.yest,x.expected);});
   if(!rows.length||P<=0){val.textContent='—';val.className='progval n';fill.style.height='0%';if(emo)emo.textContent='🚫';sub.textContent='нет данных плана';return;}
   const pct=F/P*100;
   const cls=pct>=90?'ok':(pct>=80?'warn':'bad');
