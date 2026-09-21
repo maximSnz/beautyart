@@ -290,6 +290,7 @@ const PASSWORD_HASH='6dd81b2b2385ffaeae34bc09050f3258110c5c7f1db578c69bcbc30ad8a
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+const TAX_RATE=0.03;
 let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={},SKU_PID={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
@@ -515,30 +516,31 @@ async function syncPnl(extraWeeks){
     const pid=OFFER_PID[c.offer_id]; if(!pid)return;
     const d=c.charge_date; if(!d)return;
     let m=day.get(pid); if(!m){m=new Map();day.set(pid,m);}
-    let g=m.get(d); if(!g){g={pnl:0,sales:0,gmv:0,revg:0,ug:0};m.set(d,g);}
+    let g=m.get(d); if(!g){g={pnl:0,sales:0,gmv:0,revg:0,ug:0,revP:0};m.set(d,g);}
     const amt=Number(c.amount||0), qty=Number(c.qty||0), price=Number(c.price||0);
     g.pnl+=amt;
-    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.revg+=price*qty; g.ug+=qty; g.sales+=qty; }
-    else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; }
+    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.revg+=price*qty; g.ug+=qty; g.sales+=qty; g.revP+=amt; }
+    else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; g.revP+=amt; }
   });
   const body=[];
   weeks.forEach(w=>{
     const ws=parseW(w); const wDays=[];
     for(let i=0;i<7;i++){ const d=new Date(ws); d.setDate(d.getDate()+i); wDays.push(localISO(d)); }
     day.forEach((m,pid)=>{
-      let pnl=0,sales=0,gmv=0,revg=0,ug=0,cogs=0,ads=0,prov=false,any=false;
+      let pnl=0,sales=0,gmv=0,revg=0,ug=0,revP=0,cogs=0,ads=0,prov=false,any=false;
       const am=adsMap.get(pid);
       wDays.forEach(d=>{
         const g=m.get(d); if(!g)return;
         any=true;
-        pnl+=g.pnl; sales+=g.sales; gmv+=g.gmv; revg+=g.revg; ug+=g.ug;
+        pnl+=g.pnl; sales+=g.sales; gmv+=g.gmv; revg+=g.revg; ug+=g.ug; revP+=g.revP;
         ads+=am?(am.get(d)||0):0;
         const ci=costAt(pid,d);
         cogs+=ci.cost*g.sales;
         if(ci.prov)prov=true;
       });
       if(!any)return;
-      const mar=pnl-cogs-ads, retn=gmv;
+      const tax=TAX_RATE*revP;
+      const mar=pnl-cogs-ads-tax, retn=gmv;
       const row=(metric,fact)=>({product_id:pid,week:w,metric,fact,cogs:Math.round(cogs*100)/100,cost_provisional:prov});
       body.push(row('sales',sales));
       body.push(row('revn',Math.round(retn*100)/100));
@@ -862,15 +864,15 @@ async function exportPlanExcel(){
 function renderCharges(pid,rows,ads){
   ads=ads||0;
   if(!rows||!rows.length)return '<div class="psub">нет начислений за период</div>';
-  const byType=new Map(); let ug=0,retq=0,pnl=0,revG=0,retG=0;
+  const byType=new Map(); let ug=0,retq=0,pnl=0,revG=0,retG=0,taxBase=0;
   rows.forEach(c=>{
     const amt=Number(c.amount||0), pr=Number(c.price||0);
     byType.set(c.charge_type,(byType.get(c.charge_type)||0)+amt);
     pnl+=amt;
-    if(c.charge_type==='Выручка'){ ug+=Number(c.qty||0); revG+=pr; }
-    else if(c.charge_type==='Возврат выручки'){ retq+=Number(c.qty||0); retG+=pr; }
+    if(c.charge_type==='Выручка'){ ug+=Number(c.qty||0); revG+=pr; taxBase+=amt; }
+    else if(c.charge_type==='Возврат выручки'){ retq+=Number(c.qty||0); retG+=pr; taxBase+=amt; }
   });
-  const cost=COST[pid]||0, sales=ug-retq, marOp=pnl-cost*sales, marNet=marOp-ads;
+  const cost=COST[pid]||0, sales=ug-retq, tax=TAX_RATE*taxBase, marOp=pnl-cost*sales, marNet=marOp-ads-tax;
   let gmvNet=0;
   rows.forEach(c=>{ const pr=Number(c.price||0), q=Number(c.qty||0); if(c.charge_type==='Выручка'||c.charge_type==='Возврат выручки') gmvNet+=pr*q; });
   const arr=[...byType.entries()].sort((a,b)=>a[1]-b[1]);
@@ -884,6 +886,7 @@ function renderCharges(pid,rows,ads){
     +`<div class="prec"><b>− себестоимость × продажи</b> <span class="r">−${fmt2(cost*sales)} ₽</span> <span style="opacity:.5;font-size:.85em">(${fmt2(cost)} ₽ × ${sales} шт)</span></div>`
     +`<div class="prec"><b>Маржа операционная</b> <span class="${marOp<0?'r':'g'}">${fmt2(marOp)} ₽</span></div>`
     +`<div class="prec"><b>Рекламные расходы</b> <span class="r">−${fmt2(ads)} ₽</span></div>`
+    +`<div class="prec"><b>Налог (3% от выручки P)</b> <span class="r">−${fmt2(tax)} ₽</span></div>`
     +`<div class="prec"><b>Маржа чистая</b> <span class="${marNet<0?'r':'g'}">${fmt2(marNet)} ₽</span>${gmvNet>0?` <span style="opacity:.5;font-size:.85em">• маржинальность ${fmt2(marNet/gmvNet*100)}%</span>`:''}</div>`;
 }
 async function load(){
@@ -1199,7 +1202,7 @@ async function fetchChargesMap(pid,from,to){
       await sleep(700*(a+1));
     }
     if(j==null){console.warn('fetchChargesMap: сервер недоступен после ретраев',offer,from,to);break;}
-    j.forEach(c=>{const d=c.event_date;if(!d)return;let g=map.get(d);if(!g){g={pnl:0,gmv:0,sales:0};map.set(d,g);}const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);g.pnl+=amt;if(c.charge_type==='Выручка'){g.gmv+=price*qty;g.sales+=qty;}else if(c.charge_type==='Возврат выручки'){g.gmv+=price*qty;g.sales-=qty;}});
+    j.forEach(c=>{const d=c.event_date;if(!d)return;let g=map.get(d);if(!g){g={pnl:0,gmv:0,sales:0,revP:0};map.set(d,g);}const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);g.pnl+=amt;if(c.charge_type==='Выручка'){g.gmv+=price*qty;g.sales+=qty;g.revP+=amt;}else if(c.charge_type==='Возврат выручки'){g.gmv+=price*qty;g.sales-=qty;g.revP+=amt;}});
     if(j.length<1000)break;off+=1000;
   }
   return map;
@@ -1224,16 +1227,17 @@ async function marginAggPeriod(pid,fromISO,toISO){
   const map=await fetchChargesMap(pid,fromISO,toISO);
   const adsMap=await loadAdSpend(fromISO,toISO);
   const adsByDay=adsMap.get(pid)||new Map();
-  let pnl=0,gmv=0,sales=0,cnt=0,ads=0,d=fromISO;
+  let pnl=0,gmv=0,sales=0,revP=0,cnt=0,ads=0,d=fromISO;
   while(d<=toISO){
     const g=map.get(d);
-    if(g&&g.gmv>0){pnl+=g.pnl;gmv+=g.gmv;sales+=g.sales;cnt++;}
+    if(g&&g.gmv>0){pnl+=g.pnl;gmv+=g.gmv;sales+=g.sales;revP+=g.revP||0;cnt++;}
     ads+=adsByDay.get(d)||0;
     d=addDaysISO(d,1);
   }
   if(!cnt||gmv<=0)return null;
   const cost=COST[pid]||0;
-  return {pct:Math.round(((pnl-cost*sales-ads)/gmv*100)*100)/100,from:fromISO,to:toISO,days:cnt};
+  const tax=TAX_RATE*revP;
+  return {pct:Math.round(((pnl-cost*sales-ads-tax)/gmv*100)*100)/100,from:fromISO,to:toISO,days:cnt};
 }
 async function loadSmartBase(pid){
   const el=document.getElementById('smartbase_'+pid);
@@ -1504,11 +1508,11 @@ async function loadPulse(pid){
   const byDayCh=new Map();
   chargeRows.forEach(c=>{
     const d=c.event_date; if(!d)return;
-    let g=byDayCh.get(d); if(!g){g={gmv:0,sales:0,pnl:0,revg:0};byDayCh.set(d,g);}
+    let g=byDayCh.get(d); if(!g){g={gmv:0,sales:0,pnl:0,revg:0,revP:0};byDayCh.set(d,g);}
     const amt=Number(c.amount||0), qty=Number(c.qty||0), price=Number(c.price||0);
     g.pnl+=amt;
-    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.sales+=qty; g.revg+=price*qty; }
-    else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; }
+    if(c.charge_type==='Выручка'){ g.gmv+=price*qty; g.sales+=qty; g.revg+=price*qty; g.revP+=amt; }
+    else if(c.charge_type==='Возврат выручки'){ g.gmv+=price*qty; g.sales-=qty; g.revP+=amt; }
   });
   const days=[];
   for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ days.push(localISO(new Date(d))); }
@@ -1521,7 +1525,7 @@ async function loadPulse(pid){
     const g=byDayCh.get(iso);
     const ads=adsByDay.get(iso)||0;
     if(!g||g.gmv<=0) return null;
-    return (g.pnl-cost*g.sales-ads)/g.gmv*100;
+    return (g.pnl-cost*g.sales-ads-TAX_RATE*g.revP)/g.gmv*100;
   });
   const drrVals=days.map(iso=>{
     const ads=adsByDay.get(iso)||0;
