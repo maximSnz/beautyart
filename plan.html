@@ -1547,8 +1547,21 @@ async function loadPulse(pid){
     h+=prov?`<th title="предварительно: начисления за этот день ещё доезжают (логистика, возвраты и отмены приходят с задержкой); значение уточнится само">${ddmm(iso)}*</th>`:`<th>${ddmm(iso)}</th>`;
   });
   h+='</tr></thead><tbody>';
+  const temps=await computeOrderTemps();
+  const trow=(temps[matrixOf(offer)]||[]).find(x=>x.offer===offer);
+  const rpDay=trow?trow.rp:null;
+  const todayISO=localISO(new Date());
   h+='<tr><td class="pulsemetric">Заказы, шт</td>';
-  salesVals.forEach(v=>{ h+=`<td class="num" style="${salesBg(v)}">${v==null?'—':fmt(v)}</td>`; });
+  salesVals.forEach((v,idx)=>{
+    const iso=days[idx];
+    if(v!=null){ h+=`<td class="num" style="${salesBg(v)}">${fmt(v)}</td>`; return; }
+    if(rpDay!=null&&iso>todayISO){
+      const pv=rpDay*(isWeekend(iso)?0.7:1);
+      h+=`<td class="num factcell" title="Плановый темп дня: темп плана с учётом выходных (×0,7 для сб/вс)">${f1(pv)}</td>`;
+      return;
+    }
+    h+=`<td class="num" style="${salesBg(v)}">—</td>`;
+  });
   h+='</tr>';
   h+='<tr><td class="pulsemetric">Остатки, шт</td>';
   stockVals.forEach(v=>{ h+=`<td class="num" style="${stockBg(v)}">${v==null?'—':fmt(v)}</td>`; });
