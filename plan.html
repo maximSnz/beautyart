@@ -1557,7 +1557,7 @@ async function loadPulse(pid){
     if(v!=null){ h+=`<td class="num" style="${salesBg(v)}">${fmt(v)}</td>`; return; }
     if(rpDay!=null&&iso>todayISO){
       const pv=rpDay*(isWeekend(iso)?0.7:1);
-      h+=`<td class="num factcell" title="Плановый темп дня: темп плана с учётом выходных (×0,7 для сб/вс)">${f1(pv)}</td>`;
+      h+=`<td class="num factcell" title="Плановый темп дня: темп плана с учётом выходных (×0,7 для сб/вс)">${fmt(pv)}</td>`;
       return;
     }
     h+=`<td class="num" style="${salesBg(v)}">—</td>`;
@@ -1569,9 +1569,13 @@ async function loadPulse(pid){
   h+='<tr><td class="pulsemetric">Маржинальность, %</td>';
   marginVals.forEach(v=>{ h+=`<td class="num" style="${marginBg(v)}">${v==null?'—':f1(v)}</td>`; });
   h+='</tr>';
-  const drrFin=drrVals.filter(v=>v!=null&&isFinite(v));
-  const dMn=drrFin.length?Math.min(...drrFin):0, dMx=drrFin.length?Math.max(...drrFin):1;
-  const drrBg=v=>{ if(v==null)return ''; if(!isFinite(v))return 'background:rgba(227,61,120,.18);'; if(!drrFin.length)return ''; const t=(dMx===dMn)?0.5:(dMx-v)/(dMx-dMn); return `background:rgba(22,163,74,${(0.06+0.44*t).toFixed(2)});`; };
+  const DRR_TARGET=5, DRR_MAX_DIST=15;
+  const drrBg=v=>{
+    if(v==null)return '';
+    if(!isFinite(v))return 'background:rgba(227,61,120,0.45);';
+    const t=Math.min(Math.abs(v-DRR_TARGET),DRR_MAX_DIST)/DRR_MAX_DIST;
+    return `background:rgba(227,61,120,${(0.45*t).toFixed(2)});`;
+  };
   h+='<tr><td class="pulsemetric">ДРР, %</td>';
   drrVals.forEach(v=>{ h+=`<td class="num" style="${drrBg(v)}">${v==null?'—':(isFinite(v)?f1(v):'∞')}</td>`; });
   h+='</tr>';
