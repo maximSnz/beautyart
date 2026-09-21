@@ -712,8 +712,17 @@ async function computeOrderTemps(){
   if(!WEEKISO.length)return {m1:[],m2:[]};
   const periodStart=WEEKISO[0];
   const periodEnd=localISO(weekEnd(parseW(WEEKISO[WEEKISO.length-1])));
-  const baseDays=[];let d=addDaysISO(tISO,-2);
-  while(baseDays.length<3){if(!isWeekend(d))baseDays.unshift(d);d=addDaysISO(d,-1);}
+  const yIsWe=isWeekend(yISO);
+  const baseDays=[];let d;
+  if(yIsWe){
+    const curWeStart=(parseW(yISO).getDay()===0)?addDaysISO(yISO,-1):yISO;
+    d=addDaysISO(curWeStart,-1);
+    while(baseDays.length<4){if(isWeekend(d))baseDays.unshift(d);d=addDaysISO(d,-1);}
+  }else{
+    d=addDaysISO(yISO,-1);
+    while(baseDays.length<3){if(!isWeekend(d))baseDays.unshift(d);d=addDaysISO(d,-1);}
+  }
+  const baseDiv=baseDays.length;
   const fetchFrom=baseDays[0]<periodStart?baseDays[0]:periodStart;
   const byOffer=new Map();let off=0;
   while(true){
@@ -736,7 +745,7 @@ async function computeOrderTemps(){
     const gid=matrixOf(p.offer_id);
     const m=byOffer.get(p.offer_id);
     let sum=0;baseDays.forEach(x=>{sum+=m?(m.get(x)||0):0;});
-    const avg=sum/3;
+    const avg=sum/baseDiv;
     const yest=m?(m.get(yISO)||0):0;
     let exec=0;
     if(m)m.forEach((v,k)=>{if(k>=periodStart&&k<=yISO)exec+=v;});
@@ -744,8 +753,10 @@ async function computeOrderTemps(){
     const remain=need-exec;
     const rc=effRemain>0?remain/effRemain:0;
     const rp=effTotal>0?need/effTotal:0;
-    const expected=rp*(isWeekend(yISO)?0.7:1);
-    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,devCatch:avg-rc,rp:rp,expected:expected,devPlan:yest-expected});
+    const k=yIsWe?0.7:1;
+    const expected=rp*k;
+    const rcExp=rc*k;
+    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rcExp,devCatch:avg-rcExp,rp:rp,expected:expected,devPlan:yest-expected});
   });
   res.m1.sort((a,b)=>a.devPlan-b.devPlan);
   res.m2.sort((a,b)=>a.devPlan-b.devPlan);
@@ -782,9 +793,12 @@ async function renderOrderTemps(gid){
     return `<span class="sortArrow">${active?mark:'⇅'}</span>`;
   };
   const sortCls=(col)=>`shead sortable${s.col===col?' sorted':''}`;
-  let h=`<table class="temp"><thead><tr><th rowspan="2" class="shead sortable${s.col==='offer'?' sorted':''}" onclick="toggleTempSort('${gid}','offer')">Артикул${arrow('offer')}</th><th rowspan="2" class="ghead sep shead sortable${s.col==='yest'?' sorted':''}" onclick="toggleTempSort('${gid}','yest')">Заказы<br>вчера${arrow('yest')}</th><th colspan="2" class="ghead sep">Средний темп (3 будн. дня)</th><th colspan="2" class="ghead sep">Догоняющий темп</th><th colspan="2" class="ghead sep">Плановый темп</th></tr><tr><th class="shead sep sortable${s.col==='avg'?' sorted':''}" onclick="toggleTempSort('${gid}','avg')">Средние${arrow('avg')}</th><th class="${sortCls('devAvg')}" onclick="toggleTempSort('${gid}','devAvg')">Откл.${arrow('devAvg')}</th><th class="shead sep sortable${s.col==='rc'?' sorted':''}" onclick="toggleTempSort('${gid}','rc')">Требуемые${arrow('rc')}</th><th class="${sortCls('devCatch')}" onclick="toggleTempSort('${gid}','devCatch')">Откл.${arrow('devCatch')}</th><th class="shead sep sortable${s.col==='rp'?' sorted':''}" onclick="toggleTempSort('${gid}','rp')">Требуемые${arrow('rp')}</th><th class="${sortCls('devPlan')}" onclick="toggleTempSort('${gid}','devPlan')">Откл.${arrow('devPlan')}</th></tr></thead><tbody>`;
+  const yISO=addDaysISO(localISO(new Date()),-1);
+  const yIsWe=isWeekend(yISO);
+  const baseLbl=yIsWe?'пред. 2 выходных':'3 будн. дня';
+  let h=`<table class="temp"><thead><tr><th rowspan="2" class="shead sortable${s.col==='offer'?' sorted':''}" onclick="toggleTempSort('${gid}','offer')">Артикул${arrow('offer')}</th><th rowspan="2" class="ghead sep shead sortable${s.col==='yest'?' sorted':''}" onclick="toggleTempSort('${gid}','yest')">Заказы<br>вчера${arrow('yest')}</th><th colspan="2" class="ghead sep">Средний темп (${baseLbl})</th><th colspan="2" class="ghead sep" title="${yIsWe?'требуемые темпы в масштабе выходного дня (×0,7)':'требуемые темпы в масштабе буднего дня'}">Догоняющий темп</th><th colspan="2" class="ghead sep">Плановый темп</th></tr><tr><th class="shead sep sortable${s.col==='avg'?' sorted':''}" onclick="toggleTempSort('${gid}','avg')">Средние${arrow('avg')}</th><th class="${sortCls('devAvg')}" onclick="toggleTempSort('${gid}','devAvg')">Откл.${arrow('devAvg')}</th><th class="shead sep sortable${s.col==='rc'?' sorted':''}" onclick="toggleTempSort('${gid}','rc')">Требуемые${arrow('rc')}</th><th class="${sortCls('devCatch')}" onclick="toggleTempSort('${gid}','devCatch')">Откл.${arrow('devCatch')}</th><th class="shead sep sortable${s.col==='rp'?' sorted':''}" onclick="toggleTempSort('${gid}','rp')">Требуемые${arrow('rp')}</th><th class="${sortCls('devPlan')}" onclick="toggleTempSort('${gid}','devPlan')">Откл.${arrow('devPlan')}</th></tr></thead><tbody>`;
   rows.forEach(r=>{
-  h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep">${Math.round(r.rc)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep" title="плановый темп, скорректированный под тип вчерашнего дня (×0,7 для выходных)">${Math.round(r.expected)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
+  h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${r.yest}</td><td class="num sep">${Math.round(r.avg)}</td><td class="num ${clsDev(r.devAvg)}">${rndDev(r.devAvg)}</td><td class="num sep" title="догоняющий темп с поправкой на тип вчерашнего дня (×0,7 для выходных)">${Math.round(r.rcExp)}</td><td class="num ${clsDev(r.devCatch)}">${rndDev(r.devCatch)}</td><td class="num sep" title="плановый темп, скорректированный под тип вчерашнего дня (×0,7 для выходных)">${Math.round(r.expected)}</td><td class="num ${clsDev(r.devPlan)}">${rndDev(r.devPlan)}</td></tr>`;
   });
   h+='</tbody></table>';
   box.innerHTML=h;
@@ -823,10 +837,12 @@ async function exportPlanExcel(){
   try{
     const data=await computeOrderTemps();
     const tISO=localISO(new Date());
+    const yIsWe=isWeekend(addDaysISO(tISO,-1));
+    const baseLbl=yIsWe?'пред. 2 выходных':'3 будн. дня';
     const wb=XLSX.utils.book_new();
     for(const [gid,gname] of [['m1','Илья'],['m2','Ольга']]){
       const list=(data[gid]||[]).slice().sort((a,b)=>a.devCatch-b.devCatch);
-      const rowsOut=list.map(r=>({'Артикул':r.offer,'Средние заказы (3 будн. дня)':Math.round(r.avg),'Заказы вчера':r.yest,'Требуемые заказы':Math.round(r.rc),'Отклонение':Math.round(r.devCatch)}));
+      const rowsOut=list.map(r=>({'Артикул':r.offer,'Средние заказы ('+baseLbl+')':Math.round(r.avg),'Заказы вчера':r.yest,'Требуемые заказы':Math.round(r.rcExp),'Отклонение':Math.round(r.devCatch)}));
       const ws=XLSX.utils.json_to_sheet(rowsOut);
       ws['!cols']=[{wch:24},{wch:26},{wch:14},{wch:17},{wch:12}];
       XLSX.utils.book_append_sheet(wb,ws,gname);
