@@ -558,23 +558,28 @@ async function fixHypotheses(){
   const today=localISO(new Date());
   for(const pid in PROTO){
     for(const it of PROTO[pid]){
-      if(it.parent_id||!it.deadline)continue;
-      if(it.fact_ctx!=null||it.fact_dev!=null)continue;
-      const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null;
-      if(!base||!('orders' in base))continue;
-      const metric=it.metric||'orders';
-      const created=localISO(new Date(it.created_at));
-      if(metric==='orders'){
-        if(today<=it.deadline)continue;
-        const f=await ordersAvgWeekdays(pid,addDaysISO(created,1),it.deadline);
-        if(f==null)continue;
-        await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:f,orders_from:addDaysISO(created,1),orders_to:it.deadline,pct:null,pct_date:null,fix_date:today}),fact_dev:1,fact_date:today})});
-      }else{
-        if(today<addDaysISO(it.deadline,1))continue;
-        const f=await marginAggPeriod(pid,addDaysISO(it.deadline,-2),it.deadline);
-        if(f==null)continue;
-        await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({fact_ctx:JSON.stringify({orders:null,orders_from:null,orders_to:null,pct:f.pct,pct_from:f.from,pct_to:f.to,pct_days:f.days,fix_date:today}),fact_dev:1,fact_date:today})});
-      }
+      try{
+        if(it.parent_id||!it.deadline)continue;
+        if(it.fact_ctx!=null||it.fact_dev!=null)continue;
+        const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null;
+        if(!base||!('orders' in base))continue;
+        const metric=it.metric||'orders';
+        const created=localISO(new Date(it.created_at));
+        let payload=null;
+        if(metric==='orders'){
+          if(today<=it.deadline)continue;
+          const f=await ordersAvgWeekdays(pid,addDaysISO(created,1),it.deadline);
+          if(f==null)continue;
+          payload={fact_ctx:JSON.stringify({orders:f,orders_from:addDaysISO(created,1),orders_to:it.deadline,pct:null,pct_date:null,fix_date:today}),fact_dev:1,fact_date:today};
+        }else{
+          if(today<addDaysISO(it.deadline,1))continue;
+          const f=await marginAggPeriod(pid,addDaysISO(it.deadline,-2),it.deadline);
+          if(f==null)continue;
+          payload={fact_ctx:JSON.stringify({orders:null,orders_from:null,orders_to:null,pct:f.pct,pct_from:f.from,pct_to:f.to,pct_days:f.days,fix_date:today}),fact_dev:1,fact_date:today};
+        }
+        const r=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?id=eq.${it.id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(payload)});
+        if(!r.ok)console.warn('fixHypotheses: PATCH fail',it.id,r.status);
+      }catch(e){console.warn('fixHypotheses: item fail',it&&it.id,e&&e.message);}
     }
   }
 }
@@ -691,6 +696,8 @@ async function importAds(file){
     const provW=await provisionalWeeks();
     await syncPnl(provW);
     await loadWeeks();
+    await fixHypotheses();
+    await loadProto();
     document.querySelectorAll('[id^="chg_"],[id^="pulse_"]').forEach(el=>{delete el.dataset.loaded;});
     render();
     setP(100,`✔ Готово! SKU с расходами: ${body.length}.${unknown.length?` Неизвестных SKU: ${unknown.length} (${unknown.slice(0,5).join(', ')}${unknown.length>5?'…':''}).`:''} Маржа пересчитана с рекламой.`);
@@ -894,7 +901,7 @@ async function load(){
       await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory()]);
       const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
       document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
-      render(); return;
+      render(); backgroundFix(); return;
     }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
   }
 }
@@ -902,7 +909,10 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
   try{ const [y,m]=MONTH.split('-').map(Number); WEEKS=isoWeeksOfMonth(y,m-1); WEEKISO=WEEKS.map(localISO); await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory()]);
       const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
       document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
-      render(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+      render(); backgroundFix(); }catch(e){ err.textContent='Ошибка: '+e.message; }
+}
+async function backgroundFix(){
+  try{ await fixHypotheses(); await loadProto(); render(); }catch(e){ console.warn('background fix:',e&&e.message); }
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
@@ -1166,12 +1176,32 @@ function weekdayOptions(startISO){
 }
 async function fetchSalesMap(pid,from,to){
   const offer=(BYID[pid]||{}).offer_id;const map=new Map();let off=0;
-  while(true){const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${from}&sale_date=lte.${to}&select=sale_date,qty&limit=1000&offset=${off}`,{headers:HD});if(!r.ok)break;const j=await r.json();j.forEach(x=>map.set(x.sale_date,(map.get(x.sale_date)||0)+Number(x.qty||0)));if(j.length<1000)break;off+=1000;}
+  while(true){
+    let j=null;
+    for(let a=0;a<3;a++){
+      const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?offer_id=eq.${encodeURIComponent(offer)}&sale_date=gte.${from}&sale_date=lte.${to}&select=sale_date,qty&limit=1000&offset=${off}`,{headers:HD});
+      if(r.ok){j=await r.json();break;}
+      await sleep(700*(a+1));
+    }
+    if(j==null){console.warn('fetchSalesMap: сервер недоступен после ретраев',offer,from,to);break;}
+    j.forEach(x=>map.set(x.sale_date,(map.get(x.sale_date)||0)+Number(x.qty||0)));
+    if(j.length<1000)break;off+=1000;
+  }
   return map;
 }
 async function fetchChargesMap(pid,from,to){
   const offer=(BYID[pid]||{}).offer_id;const map=new Map();let off=0;
-  while(true){const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&event_date=gte.${from}&event_date=lte.${to}&select=event_date,charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});if(!r.ok)break;const j=await r.json();j.forEach(c=>{const d=c.event_date;if(!d)return;let g=map.get(d);if(!g){g={pnl:0,gmv:0,sales:0};map.set(d,g);}const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);g.pnl+=amt;if(c.charge_type==='Выручка'){g.gmv+=price*qty;g.sales+=qty;}else if(c.charge_type==='Возврат выручки'){g.gmv+=price*qty;g.sales-=qty;}});if(j.length<1000)break;off+=1000;}
+  while(true){
+    let j=null;
+    for(let a=0;a<3;a++){
+      const r=await fetch(SUPABASE_URL+`/rest/v1/ozon_charges?offer_id=eq.${encodeURIComponent(offer)}&event_date=gte.${from}&event_date=lte.${to}&select=event_date,charge_type,amount,qty,price&limit=1000&offset=${off}`,{headers:HD});
+      if(r.ok){j=await r.json();break;}
+      await sleep(700*(a+1));
+    }
+    if(j==null){console.warn('fetchChargesMap: сервер недоступен после ретраев',offer,from,to);break;}
+    j.forEach(c=>{const d=c.event_date;if(!d)return;let g=map.get(d);if(!g){g={pnl:0,gmv:0,sales:0};map.set(d,g);}const amt=Number(c.amount||0),qty=Number(c.qty||0),price=Number(c.price||0);g.pnl+=amt;if(c.charge_type==='Выручка'){g.gmv+=price*qty;g.sales+=qty;}else if(c.charge_type==='Возврат выручки'){g.gmv+=price*qty;g.sales-=qty;}});
+    if(j.length<1000)break;off+=1000;
+  }
   return map;
 }
 function marginOfDay(map,pid,d){const g=map.get(d);if(!g||g.gmv<=0)return null;const cost=COST[pid]||0;return Math.round(((g.pnl-cost*g.sales)/g.gmv*100)*100)/100;}
