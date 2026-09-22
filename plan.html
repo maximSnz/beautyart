@@ -402,10 +402,16 @@ async function go(){
   document.getElementById('month').value=MONTH;
   load();
 }
+let PLAN_NEXT={};
+function nextMonthISO(){const [y,m]=MONTH.split('-').map(Number);const d=new Date(y,m,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function weeksOfNextMonth(){const [ny,nm]=nextMonthISO().split('-').map(Number);return isoWeeksOfMonth(ny,nm-1);}
 async function loadPlans(){
   const r=await fetch(SUPABASE_URL+`/rest/v1/sales_plan?month=eq.${MONTH}&select=product_id,price,plan_qty,margin_pct`,{headers:HD});
   if(!r.ok)throw new Error('HTTP '+r.status);
   PLAN={}; (await r.json()).forEach(x=>PLAN[x.product_id]={price:Number(x.price||0),plan_qty:Number(x.plan_qty||0),margin_pct:Number(x.margin_pct||0)});
+  const r2=await fetch(SUPABASE_URL+`/rest/v1/sales_plan?month=eq.${nextMonthISO()}&select=product_id,plan_qty`,{headers:HD});
+  PLAN_NEXT={};
+  if(r2.ok)(await r2.json()).forEach(x=>PLAN_NEXT[x.product_id]=Number(x.plan_qty||0));
 }
 async function loadWeeks(){
   if(!WEEKISO.length){WD={};return;}
@@ -1125,12 +1131,20 @@ function recForV2(pid,key){
   let bi=ci;
   while(bi>0&&series[bi].fact==null)bi--;
   if(series[bi].fact==null)return null;
-  const ni=bi+1; if(ni>=WEEKISO.length)return null;
+  const ni=bi+1;
   const cur=series[bi].forecast;
-  const target=series[ni].forecast;
+  let target,nwISO;
+  if(ni<WEEKISO.length){ target=series[ni].forecast; nwISO=WEEKISO[ni]; }
+  else{
+    const wsNext=weeksOfNextMonth();
+    const pq=PLAN_NEXT[pid]||0;
+    if(!wsNext.length||!pq)return null;
+    nwISO=addDaysISO(WEEKISO[WEEKISO.length-1],7);
+    target=pq/wsNext.length;
+  }
   const d=target-cur;
   const pct=cur!==0?(d/Math.abs(cur)*100):0;
-  return {cw:WEEKISO[bi],nw:WEEKISO[ni],curV:cur,nxtV:target,d,pct};
+  return {cw:WEEKISO[bi],nw:nwISO,curV:cur,nxtV:target,d,pct};
 }
 function recText(r,unit){
   if(!r) return {text:'—',cls:'n'};
