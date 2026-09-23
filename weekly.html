@@ -268,7 +268,7 @@ const localISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 const parseISO=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
 const DOW_TARGET={0:7,1:13,2:12,3:11,4:10,5:9,6:8};
 const DOW_NAME={0:'вс',1:'пн',2:'вт',3:'ср',4:'чт',5:'пт',6:'сб'};
-function matrixOf(offer){ return (/^(CAP|GLV|SEAL)-/.test(offer))?'m1':'m2'; }
+function matrixOf(offer){ return (/^(CAP|GLV|SEAL|RNC)-/.test(offer))?'m1':'m2'; }
 function setMode(m){
   MODE=m;
   document.getElementById('modeSum').classList.toggle('on',m==='summary');
