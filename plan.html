@@ -1145,7 +1145,11 @@ function recForV2(pid,key){
     const pq=PLAN_NEXT[pid]||0;
     if(!wsNext.length||!pq)return null;
     nwISO=addDaysISO(WEEKISO[WEEKISO.length-1],7);
-    target=pq/wsNext.length;
+    const pl=PLAN[pid]||{price:0,margin_pct:0};
+    if(key==='sales') target=pq/wsNext.length;
+    else if(key==='revn') target=(pq*pl.price)/wsNext.length;
+    else if(key==='mar') target=(pq*pl.price*pl.margin_pct/100)/wsNext.length;
+    else target=0;
   }
   const d=target-cur;
   const pct=cur!==0?(d/Math.abs(cur)*100):0;
