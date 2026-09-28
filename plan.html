@@ -368,7 +368,18 @@ const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const daysBetween=(a,b)=>Math.round((b-a)/86400000);
 const ddmm=iso=>iso.slice(8,10)+'.'+iso.slice(5,7);
 function matrixOf(offer){ return (/^(CAP|GLV|SEAL|RNC)-/.test(offer))?'m1':'m2'; }
-function isoWeeksOfMonth(y,m){
+function monthOfWeekISO(iso){
+  const d=parseW(iso);
+  const monday=new Date(d); monday.setDate(d.getDate()-((d.getDay()+6)%7));
+  const thu=new Date(monday); thu.setDate(monday.getDate()+3);
+  return thu.getFullYear()+'-'+String(thu.getMonth()+1).padStart(2,'0');
+}
+function weekBoundsOfMonth(y,m){
+  const ws=isoWeeksOfMonth(y,m-1);
+  if(!ws.length)return [null,null];
+  return [localISO(ws[0]), localISO(weekEnd(ws[ws.length-1]))];
+}
+ function isoWeeksOfMonth(y,m){
   const out=[]; let d=new Date(y,m,1);
   d.setDate(d.getDate()-((d.getDay()+6)%7));
   for(let i=0;i<6;i++){ const thu=new Date(d); thu.setDate(thu.getDate()+3);
@@ -437,15 +448,14 @@ async function loadWeeks(){
 }
 async function loadPPM(){
   const [y,m]=MONTH.split('-').map(Number);
-  const firstISO=localISO(new Date(y,m-1,1));
-  const lastISO=localISO(new Date(y,m,0));
+  const [wFrom,wTo]=weekBoundsOfMonth(y,m);
   const [r1,r2]=await Promise.all([
     fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol,work_date`,{headers:HD}),
-    fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=lt.${MONTH}&work_date=not.is.null&work_date=gte.${firstISO}&work_date=lte.${lastISO}&select=product_id,weekday,protocol,work_date`,{headers:HD})
+    fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=lt.${MONTH}&work_date=not.is.null&work_date=gte.${wFrom}&work_date=lte.${wTo}&select=product_id,weekday,protocol,work_date`,{headers:HD})
   ]);
   if(!r1.ok||!r2.ok)throw new Error('HTTP '+(r1.status||r2.status));
   const cur=await r1.json();
-  const ext=await r2.json();
+  const ext=(await r2.json()).filter(r=>monthOfWeekISO(r.work_date)===MONTH);
   const seen=new Set(cur.map(r=>r.product_id));
   const added=ext.filter(r=>!seen.has(r.product_id));
   PPM={};
@@ -453,18 +463,17 @@ async function loadPPM(){
 }
 async function loadProto(){
   const [y,m]=MONTH.split('-').map(Number);
-  const firstISO=localISO(new Date(y,m-1,1));
-  const lastISO=localISO(new Date(y,m,0));
+  const [wFrom,wTo]=weekBoundsOfMonth(y,m);
   const [r1,r2]=await Promise.all([
     fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=eq.${MONTH}&select=*&order=created_at.asc`,{headers:HD}),
     fetch(SUPABASE_URL+`/rest/v1/product_protocol_notes?month=eq.${MONTH}&select=*&order=created_at.desc`,{headers:HD})
   ]);
   if(!r1.ok||!r2.ok)throw new Error('HTTP '+(r1.status||r2.status));
   let rows=await r1.json();
-  const rX=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=lt.${MONTH}&parent_id=is.null&deadline=gte.${firstISO}&deadline=lte.${lastISO}&select=*&order=created_at.asc`,{headers:HD});
+  const rX=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=lt.${MONTH}&parent_id=is.null&deadline=gte.${wFrom}&deadline=lte.${wTo}&select=*&order=created_at.asc`,{headers:HD});
   if(rX.ok){
     const seen=new Set(rows.map(r=>r.id));
-    const added=(await rX.json()).filter(r=>!seen.has(r.id));
+    const added=(await rX.json()).filter(r=>!seen.has(r.id)&&monthOfWeekISO(r.deadline)===MONTH);
     rows=rows.concat(added);
     if(added.length){
       const rC=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?parent_id=in.(${added.map(r=>r.id).join(',')})&select=*&order=created_at.asc`,{headers:HD});
