@@ -398,6 +398,8 @@ async function go(){
   if(h!==PASSWORD_HASH){alert('Неверный пароль');return;}
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
+  const now=new Date();
+  MONTH=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   fillMonthSelect();
   document.getElementById('month').value=MONTH;
   load();
@@ -428,18 +430,47 @@ async function loadWeeks(){
   }
 }
 async function loadPPM(){
-  const r=await fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol,work_date`,{headers:HD});
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  PPM={}; (await r.json()).forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol,work_date:x.work_date});
+  const [y,m]=MONTH.split('-').map(Number);
+  const firstISO=localISO(new Date(y,m-1,1));
+  const lastISO=localISO(new Date(y,m,0));
+  const [r1,r2]=await Promise.all([
+    fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=eq.${MONTH}&select=product_id,weekday,protocol,work_date`,{headers:HD}),
+    fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?month=lt.${MONTH}&work_date=not.is.null&work_date=gte.${firstISO}&work_date=lte.${lastISO}&select=product_id,weekday,protocol,work_date`,{headers:HD})
+  ]);
+  if(!r1.ok||!r2.ok)throw new Error('HTTP '+(r1.status||r2.status));
+  const cur=await r1.json();
+  const ext=await r2.json();
+  const seen=new Set(cur.map(r=>r.product_id));
+  const added=ext.filter(r=>!seen.has(r.product_id));
+  PPM={};
+  [...cur, ...added].forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol,work_date:x.work_date});
 }
 async function loadProto(){
+  const [y,m]=MONTH.split('-').map(Number);
+  const firstISO=localISO(new Date(y,m-1,1));
+  const lastISO=localISO(new Date(y,m,0));
   const [r1,r2]=await Promise.all([
     fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=eq.${MONTH}&select=*&order=created_at.asc`,{headers:HD}),
     fetch(SUPABASE_URL+`/rest/v1/product_protocol_notes?month=eq.${MONTH}&select=*&order=created_at.desc`,{headers:HD})
   ]);
   if(!r1.ok||!r2.ok)throw new Error('HTTP '+(r1.status||r2.status));
+  let rows=await r1.json();
+  const rX=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?month=lt.${MONTH}&parent_id=is.null&deadline=gte.${firstISO}&deadline=lte.${lastISO}&select=*&order=created_at.asc`,{headers:HD});
+  if(rX.ok){
+    const seen=new Set(rows.map(r=>r.id));
+    const added=(await rX.json()).filter(r=>!seen.has(r.id));
+    rows=rows.concat(added);
+    if(added.length){
+      const rC=await fetch(SUPABASE_URL+`/rest/v1/product_protocol?parent_id=in.(${added.map(r=>r.id).join(',')})&select=*&order=created_at.asc`,{headers:HD});
+      if(rC.ok){
+        const seen2=new Set(rows.map(r=>r.id));
+        rows=rows.concat((await rC.json()).filter(r=>!seen2.has(r.id)));
+      }
+    }
+  }
+  rows.sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));
   PROTO={}; NOTES={};
-  (await r1.json()).forEach(x=>{(PROTO[x.product_id]=PROTO[x.product_id]||[]).push(x);});
+  rows.forEach(x=>{(PROTO[x.product_id]=PROTO[x.product_id]||[]).push(x);});
   (await r2.json()).forEach(x=>{(NOTES[x.product_id]=NOTES[x.product_id]||[]).push(x);});
 }
 async function loadDev(){
@@ -935,6 +966,11 @@ async function upsertPPM(pid,patch){
   const cur=PPM[pid]||{weekday:null,protocol:null,work_date:null};
   const next=Object.assign({},cur,patch);
   PPM[pid]=next;
+  if(next.work_date){
+    const [wy,wm]=next.work_date.split('-').map(Number);
+    const targetMonth=wy+'-'+String(wm).padStart(2,'0');
+    await fetch(SUPABASE_URL+`/rest/v1/product_plan_meta?product_id=eq.${pid}&work_date=not.is.null&month=neq.${targetMonth}`,{method:'DELETE',headers:HD});
+  }
   await fetch(SUPABASE_URL+'/rest/v1/product_plan_meta?on_conflict=product_id,month',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({product_id:pid,month:MONTH,weekday:next.weekday,protocol:next.protocol,work_date:next.work_date})});
 }
 async function setWorkDate(pid,val){ await upsertPPM(pid,{work_date:val||null}); render(); }
