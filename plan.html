@@ -399,7 +399,13 @@ async function go(){
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   const now=new Date();
-  MONTH=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const t=new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day=t.getDay();
+  const monday=new Date(t);
+  monday.setDate(t.getDate() - ((day+6)%7));
+  const thu=new Date(monday);
+  thu.setDate(monday.getDate()+3);
+  MONTH=thu.getFullYear()+'-'+String(thu.getMonth()+1).padStart(2,'0');
   fillMonthSelect();
   document.getElementById('month').value=MONTH;
   load();
