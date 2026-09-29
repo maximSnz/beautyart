@@ -1709,7 +1709,12 @@ function matrixStats(list){
 function hypStats(list){
   let active=0,success=0,fail=0;
   list.forEach(p=>{
-    const items=(PROTO[p.product_id]||[]).filter(it=>it.month===MONTH&&!it.parent_id);
+    const items=(PROTO[p.product_id]||[]).filter(it=>{
+      if(it.parent_id)return false;
+      if(it.month===MONTH)return true;
+      if(it.deadline&&monthOfWeekISO(it.deadline)===MONTH)return true;
+      return false;
+    });
     items.forEach(it=>{
       if(it.fact_dev==null) active++;
       else{
