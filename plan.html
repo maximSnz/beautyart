@@ -994,6 +994,7 @@ async function editField(pid,field){
   const num=Number(String(val).replace(',','.'));
   if(!isFinite(num)||num<0){alert('Некорректное значение');return;}
   pl[field]=num; PLAN[pid]=pl;
+  TEMPS_CACHE={key:'',data:null};
   const r=await fetch(SUPABASE_URL+'/rest/v1/sales_plan?on_conflict=month,product_id',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({month:MONTH,product_id:pid,price:pl.price,plan_qty:pl.plan_qty,margin_pct:pl.margin_pct})});
   if(!r.ok){alert('Ошибка сохранения: HTTP '+r.status);return;}
   render();
