@@ -1625,14 +1625,16 @@ async function loadPulse(pid){
   const temps=await computeOrderTemps();
   const trow=(temps[matrixOf(offer)]||[]).find(x=>x.offer===offer);
   const rpDay=trow?trow.rp:null;
+  const rcDay=trow?trow.rc:null;
   const todayISO=localISO(new Date());
   h+='<tr><td class="pulsemetric">Заказы, шт</td>';
   salesVals.forEach((v,idx)=>{
     const iso=days[idx];
     if(v!=null){ h+=`<td class="num" style="${salesBg(v)}">${fmt(v)}</td>`; return; }
     if(rpDay!=null&&iso>todayISO){
-      const pv=rpDay*(isWeekend(iso)?0.7:1);
-      h+=`<td class="num factcell" title="Плановый темп дня: темп плана с учётом выходных (×0,7 для сб/вс)">${fmt(pv)}</td>`;
+      const k=isWeekend(iso)?0.7:1;
+      const cell=rcDay!=null?`${fmt(rpDay*k)}/${fmt(rcDay*k)}`:`${fmt(rpDay*k)}`;
+      h+=`<td class="num factcell" title="Плановый темп / догоняющий темп дня, шт (выходные ×0,7)">${cell}</td>`;
       return;
     }
     h+=`<td class="num" style="${salesBg(v)}">—</td>`;
