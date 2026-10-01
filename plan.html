@@ -1087,8 +1087,9 @@ function monthlyPlan(p,key){
 }
 function elapsedInfo(){
   if(!WEEKISO.length) return {E:0,T:0};
-  const first=parseW(WEEKISO[0]);
-  const last=weekEnd(parseW(WEEKISO[WEEKISO.length-1]));
+  const [ey,em]=MONTH.split('-').map(Number);
+  const first=new Date(ey,em-1,1);
+  const last=new Date(ey,em,0);
   const T=daysBetween(first,last)+1;
   const today=new Date(); today.setHours(0,0,0,0);
   let E;
@@ -1128,14 +1129,14 @@ function calcForecast(p,key){
   const end=D<last?D:last;
   let F=0,any=false;
   for(const w of WEEKISO){
-    const rec=getRec(p.product_id,key,localISO(w));
+    const rec=getRec(p.product_id,key,w);
     if(rec.fact==null) continue;
     any=true;
     let elapsed=0;
-    for(let i=0;i<7;i++){ if(parseW(addDaysISO(localISO(w),i))<=D) elapsed++; }
+    for(let i=0;i<7;i++){ if(parseW(addDaysISO(w,i))<=D) elapsed++; }
     const per=rec.fact/Math.max(elapsed,1);
     for(let i=0;i<7;i++){
-      const dd=parseW(addDaysISO(localISO(w),i));
+      const dd=parseW(addDaysISO(w,i));
       if(dd>=first&&dd<=end) F+=per;
     }
   }
@@ -1184,7 +1185,7 @@ function seriesFor(p,key){
   return WEEKISO.map((w,i)=>{
     let fc;
     if(kind[i]==='auto'){
-      const wt=weekTargetParts(p,localISO(w),key);
+      const wt=weekTargetParts(p,w,key);
       fc=wt.total>0?wt.total:baseline;
     }
     else fc=val[i];
