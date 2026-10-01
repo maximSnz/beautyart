@@ -2054,18 +2054,18 @@ function mxCard(id,title,list,gid){
     </div>
     <div class="panel panel-speedo">
       <div class="speedo-wrap">
-        <div class="speedo-item clickable" title="Заказы, шт: вчера к плану (перевыполнение срезается) — клик: слайд темпов" onclick="setOrdMode('${gid}','orders')">
-          <div class="speedo-label">Заказы, шт</div>
-          <svg class="speedo-svg" id="speedo_orders_${gid}" viewBox="0 0 80 50"></svg>
-          <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
-          <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
-        </div>
-        <div class="speedo-item" title="Выручка (PNL): заказы вчера × цена, к плану (перевыполнение учитывается)">
-          <div class="speedo-label">Выручка (PNL)</div>
-          <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
-          <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
-          <div class="speedo-sub" id="speedosub_rev_${gid}">расчёт…</div>
-        </div>
+<div class="speedo-item clickable" title="Заказы (capped), шт: вчера к плану (перевыполнение срезается) — клик: слайд темпов" onclick="setOrdMode('${gid}','orders')">
+  <div class="speedo-label">Заказы (capped), шт</div>
+  <svg class="speedo-svg" id="speedo_orders_${gid}" viewBox="0 0 80 50"></svg>
+  <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
+  <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
+</div>
+<div class="speedo-item" title="Выручка (PNL, uncapped), ₽: заказы вчера × цена, к плану (перевыполнение учитывается)">
+  <div class="speedo-label">Выручка (PNL, uncapped), ₽</div>
+  <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
+  <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
+  <div class="speedo-sub" id="speedosub_rev_${gid}">расчёт…</div>
+</div>
       </div>
     </div>
     <div class="panel panel-kpi">
