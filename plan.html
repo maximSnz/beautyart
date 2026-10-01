@@ -2119,7 +2119,7 @@ function mxCard(id,title,list,gid){
           <div class="kpirow"><div class="klabel">Неудачных</div><div class="kval">${h.fail}</div></div>
         </div>
       </div>
-    </div>;
+    </div>`;
   return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="setOrdMode('${gid}','orders')">Заказы</button></span></div><div class="mxbody">${body}</div></div>`;
 }
 function render(){
