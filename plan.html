@@ -374,6 +374,13 @@ function monthOfWeekISO(iso){
   const thu=new Date(monday); thu.setDate(monday.getDate()+3);
   return thu.getFullYear()+'-'+String(thu.getMonth()+1).padStart(2,'0');
 }
+ function calendarWeeksOfMonth(y,m){
+  const ws=isoWeeksOfMonth(y,m-1).map(localISO);
+  const set=new Set(ws);
+  set.add(weekStartOf(localISO(new Date(y,m-1,1))));
+  set.add(weekStartOf(localISO(new Date(y,m,0))));
+  return [...set].sort();
+}
 function weekBoundsOfMonth(y,m){
   const ws=isoWeeksOfMonth(y,m-1);
   if(!ws.length)return [null,null];
@@ -483,8 +490,10 @@ function weekTargetParts(p,weekISO,metric){
   return {total,parts};
 }
 async function loadWeeks(){
-  if(!WEEKISO.length){WD={};return;}
-  const inList='('+WEEKISO.map(w=>`"${w}"`).join(',')+')';
+  const [y,m]=MONTH.split('-').map(Number);
+  const weeks=calendarWeeksOfMonth(y,m);
+  if(!weeks.length){WD={};return;}
+  const inList='('+weeks.map(w=>`"${w}"`).join(',')+')';
   WD={};
   let off=0;
   while(true){
@@ -1126,9 +1135,10 @@ function calcForecast(p,key){
   const today=new Date(); today.setHours(0,0,0,0);
   const D=new Date(today); D.setDate(D.getDate()-1);
   if(D<first) return null;
-  const end=D<last?D:last;
+  const end=D<last?D:last; 
   let F=0,any=false;
-  for(const w of WEEKISO){
+  const cweeks=calendarWeeksOfMonth(y,m);
+  for(const w of cweeks){
     const rec=getRec(p.product_id,key,w);
     if(rec.fact==null) continue;
     any=true;
