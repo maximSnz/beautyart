@@ -1010,6 +1010,8 @@ async function computeOrderTemps(){
     const yest=m?(m.get(yISO)||0):0;
     let exec=0;
     if(m)m.forEach((v,k)=>{if(k>=periodStart&&k<=yISO)exec+=v;});
+    const eElapsed=effDaysRange(periodStart, yISO<periodEnd?yISO:periodEnd);
+    const proj=eElapsed>0? exec/eElapsed*effTotal : null;
     const need=pl.plan_qty/0.95;
     const remain=need-exec;
     const rc=effRemain>0?remain/effRemain:0;
@@ -1017,7 +1019,7 @@ async function computeOrderTemps(){
     const k=yIsWe?0.7:1;
     const expected=rp*k;
     const rcExp=rc*k;
-    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rcExp,devCatch:avg-rcExp,rp:rp,expected:expected,devPlan:yest-expected});
+    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rcExp,devCatch:avg-rcExp,rp:rp,expected:expected,devPlan:yest-expected,proj:proj,price:pl.price});
   });
   res.m1.sort((a,b)=>a.devPlan-b.devPlan);
   res.m2.sort((a,b)=>a.devPlan-b.devPlan);
@@ -1172,6 +1174,15 @@ async function renderSpeedo(gid, type){
   const unit=type==='orders'?'шт':'₽';
   sub.textContent=`${fmt(Math.round(F))} / ${fmt(Math.round(P))} ${unit}`;
 
+}
+ async function renderKpiPnl(gid){
+  const el=document.getElementById('kpipnl_'+gid);
+  if(!el)return;
+  const data=await computeOrderTemps();
+  const rows=data[gid]||[];
+  let rev=0,any=false;
+  rows.forEach(x=>{ if(x.proj!=null){ rev+=x.proj*(x.price||0); any=true; } });
+  el.textContent=any? fmt(rev):'—';
 }
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
@@ -2084,6 +2095,10 @@ function mxCard(id,title,list,gid){
           <div class="kpirow"><div class="klabel">Маржин. ср.взвеш., %</div><div class="kval">${wFMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
         </div>
         <div class="kpicol sep">
+          <div class="kpititle">Прогноз (PNL)</div>
+          <div class="kpirow"><div class="klabel">Выручка, ₽</div><div class="kval" id="kpipnl_${gid}">…</div></div>
+        </div>
+        <div class="kpicol sep">
           <div class="kpititle">Гипотезы</div>
           <div class="kpirow"><div class="klabel">Всего</div><div class="kval">${h.active}</div></div>
           <div class="kpirow"><div class="klabel">Успешных</div><div class="kval">${h.success}</div></div>
@@ -2111,6 +2126,8 @@ function render(){
     renderSpeedo('m2', 'orders');
     renderSpeedo('m2', 'rev');
   }
+  renderKpiPnl('m1');
+  renderKpiPnl('m2');
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE.m1==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
