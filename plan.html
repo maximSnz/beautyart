@@ -181,26 +181,35 @@
  .panelhead .pieSwitch{margin-left:auto}
  .panel-charts{flex:0 0 520px;width:520px}
 .panel-speedo {
-  flex: 0 0 84px;
-  width: 84px;
-  cursor: pointer;
-  transition: transform .15s ease, box-shadow .15s ease;
+  flex: 0 0 168px;
+  width: 168px;
 }
-.panel-speedo:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(28,13,46,.18);
-}
-.speedo-body {
+.speedo-wrap {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: space-evenly;
+  gap: 6px;
+}
+.speedo-item {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 2px;
+  border-radius: 10px;
+  padding: 4px 2px;
+}
+.speedo-item.clickable { cursor: pointer; transition: background .15s; }
+.speedo-item.clickable:hover { background: rgba(120,166,199,.12); }
+.speedo-label {
+  font-family: 'Forum';
+  font-size: .78em;
+  font-weight: 700;
+  color: #544273;
 }
 .speedo-svg {
-  width: 70px;
-  height: 45px;
+  width: 130px;
+  height: 82px;
 }
 .speedo-val {
   font-family: 'Forum';
@@ -304,7 +313,7 @@
  .upmenu button:hover{background:rgba(120,166,199,.2)}
  @media (max-width:1100px){
    .mxbody{flex-wrap:wrap}
-   .panel-charts,.panel-thermo,.panel-kpi{flex:1 1 100%;width:100%}
+   .panel-charts,.panel-speedo,.panel-kpi{flex:1 1 100%;width:100%}
  }
  @media (min-width:961px){
    .tablewrap{overflow-x:auto}
@@ -2043,20 +2052,20 @@ function mxCard(id,title,list,gid){
           <div class="legend" id="legendPos${id}"></div></div></div>
       </div>
     </div>
-    <div class="panel panel-speedo" title="Заказы вчера к плану" onclick="setOrdMode('${gid}','orders')">
-      <div class="panelhead"><span class="paneltitle">Заказы</span></div>
-      <div class="speedo-body">
-        <svg class="speedo-svg" id="speedo_orders_${gid}" viewBox="0 0 80 50"></svg>
-        <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
-        <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
-      </div>
-    </div>
-    <div class="panel panel-speedo" title="Выручка вчера к плану" onclick="setOrdMode('${gid}','orders')">
-      <div class="panelhead"><span class="paneltitle">Выручка</span></div>
-      <div class="speedo-body">
-        <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
-        <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
-        <div class="speedo-sub" id="speedosub_rev_${gid}">расчёт…</div>
+    <div class="panel panel-speedo">
+      <div class="speedo-wrap">
+        <div class="speedo-item clickable" title="Заказы вчера к плану (перевыполнение не учитывается) — клик: слайд темпов" onclick="setOrdMode('${gid}','orders')">
+          <div class="speedo-label">Заказы</div>
+          <svg class="speedo-svg" id="speedo_orders_${gid}" viewBox="0 0 80 50"></svg>
+          <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
+          <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
+        </div>
+        <div class="speedo-item" title="Выручка вчера к плану (перевыполнение учитывается)">
+          <div class="speedo-label">Выручка</div>
+          <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
+          <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
+          <div class="speedo-sub" id="speedosub_rev_${gid}">расчёт…</div>
+        </div>
       </div>
     </div>
     <div class="panel panel-kpi">
