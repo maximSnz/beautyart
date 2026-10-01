@@ -228,6 +228,14 @@
   text-align: center;
   line-height: 1.2;
 }
+ .speedo-legend{display:flex;justify-content:center;align-items:center;gap:4px;padding:6px 4px;margin-top:4px;border-top:1px dashed rgba(84,66,115,.15);flex-wrap:wrap}
+.leg-item{font-size:.6em;color:#94a3b8;padding:2px 4px;border-radius:4px;border:1.5px solid transparent;transition:all .2s;white-space:nowrap}
+.leg-item.active{border-color:currentColor;background:rgba(255,255,255,.5);font-weight:700}
+.leg-item[data-level="bad-bad"]{color:#E33D78}
+.leg-item[data-level="bad"]{color:#d97706}
+.leg-item[data-level="warn"]{color:#f59e0b}
+.leg-item[data-level="ok"]{color:#16a34a}
+.leg-item[data-level="ok-ok"]{color:#4ade80}
  .panel-kpi{flex:1 1 0}
  .piesrow{display:flex;gap:10px;flex:1;align-items:flex-start}
  .piecard{display:flex;flex-direction:column;flex:0 0 242px;width:242px;overflow:hidden}
@@ -1096,82 +1104,90 @@ async function renderProgBar(gid){
   if(emo)emo.textContent=emoji;
   sub.textContent=`${fmt(Math.round(F))} / ${fmt(Math.round(P))} шт`;
 }
- async function renderSpeedo(gid, type){
-  const svg = document.getElementById(`speedo_${type}_${gid}`);
-  const val = document.getElementById(`speedoval_${type}_${gid}`);
-  const sub = document.getElementById(`speedosub_${type}_${gid}`);
-  if(!svg || !val || !sub) return;
-  
-  const now = new Date(); now.setHours(0,0,0,0);
-  const [yy,mm] = MONTH.split('-').map(Number);
-  const periodStart = localISO(new Date(yy,mm-1,1));
-  const periodEnd = localISO(new Date(yy,mm,0));
-  
-  if(!WEEKISO.length){
-    svg.innerHTML = '';
-    val.textContent = '—'; val.className = 'speedo-val n';
-    sub.textContent = 'нет недель';
-    return;
-  }
-  if(localISO(now) < periodStart){
-    svg.innerHTML = '';
-    val.textContent = '—'; val.className = 'speedo-val n';
-    sub.textContent = 'старт ' + ddmm(periodStart);
-    return;
-  }
-  if(localISO(now) > periodEnd){
-    svg.innerHTML = '';
-    val.textContent = '—'; val.className = 'speedo-val n';
-    sub.textContent = 'завершён';
-    return;
-  }
-  
-  const data = await computeOrderTemps();
-  const rows = data[gid] || [];
-  
-  let F = 0, P = 0;
-  rows.forEach(x => {
-    const pl = PLAN[ROWS.find(r => r.offer_id === x.offer)?.product_id] || {};
-    const price = pl.price || 1;
-    
-    if(type === 'orders'){
-      P += x.expected;
-      F += Math.min(x.yest, x.expected); // capped для заказов
-    } else {
-      P += x.expected * price;
-      F += x.yest * price; // без cap для выручки (перевыполнение)
+const SPEEDO_STOPS=[
+  [40,227,61,120],   // 💩 красный
+  [70,217,119,6],    // 😐 оранжевый
+  [85,245,158,11],   // 🙂 жёлтый
+  [92,22,163,74],    // 🔥 зелёный
+  [100,74,222,128]   // 🚀 ярко-зелёный
+];
+function speedoColor(pct){
+  const p=Math.max(SPEEDO_STOPS[0][0],Math.min(pct,SPEEDO_STOPS[SPEEDO_STOPS.length-1][0]));
+  for(let i=0;i<SPEEDO_STOPS.length-1;i++){
+    const a=SPEEDO_STOPS[i],b=SPEEDO_STOPS[i+1];
+    if(p<=b[0]){
+      const t=(p-a[0])/(b[0]-a[0]);
+      return `rgb(${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)},${Math.round(a[3]+(b[3]-a[3])*t)})`;
     }
-  });
-  
-  if(!rows.length || P <= 0){
-    svg.innerHTML = '';
-    val.textContent = '—'; val.className = 'speedo-val n';
-    sub.textContent = 'нет данных';
-    return;
   }
-  
-  const pct = F / P * 100;
-  const cls = pct >= 90 ? 'ok' : (pct >= 80 ? 'warn' : 'bad');
-  const emoji = pct >= 95 ? '🚀' : (pct >= 90 ? '🔥' : (pct >= 80 ? '🙂' : (pct >= 60 ? '😐' : '💩')));
-  
-  // Рисуем спидометр
-  const angle = -90 + Math.min(pct, 100) / 100 * 180;
-  
-  svg.innerHTML = `
-    <path d="M 10 45 A 30 30 0 0 1 70 45" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
-    <path d="M 10 45 A 30 30 0 0 1 25 20" fill="none" stroke="#E33D78" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
-    <path d="M 25 20 A 30 30 0 0 1 35 16" fill="none" stroke="#d97706" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
-    <path d="M 35 16 A 30 30 0 0 1 70 45" fill="none" stroke="#16a34a" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
-    <line x1="40" y1="45" x2="40" y2="20" stroke="#1C0D2E" stroke-width="2.5" stroke-linecap="round" transform="rotate(${angle} 40 45)"/>
-    <circle cx="40" cy="45" r="3" fill="#1C0D2E"/>
-    <text x="40" y="12" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Forum">${emoji}</text>
+  const l=SPEEDO_STOPS[SPEEDO_STOPS.length-1];
+  return `rgb(${l[1]},${l[2]},${l[3]})`;
+}
+function speedoArc(a0,a1){
+  const cx=40,cy=45,r=30,rad=a=>a*Math.PI/180;
+  const x0=cx+r*Math.sin(rad(a0)),y0=cy-r*Math.cos(rad(a0));
+  const x1=cx+r*Math.sin(rad(a1)),y1=cy-r*Math.cos(rad(a1));
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+async function renderSpeedo(gid, type){
+  const svg=document.getElementById(`speedo_${type}_${gid}`);
+  const val=document.getElementById(`speedoval_${type}_${gid}`);
+  const sub=document.getElementById(`speedosub_${type}_${gid}`);
+  if(!svg||!val||!sub)return;
+  const reset=()=>{svg.innerHTML='';val.textContent='—';val.className='speedo-val n';val.style.color='';};
+
+  const now=new Date(); now.setHours(0,0,0,0);
+  const [yy,mm]=MONTH.split('-').map(Number);
+  const periodStart=localISO(new Date(yy,mm-1,1));
+  const periodEnd=localISO(new Date(yy,mm,0));
+
+  if(!WEEKISO.length){reset();sub.textContent='нет недель';return;}
+  if(localISO(now)<periodStart){reset();sub.textContent='старт '+ddmm(periodStart);return;}
+  if(localISO(now)>periodEnd){reset();sub.textContent='завершён';return;}
+
+  const data=await computeOrderTemps();
+  const rows=data[gid]||[];
+  let F=0,P=0;
+  rows.forEach(x=>{
+    const pl=PLAN[ROWS.find(r=>r.offer_id===x.offer)?.product_id]||{};
+    const price=pl.price||1;
+    if(type==='orders'){P+=x.expected;F+=Math.min(x.yest,x.expected);}
+    else{P+=x.expected*price;F+=x.yest*price;}
+  });
+  if(!rows.length||P<=0){reset();sub.textContent='нет данных';return;}
+
+  const pct=F/P*100;
+  const cls=pct>=90?'ok':(pct>=80?'warn':'bad');
+  const emoji=pct>=95?'🚀':(pct>=90?'🔥':(pct>=80?'🙂':(pct>=60?'😐':'💩')));
+  const col=speedoColor(pct);
+  const angle=-90+Math.min(pct,100)/100*180;
+  const zones=[[-90,18,'#E33D78'],[18,54,'#d97706'],[54,72,'#f59e0b'],[72,81,'#16a34a'],[81,90,'#4ade80']];
+
+  svg.innerHTML=`
+    <path d="${speedoArc(-90,90)}" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
+    ${zones.map(z=>`<path d="${speedoArc(z[0],z[1])}" fill="none" stroke="${z[2]}" stroke-width="8" opacity="0.35"/>`).join('')}
+    <g transform="rotate(${angle} 40 45)">
+      <line x1="40" y1="45" x2="40" y2="20" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="20" r="2.5" fill="${col}"/>
+      <text x="40" y="18" text-anchor="middle" font-size="10" transform="rotate(${-angle} 40 18)">${emoji}</text>
+    </g>
+    <circle cx="40" cy="45" r="3" fill="${col}"/>
   `;
-  
-  val.textContent = Math.round(pct) + '%';
-  val.className = 'speedo-val ' + cls;
-  
-  const unit = type === 'orders' ? 'шт' : '₽';
-  sub.textContent = `${fmt(Math.round(F))} / ${fmt(Math.round(P))} ${unit}`;
+
+  val.textContent=Math.round(pct)+'%';
+  val.className='speedo-val '+cls;
+  val.style.color=col;
+
+  const unit=type==='orders'?'шт':'₽';
+  sub.textContent=`${fmt(Math.round(F))} / ${fmt(Math.round(P))} ${unit}`;
+
+  if(type==='orders'){
+    const leg=document.getElementById(`speedoleg_${gid}`);
+    if(leg){
+      const lvl=pct>=95?'ok-ok':(pct>=90?'ok':(pct>=80?'warn':(pct>=60?'bad':'bad-bad')));
+      leg.querySelectorAll('.leg-item').forEach(it=>it.classList.toggle('active',it.dataset.level===lvl));
+    }
+  }
 }
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
@@ -2054,17 +2070,24 @@ function mxCard(id,title,list,gid){
     </div>
     <div class="panel panel-speedo">
       <div class="speedo-wrap">
-        <div class="speedo-item clickable" title="Заказы вчера к плану (перевыполнение не учитывается) — клик: слайд темпов" onclick="setOrdMode('${gid}','orders')">
-          <div class="speedo-label">Заказы</div>
+        <div class="speedo-item clickable" title="Заказы, шт: вчера к плану (перевыполнение срезается) — клик: слайд темпов" onclick="setOrdMode('${gid}','orders')">
+          <div class="speedo-label">Заказы, шт</div>
           <svg class="speedo-svg" id="speedo_orders_${gid}" viewBox="0 0 80 50"></svg>
           <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
           <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
         </div>
-        <div class="speedo-item" title="Выручка вчера к плану (перевыполнение учитывается)">
-          <div class="speedo-label">Выручка</div>
+        <div class="speedo-item" title="Выручка (PNL): заказы вчера × цена, к плану (перевыполнение учитывается)">
+          <div class="speedo-label">Выручка (PNL)</div>
           <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
           <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
           <div class="speedo-sub" id="speedosub_rev_${gid}">расчёт…</div>
+        </div>
+        <div class="speedo-legend" id="speedoleg_${gid}">
+          <span class="leg-item" data-level="bad-bad">💩 &lt;60%</span>
+          <span class="leg-item" data-level="bad">😐 60–79%</span>
+          <span class="leg-item" data-level="warn">🙂 80–89%</span>
+          <span class="leg-item" data-level="ok">🔥 90–94%</span>
+          <span class="leg-item" data-level="ok-ok">🚀 ≥95%</span>
         </div>
       </div>
     </div>
