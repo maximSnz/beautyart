@@ -180,8 +180,45 @@
  .paneltitle{font-family:'Forum';font-size:.82em;font-weight:700;color:#544273}
  .panelhead .pieSwitch{margin-left:auto}
  .panel-charts{flex:0 0 520px;width:520px}
- .panel-thermo{flex:0 0 168px;width:168px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
- .panel-thermo:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(28,13,46,.18)}
+.panel-speedo {
+  flex: 0 0 84px;
+  width: 84px;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.panel-speedo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(28,13,46,.18);
+}
+.speedo-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.speedo-svg {
+  width: 70px;
+  height: 45px;
+}
+.speedo-val {
+  font-family: 'Forum';
+  font-size: 1.4em;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.speedo-val.ok { color: #16a34a; }
+.speedo-val.warn { color: #d97706; }
+.speedo-val.bad { color: #E33D78; animation: pulseBad 1.2s ease-in-out infinite; }
+.speedo-val.n { color: #94a3b8; }
+.speedo-sub {
+  font-size: .65em;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.2;
+}
  .panel-kpi{flex:1 1 0}
  .piesrow{display:flex;gap:10px;flex:1;align-items:flex-start}
  .piecard{display:flex;flex-direction:column;flex:0 0 242px;width:242px;overflow:hidden}
@@ -1049,6 +1086,83 @@ async function renderProgBar(gid){
   fill.style.height=Math.min(pct,100)+'%';
   if(emo)emo.textContent=emoji;
   sub.textContent=`${fmt(Math.round(F))} / ${fmt(Math.round(P))} шт`;
+}
+ async function renderSpeedo(gid, type){
+  const svg = document.getElementById(`speedo_${type}_${gid}`);
+  const val = document.getElementById(`speedoval_${type}_${gid}`);
+  const sub = document.getElementById(`speedosub_${type}_${gid}`);
+  if(!svg || !val || !sub) return;
+  
+  const now = new Date(); now.setHours(0,0,0,0);
+  const [yy,mm] = MONTH.split('-').map(Number);
+  const periodStart = localISO(new Date(yy,mm-1,1));
+  const periodEnd = localISO(new Date(yy,mm,0));
+  
+  if(!WEEKISO.length){
+    svg.innerHTML = '';
+    val.textContent = '—'; val.className = 'speedo-val n';
+    sub.textContent = 'нет недель';
+    return;
+  }
+  if(localISO(now) < periodStart){
+    svg.innerHTML = '';
+    val.textContent = '—'; val.className = 'speedo-val n';
+    sub.textContent = 'старт ' + ddmm(periodStart);
+    return;
+  }
+  if(localISO(now) > periodEnd){
+    svg.innerHTML = '';
+    val.textContent = '—'; val.className = 'speedo-val n';
+    sub.textContent = 'завершён';
+    return;
+  }
+  
+  const data = await computeOrderTemps();
+  const rows = data[gid] || [];
+  
+  let F = 0, P = 0;
+  rows.forEach(x => {
+    const pl = PLAN[ROWS.find(r => r.offer_id === x.offer)?.product_id] || {};
+    const price = pl.price || 1;
+    
+    if(type === 'orders'){
+      P += x.expected;
+      F += Math.min(x.yest, x.expected); // capped для заказов
+    } else {
+      P += x.expected * price;
+      F += x.yest * price; // без cap для выручки (перевыполнение)
+    }
+  });
+  
+  if(!rows.length || P <= 0){
+    svg.innerHTML = '';
+    val.textContent = '—'; val.className = 'speedo-val n';
+    sub.textContent = 'нет данных';
+    return;
+  }
+  
+  const pct = F / P * 100;
+  const cls = pct >= 90 ? 'ok' : (pct >= 80 ? 'warn' : 'bad');
+  const emoji = pct >= 95 ? '🚀' : (pct >= 90 ? '🔥' : (pct >= 80 ? '🙂' : (pct >= 60 ? '😐' : '💩')));
+  
+  // Рисуем спидометр
+  const angle = -90 + Math.min(pct, 100) / 100 * 180;
+  
+  svg.innerHTML = `
+    <path d="M 10 45 A 30 30 0 0 1 70 45" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
+    <path d="M 10 45 A 30 30 0 0 1 25 20" fill="none" stroke="#E33D78" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+    <path d="M 25 20 A 30 30 0 0 1 35 16" fill="none" stroke="#d97706" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+    <path d="M 35 16 A 30 30 0 0 1 70 45" fill="none" stroke="#16a34a" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+    <line x1="40" y1="45" x2="40" y2="20" stroke="#1C0D2E" stroke-width="2.5" stroke-linecap="round" transform="rotate(${angle} 40 45)"/>
+    <circle cx="40" cy="45" r="3" fill="#1C0D2E"/>
+    <text x="40" y="12" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Forum">${emoji}</text>
+  `;
+  
+  val.textContent = Math.round(pct) + '%';
+  val.className = 'speedo-val ' + cls;
+  
+  const unit = type === 'orders' ? 'шт' : '₽';
+  sub.textContent = `${fmt(Math.round(F))} / ${fmt(Math.round(P))} ${unit}`;
 }
 async function exportPlanExcel(){
   if(typeof XLSX==='undefined'){alert('Библиотека Excel не загрузилась — проверьте интернет и обновите страницу.');return;}
@@ -1929,14 +2043,20 @@ function mxCard(id,title,list,gid){
           <div class="legend" id="legendPos${id}"></div></div></div>
       </div>
     </div>
-    <div class="panel panel-thermo" title="Клик — слайд темпов заказов" onclick="setOrdMode('${gid}','orders')">
-      <div class="panelhead"><span class="paneltitle">Заказы вчера к плану</span></div>
-      <div class="thermobody">
-        <div class="thermo"><div class="thermofill" id="progfill_${gid}" style="height:0%"><span class="thermoemoji" id="progemoji_${gid}">💩</span></div></div>
-        <div class="thermoinfo">
-          <div class="progval n" id="progval_${gid}">…</div>
-          <div class="progsub" id="progsub_${gid}">расчёт…</div>
-        </div>
+    <div class="panel panel-speedo" title="Заказы вчера к плану" onclick="setOrdMode('${gid}','orders')">
+      <div class="panelhead"><span class="paneltitle">Заказы</span></div>
+      <div class="speedo-body">
+        <svg class="speedo-svg" id="speedo_orders_${gid}" viewBox="0 0 80 50"></svg>
+        <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
+        <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
+      </div>
+    </div>
+    <div class="panel panel-speedo" title="Выручка вчера к плану" onclick="setOrdMode('${gid}','orders')">
+      <div class="panelhead"><span class="paneltitle">Выручка</span></div>
+      <div class="speedo-body">
+        <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
+        <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
+        <div class="speedo-sub" id="speedosub_rev_${gid}">расчёт…</div>
       </div>
     </div>
     <div class="panel panel-kpi">
@@ -1970,8 +2090,18 @@ function render(){
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
   document.getElementById('summary').innerHTML=mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
-  if(ORDMODE.m1==='orders')renderOrderTemps('m1'); else renderProgBar('m1');
-  if(ORDMODE.m2==='orders')renderOrderTemps('m2'); else renderProgBar('m2');
+  if(ORDMODE.m1 === 'orders'){
+    renderOrderTemps('m1');
+  } else {
+    renderSpeedo('m1', 'orders');
+    renderSpeedo('m1', 'rev');
+  }
+  if(ORDMODE.m2 === 'orders'){
+    renderOrderTemps('m2');
+  } else {
+    renderSpeedo('m2', 'orders');
+    renderSpeedo('m2', 'rev');
+  }
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE.m1==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
