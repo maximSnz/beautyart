@@ -257,6 +257,24 @@
  .kpirow:last-child{border-bottom:none}
  .klabel{font-size:.66em;color:#94a3b8;white-space:nowrap}
  .kval{font-size:.95em;font-weight:700;color:#1C0D2E;white-space:nowrap}
+  .panel-hypotheses{flex:0 0 280px;width:280px}
+ .hypo-stats{display:flex;gap:8px;margin-top:8px}
+ .hypo-card{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;border-radius:10px;background:#f8f9fb;position:relative;transition:transform .2s,box-shadow .2s}
+ .hypo-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+ .hypo-active{background:linear-gradient(135deg,rgba(148,163,184,.15),rgba(148,163,184,.08))}
+ .hypo-success{background:linear-gradient(135deg,rgba(22,163,74,.15),rgba(22,163,74,.08))}
+ .hypo-fail{background:linear-gradient(135deg,rgba(227,61,120,.15),rgba(227,61,120,.08))}
+ .hypo-num{font-family:'Forum';font-size:1.8em;font-weight:700;line-height:1;color:#1C0D2E;margin-bottom:4px}
+ .hypo-active .hypo-num{color:#64748b}
+ .hypo-success .hypo-num{color:#16a34a}
+ .hypo-fail .hypo-num{color:#E33D78}
+ .hypo-label{font-size:.72em;color:#94a3b8;font-weight:700}
+ .hypo-icon{position:absolute;top:6px;right:6px;font-size:.9em;opacity:.5}
+ .hypo-rate{margin-top:12px;padding:10px;background:#f8f9fb;border-radius:8px}
+ .hypo-rate-bar{height:8px;border-radius:4px;background:#e2e8f0;overflow:hidden;margin-bottom:6px}
+ .hypo-rate-fill{height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);transition:width .3s;border-radius:4px}
+ .hypo-rate-text{font-size:.72em;color:#544273;font-weight:700;text-align:center}
+ .ksub{font-size:.65em;color:#94a3b8;font-weight:400;margin-top:2px;line-height:1.2}
  .header{max-width:1200px;margin:20px auto 20px;display:flex;align-items:center;gap:20px;padding:25px 30px;background:rgba(255,255,255,0.15);border-radius:16px;border:2px solid rgba(255,255,255,0.3);box-shadow:0 8px 32px rgba(28,13,46,0.2);position:relative;z-index:200}
  .logo-link{display:inline-block;flex:0 0 auto}
  .logo{width:80px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));transition:transform .3s ease;display:block}
@@ -2023,6 +2041,7 @@ function drawPie(ids,buckets,total,get,fmtTotal,cap,fmtMain,fmtSide){
 function matrixStats(list){
   const buckets=[{label:'до 5%',color:'#E33D78',rev:0,cnt:0},{label:'5–10%',color:'#d97706',rev:0,cnt:0},{label:'свыше 10%',color:'#16a34a',rev:0,cnt:0}];
   let tRub=0,tMar=0,tFRev=0,tFMar=0,tOrd=0,tOrdRev=0;
+  let factRev=0,factMar=0,factCnt=0;
   list.forEach(p=>{
     const pl=PLAN[p.product_id]||{price:Number(p.price||0),plan_qty:0,margin_pct:0};
     const rev=pl.plan_qty*pl.price, mar=pl.plan_qty*pl.price*pl.margin_pct/100;
@@ -2030,9 +2049,12 @@ function matrixStats(list){
     const pvRev=projVal(p,'revn'), pvMar=projVal(p,'mar');
     if(pvRev.ffV!=null)tFRev+=pvRev.ffV;
     if(pvMar.ffV!=null)tFMar+=pvMar.ffV;
+    const fRev=sumFact(p.product_id,'revn'), fMar=sumFact(p.product_id,'mar');
+    if(fRev!=null){ factRev+=fRev; factCnt++; }
+    if(fMar!=null) factMar+=fMar;
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1;
   });
-  return {buckets,tRub,tMar,tFRev,tFMar,tOrd,tOrdRev};
+  return {buckets,tRub,tMar,tFRev,tFMar,tOrd,tOrdRev,factRev,factMar,factCnt};
 }
 function hypStats(list){
   let active=0,success=0,fail=0;
@@ -2105,20 +2127,39 @@ function mxCard(id,title,list,gid){
           <div class="kpirow"><div class="klabel">Маржин. ср.взвеш., %</div><div class="kval">—</div></div>
         </div>
         <div class="kpicol sep">
-          <div class="kpititle">Прогноз (CF)</div>
+          <div class="kpititle">Факт (CF)</div>
           <div class="kpirow"><div class="klabel">Заказы, шт</div><div class="kval">—</div></div>
-          <div class="kpirow"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.tFRev)}</div></div>
-          <div class="kpirow"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.tFMar)}</div></div>
-          <div class="kpirow"><div class="klabel">Маржин. ср.взвеш., %</div><div class="kval">${wFMar.toLocaleString('ru-RU',{maximumFractionDigits:1})}</div></div>
-        </div>
-        <div class="kpicol sep">
-          <div class="kpititle">Гипотезы</div>
-          <div class="kpirow"><div class="klabel">Заказы, шт</div><div class="kval">—</div></div>
-          <div class="kpirow"><div class="klabel">Всего</div><div class="kval">${h.active}</div></div>
-          <div class="kpirow"><div class="klabel">Успешных</div><div class="kval">${h.success}</div></div>
-          <div class="kpirow"><div class="klabel">Неудачных</div><div class="kval">${h.fail}</div></div>
+          <div class="kpirow"><div class="klabel">Выручка, ₽</div><div class="kval">${fmt(s.factRev)}<div class="ksub">прогноз: ${fmt(s.tFRev)}</div></div></div>
+          <div class="kpirow"><div class="klabel">Маржа, ₽</div><div class="kval">${fmt(s.factMar)}<div class="ksub">прогноз: ${fmt(s.tFMar)}</div></div></div>
+          <div class="kpirow"><div class="klabel">Маржин. ср.взвеш., %</div><div class="kval">${s.factRev>0?((s.factMar/s.factRev*100).toLocaleString('ru-RU',{maximumFractionDigits:1})):'—'}</div></div>
         </div>
       </div>
+    </div>
+    <div class="panel panel-hypotheses">
+      <div class="panelhead"><span class="paneltitle">🎯 Гипотезы</span></div>
+      <div class="hypo-stats">
+        <div class="hypo-card hypo-active">
+          <div class="hypo-num">${h.active}</div>
+          <div class="hypo-label">Активных</div>
+          <div class="hypo-icon">⏳</div>
+        </div>
+        <div class="hypo-card hypo-success">
+          <div class="hypo-num">${h.success}</div>
+          <div class="hypo-label">Успешных</div>
+          <div class="hypo-icon">✅</div>
+        </div>
+        <div class="hypo-card hypo-fail">
+          <div class="hypo-num">${h.fail}</div>
+          <div class="hypo-label">Неудачных</div>
+          <div class="hypo-icon">❌</div>
+        </div>
+      </div>
+      ${h.success+h.fail>0?`<div class="hypo-rate">
+        <div class="hypo-rate-bar">
+          <div class="hypo-rate-fill" style="width:${h.success/(h.success+h.fail)*100}%"></div>
+        </div>
+        <div class="hypo-rate-text">Успешность: ${Math.round(h.success/(h.success+h.fail)*100)}%</div>
+      </div>`:''}
     </div>`;
   return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="setOrdMode('${gid}','orders')">Заказы</button></span></div><div class="mxbody">${body}</div></div>`;
 }
