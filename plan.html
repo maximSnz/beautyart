@@ -174,12 +174,12 @@
  tr.mgroup button{background:none;border:1px solid rgba(125,54,115,.4);border-radius:5px;color:#7D3673;cursor:pointer;padding:0 6px;margin-right:6px}
  .mxcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
  .mxtitle{font-family:'Forum';font-weight:700;color:#544273;font-size:1em;margin-bottom:8px}
- .mxbody{display:flex;gap:12px;align-items:stretch;flex-wrap:nowrap;min-height:280px}
+ .mxbody{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;min-height:280px}
  .panel{border:1px solid rgba(84,66,115,.15);border-radius:12px;background:#fff;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
  .panelhead{display:flex;align-items:center;gap:8px}
  .paneltitle{font-family:'Forum';font-size:.82em;font-weight:700;color:#544273}
  .panelhead .pieSwitch{margin-left:auto}
- .panel-charts{flex:0 0 520px;width:520px}
+ .panel-charts{flex:1 1 520px;min-width:460px}
 .panel-speedo {
   flex: 0 0 168px;
   width: 168px;
@@ -228,7 +228,7 @@
   text-align: center;
   line-height: 1.2;
 }
- .panel-kpi{flex:1 1 0}
+ .panel-kpi{flex:1 1 100%;min-width:0}
  .piesrow{display:flex;gap:10px;flex:1;align-items:flex-start}
  .piecard{display:flex;flex-direction:column;flex:0 0 242px;width:242px;overflow:hidden}
  .ptitle{font-size:.72em;color:#94a3b8;font-weight:700;margin-bottom:4px}
@@ -257,9 +257,9 @@
  .kpirow:last-child{border-bottom:none}
  .klabel{font-size:.66em;color:#94a3b8;white-space:nowrap}
  .kval{font-size:.95em;font-weight:700;color:#1C0D2E;white-space:nowrap}
-  .panel-hypotheses{flex:0 0 280px;width:280px}
- .hypo-stats{display:flex;gap:8px;margin-top:8px}
- .hypo-card{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;border-radius:10px;background:#f8f9fb;position:relative;transition:transform .2s,box-shadow .2s}
+ .panel-hypotheses{flex:1 1 100%;width:100%}
+ .hypo-stats{display:flex;gap:10px;margin-top:8px;justify-content:center}
+ .hypo-card{flex:0 1 220px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;border-radius:10px;background:#f8f9fb;position:relative;transition:transform .2s,box-shadow .2s}
  .hypo-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
  .hypo-active{background:linear-gradient(135deg,rgba(148,163,184,.15),rgba(148,163,184,.08))}
  .hypo-success{background:linear-gradient(135deg,rgba(22,163,74,.15),rgba(22,163,74,.08))}
@@ -270,7 +270,7 @@
  .hypo-fail .hypo-num{color:#E33D78}
  .hypo-label{font-size:.72em;color:#94a3b8;font-weight:700}
  .hypo-icon{position:absolute;top:6px;right:6px;font-size:.9em;opacity:.5}
- .hypo-rate{margin-top:12px;padding:10px;background:#f8f9fb;border-radius:8px}
+ .hypo-rate{max-width:460px;margin:12px auto 0;padding:10px;background:#f8f9fb;border-radius:8px}
  .hypo-rate-bar{height:8px;border-radius:4px;background:#e2e8f0;overflow:hidden;margin-bottom:6px}
  .hypo-rate-fill{height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);transition:width .3s;border-radius:4px}
  .hypo-rate-text{font-size:.72em;color:#544273;font-weight:700;text-align:center}
