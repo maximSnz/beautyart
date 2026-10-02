@@ -174,6 +174,9 @@
  tr.mgroup button{background:none;border:1px solid rgba(125,54,115,.4);border-radius:5px;color:#7D3673;cursor:pointer;padding:0 6px;margin-right:6px}
  .mxcard{border:2px solid rgba(84,66,115,.12);border-radius:12px;background:#fff;padding:12px 14px;margin:0 0 14px}
  .mxtitle{font-family:'Forum';font-weight:700;color:#544273;font-size:1em;margin-bottom:8px}
+ .totalhead{cursor:pointer;user-select:none}
+ .totalhead:hover{color:#E33D78}
+ .totalcaret{display:inline-block;margin-right:6px;color:#544273}
  .mxbody{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;min-height:280px}
  .panel{border:1px solid rgba(84,66,115,.15);border-radius:12px;background:#fff;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
  .panelhead{display:flex;align-items:center;gap:8px}
@@ -470,9 +473,17 @@ const TAX_RATE=0.03;
 let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={},SKU_PID={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
- let PIEMODE={m1:'plan',m2:'plan'};
-let ORDMODE={m1:'summary',m2:'summary'};
-let TEMP_SORT={m1:{col:'devPlan',dir:'desc'},m2:{col:'devPlan',dir:'desc'}};
+let PIEMODE={m1:'plan',m2:'plan',t:'plan'};
+let ORDMODE={m1:'summary',m2:'summary',t:'summary'};
+let TOTAL_OPEN=false;
+function toggleTotal(){
+  TOTAL_OPEN=!TOTAL_OPEN;
+  const el=document.getElementById('totalbody');
+  const c=document.getElementById('totalcaret');
+  if(el)el.classList.toggle('hide',!TOTAL_OPEN);
+  if(c)c.textContent=TOTAL_OPEN?'▾':'▸';
+}
+let TEMP_SORT={m1:{col:'devPlan',dir:'desc'},m2:{col:'devPlan',dir:'desc'},t:{col:'devPlan',dir:'desc'}};
 function toggleTempSort(gid,col){
   const s=TEMP_SORT[gid];
   if(s.col===col){ s.dir=s.dir==='desc'?'asc':'desc'; }
@@ -1078,6 +1089,7 @@ async function computeOrderTemps(){
   });
   res.m1.sort((a,b)=>a.devPlan-b.devPlan);
   res.m2.sort((a,b)=>a.devPlan-b.devPlan);
+  res.t=res.m1.concat(res.m2);
   TEMPS_CACHE={key:tempsKey(),data:res};
   return res;
 }
@@ -2121,7 +2133,7 @@ function hypStats(list){
   });
   return {active,success,fail};
 }
-function mxCard(id,title,list,gid){
+function mxCard(id,title,list,gid,total){
   const s=matrixStats(list);
   const h=hypStats(list);
   const wMar=s.tRub>0?s.tMar/s.tRub*100:0;
@@ -2208,28 +2220,24 @@ function mxCard(id,title,list,gid){
         <div class="hypo-rate-text">Успешность: ${Math.round(h.success/(h.success+h.fail)*100)}%</div>
       </div>`:''}
     </div>`;
-  return `<div class="mxcard"><div class="mxtitle">${title} • ${list.length} поз.<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="setOrdMode('${gid}','orders')">Заказы</button></span></div><div class="mxbody">${body}</div></div>`;
+  const stop=total?'event.stopPropagation();':'';
+  const pm=`<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="${stop}setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="${stop}setOrdMode('${gid}','orders')">Заказы</button></span>`;
+  const head=total
+    ?`<div class="mxtitle totalhead" onclick="toggleTotal()"><span class="totalcaret" id="totalcaret">${TOTAL_OPEN?'▾':'▸'}</span>${title} • ${list.length} поз.${pm}</div>`
+    :`<div class="mxtitle">${title} • ${list.length} поз.${pm}</div>`;
+  const bodyHtml=total?`<div class="${TOTAL_OPEN?'':'hide'}" id="totalbody"><div class="mxbody">${body}</div></div>`:`<div class="mxbody">${body}</div>`;
+  return `<div class="mxcard">${head}${bodyHtml}</div>`;
 }
 function render(){
   const q=document.getElementById('q').value.toLowerCase();
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
-  document.getElementById('summary').innerHTML=mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
-  if(ORDMODE.m1 === 'orders'){
-    renderOrderTemps('m1');
-  } else {
-    renderSpeedo('m1', 'orders');
-    renderSpeedo('m1', 'rev');
-  }
-  if(ORDMODE.m2 === 'orders'){
-    renderOrderTemps('m2');
-  } else {
-    renderSpeedo('m2', 'orders');
-    renderSpeedo('m2', 'rev');
-  }
-  renderKpiPnl('m1');
-  renderKpiPnl('m2');
+  document.getElementById('summary').innerHTML=mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2')+mxCard('3','Итого',m1.concat(m2),'t',true);
+  ['m1','m2','t'].forEach(g=>{
+    if(ORDMODE[g]==='orders'){ renderOrderTemps(g); } else { renderSpeedo(g,'orders'); renderSpeedo(g,'rev'); }
+    renderKpiPnl(g);
+  });
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE.m1==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
