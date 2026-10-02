@@ -1416,7 +1416,7 @@ function avgPctFact(p){
   return (any&&R!==0)? M/R*100 : null;
 }
 function pctFactForWeek(pid,week){ const r=getRec(pid,'pct',week); return r.fact!=null?r.fact:null; }
-function calcForecast(p,key){
+function calcFactToDate(p,key){
   key=WDKEY[key]||key;
   if(!WEEKISO.length) return null;
   const [y,m]=MONTH.split('-').map(Number);
@@ -1424,7 +1424,7 @@ function calcForecast(p,key){
   const today=new Date(); today.setHours(0,0,0,0);
   const D=new Date(today); D.setDate(D.getDate()-1);
   if(D<first) return null;
-  const end=D<last?D:last; 
+  const end=D<last?D:last;
   let F=0,any=false;
   const cweeks=calendarWeeksOfMonth(y,m);
   for(const w of cweeks){
@@ -1440,6 +1440,16 @@ function calcForecast(p,key){
     }
   }
   if(!any) return null;
+  return F;
+}
+function calcForecast(p,key){
+  const F=calcFactToDate(p,key);
+  if(F==null) return null;
+  const [y,m]=MONTH.split('-').map(Number);
+  const first=new Date(y,m-1,1), last=new Date(y,m,0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const D=new Date(today); D.setDate(D.getDate()-1);
+  const end=D<last?D:last;
   const E=effDaysRange(localISO(first),localISO(end));
   if(E<=0) return null;
   const T=effDaysRange(localISO(first),localISO(last));
@@ -2086,7 +2096,7 @@ function matrixStats(list){
     const pvRev=projVal(p,'revn'), pvMar=projVal(p,'mar');
     if(pvRev.ffV!=null)tFRev+=pvRev.ffV;
     if(pvMar.ffV!=null)tFMar+=pvMar.ffV;
-    const fRev=sumFact(p.product_id,'revn'), fMar=sumFact(p.product_id,'mar');
+    const fRev=calcFactToDate(p,'revn'), fMar=calcFactToDate(p,'mar');
     if(fRev!=null){ factRev+=fRev; factCnt++; }
     if(fMar!=null) factMar+=fMar;
     const b=pl.margin_pct<=5?buckets[0]:(pl.margin_pct<=10?buckets[1]:buckets[2]); b.rev+=rev; b.cnt+=1;
