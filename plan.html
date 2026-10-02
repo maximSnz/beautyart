@@ -2223,9 +2223,11 @@ function mxCard(id,title,list,gid,total){
   const stop=total?'event.stopPropagation();':'';
   const pm=`<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="${stop}setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="${stop}setOrdMode('${gid}','orders')">Заказы</button></span>`;
   const head=total
-    ?`<div class="mxtitle totalhead" onclick="toggleTotal()"><span class="totalcaret" id="totalcaret">${TOTAL_OPEN?'▾':'▸'}</span>${title} • ${list.length} поз.${pm}</div>`
+    ?`<div class="mxtitle totalhead" onclick="toggleTotal()"><span class="totalcaret" id="totalcaret">${TOTAL_OPEN?'▾':'▸'}</span>${title} • ${list.length} поз.</div>`
     :`<div class="mxtitle">${title} • ${list.length} поз.${pm}</div>`;
-  const bodyHtml=total?`<div class="${TOTAL_OPEN?'':'hide'}" id="totalbody"><div class="mxbody">${body}</div></div>`:`<div class="mxbody">${body}</div>`;
+  const bodyHtml=total
+    ?`<div class="${TOTAL_OPEN?'':'hide'}" id="totalbody"><div style="margin-bottom:8px">${pm}</div><div class="mxbody">${body}</div></div>`
+    :`<div class="mxbody">${body}</div>`;
   return `<div class="mxcard">${head}${bodyHtml}</div>`;
 }
 function render(){
@@ -2233,7 +2235,8 @@ function render(){
   const f=ROWS.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.offer_id||'').toLowerCase().includes(q));
   const m1=f.filter(r=>matrixOf(r.offer_id)==='m1');
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
-  document.getElementById('summary').innerHTML=mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2')+mxCard('3','Итого',m1.concat(m2),'t',true);
+  const listAll=m1.concat(m2);
+  document.getElementById('summary').innerHTML=mxCard('3','Итого',listAll,'t',true)+mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
   ['m1','m2','t'].forEach(g=>{
     if(ORDMODE[g]==='orders'){ renderOrderTemps(g); } else { renderSpeedo(g,'orders'); renderSpeedo(g,'rev'); }
     renderKpiPnl(g);
@@ -2250,6 +2253,13 @@ function render(){
   drawPie({svg:'piePos1',legend:'legendPos1',val:'pcValPos1',cap:'pcCapPos1'},p1.buckets,p1.cnt,b=>b.cnt,v=>fmt(v)+' поз.',capP1,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   drawPie({svg:'pieRev2',legend:'legendRev2',val:'pcValRev2',cap:'pcCapRev2'},p2.buckets,p2.total,b=>b.rev,v=>fmtM(v)+' ₽',capR2,b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
   drawPie({svg:'piePos2',legend:'legendPos2',val:'pcValPos2',cap:'pcCapPos2'},p2.buckets,p2.cnt,b=>b.cnt,v=>fmt(v)+' поз.',capP2,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
+  const listAllT=listAll||m1.concat(m2);
+  const listAllP=listAllT.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
+  const pt=PIEMODE.t==='plan'?pieStats(listAllP,'plan'):pieStats(listAllT,'forecast');
+  const capRt=PIEMODE.t==='plan'?'выручка плана':'выручка прогноза';
+  const capPt=PIEMODE.t==='plan'?'позиции с планом':'позиции с прогнозом';
+  drawPie({svg:'pieRev3',legend:'legendRev3',val:'pcValRev3',cap:'pcCapRev3'},pt.buckets,pt.total,b=>b.rev,v=>fmtM(v)+' ₽',capRt,b=>fmtM(b.rev)+' ₽',b=>b.cnt+' поз.');
+  drawPie({svg:'piePos3',legend:'legendPos3',val:'pcValPos3',cap:'pcCapPos3'},pt.buckets,pt.cnt,b=>b.cnt,v=>fmt(v)+' поз.',capPt,b=>fmt(b.cnt)+' поз.',b=>fmtM(b.rev)+' ₽');
   let totalCols=2;
   METRICS.forEach(mt=>{ const single=(mt.key==='price'||mt.key==='pct'||mt.plan===false); totalCols+=3+(EXP[mt.key]?(single?WEEKS.length:WEEKS.length*2):0); });
   let r1='<tr><th rowspan="3">Артикул</th><th rowspan="3">Дата</th>';
