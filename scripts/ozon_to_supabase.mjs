@@ -83,6 +83,32 @@ for(const b of items){
   await sleep(150);
 }
 
+// === ДИАГНОСТИКА: проверка конкретного товара ДО записи ===
+const testOffer = 'SHOECOV-STD-BLU-WHT-500PR';
+const testItem = items.find(x => x.offer_id === testOffer);
+console.log('=== TEST PRODUCT SEARCH ===');
+console.log('Found in items?', !!testItem);
+if (testItem) {
+  console.log('product_id:', testItem.product_id);
+  console.log('offer_id:', testItem.offer_id);
+  
+  const testStocks = await ozon('/v1/product/info/stocks-by-warehouse/fbo', {
+    offer_ids: [testOffer],
+    last_id: '',
+    limit: 1000
+  });
+  console.log('Stocks response:', JSON.stringify(testStocks, null, 2));
+  
+  const testInfo = await ozon('/v2/product/info', {
+    product_id: testItem.product_id
+  });
+  console.log('Product info:', JSON.stringify(testInfo, null, 2));
+}
+console.log('=== END TEST ===');
+
+// Завершаем скрипт для диагностики — не пишем в базу
+process.exit(0);
+
 const rows=items.map(b=>{
   const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
   let sum=0; (byProduct.get(b.product_id)||new Map()).forEach(v=>sum+=v.present);
