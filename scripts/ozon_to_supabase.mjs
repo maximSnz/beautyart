@@ -38,11 +38,13 @@ const WH={
  '1020001836200000':['Оренбург','ОРЕНБУРГ_РФЦ'],
 };
 
+// === 1) Все товары ===
 let items=[],last_id='';
 do{ const r=await ozon('/v3/product/list',{filter:{},limit:1000,last_id}); items=items.concat(r.result?.items||[]); last_id=r.result?.last_id||''; }while(last_id);
 console.log('total products:',items.length);
 
-const attrs={},prices={};
+// === 2) Атрибуты (название, offer_id, видимость) ===
+const attrs={};
 async function tryBatch(paths,chunk,fill){
   for(const path of paths){
     try{ const r=await ozon(path,{filter:{product_id:chunk,offer_id:[],visibility:'ALL'},last_id:'',limit:1000}); const arr=asArr(r); if(arr.length){arr.forEach(fill);return path;} }catch(e){}
@@ -51,64 +53,40 @@ async function tryBatch(paths,chunk,fill){
 }
 for(let i=0;i<items.length;i+=100){
   const chunk=items.slice(i,i+100).map(x=>x.product_id);
-  await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
+  const used=await tryBatch(['/v4/product/info/attributes'],chunk,it=>{attrs[it.id??it.product_id]=it;});
+  if(!used) console.log('WARN: attributes batch failed at', i);
   await sleep(300);
 }
 
+// === 3) Остатки FBO по складам (пагинация через cursor) ===
 const offersAll=items.map(x=>x.offer_id).filter(Boolean);
 const byProduct=new Map(); const unmapped={};
 for(let i=0;i<offersAll.length;i+=20){
   const of=offersAll.slice(i,i+20);
-  let lastF='';
+  let cur='';
   do{
-    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,last_id:lastF,limit:1000});
+    const r=await ozon('/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:of,cursor:cur,limit:1000});
     (r.products||[]).forEach(it=>{
       const pid=it.product_id; if(pid==null)return;
       const id=String(it.warehouse_id), m=WH[id];
       if(!m) unmapped[id]=(unmapped[id]||0)+(it.present||0);
       if(!byProduct.has(pid))byProduct.set(pid,new Map());
       const wm=byProduct.get(pid);
-      const cur=wm.get(id)||{warehouse_id:id,warehouse_name:m?m[1]:('Склад '+id),cluster:m?m[0]:'Прочее',present:0};
-      cur.present+=it.present||0;
-      wm.set(id,cur);
+      const rec=wm.get(id)||{warehouse_id:id,warehouse_name:m?m[1]:('Склад '+id),cluster:m?m[0]:'Прочее',present:0};
+      rec.present+=it.present||0;
+      wm.set(id,rec);
     });
-    lastF=r.last_id||'';
-  }while(lastF);
+    cur=(r.has_next&&r.cursor)?r.cursor:'';
+  }while(cur);
   await sleep(400);
 }
 if(Object.keys(unmapped).length)console.log('UNMAPPED WAREHOUSES:',Object.entries(unmapped).map(([id,t])=>`${id}:${t}`).join(', '));
 
-for(const b of items){
-  try{ const r=await ozon('/v2/product/info',{product_id:b.product_id}); prices[b.product_id]=r.result||{}; }catch(e){}
-  await sleep(150);
-}
-
-// === ДИАГНОСТИКА 2: где лежат остатки и какой метод цен живой ===
-const testOffer='SHOECOV-STD-BLU-WHT-500PR';
-const testItem=items.find(x=>x.offer_id===testOffer);
-console.log('=== DIAG 2 ===');
-console.log('Found in items?', !!testItem, 'product_id:', testItem?.product_id);
-async function probe(name,path,body){
-  try{ const r=await ozon(path,body); console.log('OK  ',name,'=>',JSON.stringify(r).slice(0,4000)); }
-  catch(e){ console.log('FAIL',name,'=>',String(e.message).slice(0,300)); }
-}
-if(testItem){
-  await probe('FBO stocks','/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:[testOffer],last_id:'',limit:1000});
-  await probe('FBS stocks','/v1/product/info/stocks-by-warehouse/fbs',{offer_ids:[testOffer],last_id:'',limit:1000});
-  await probe('v3 product info','/v3/product/info',{product_id:testItem.product_id});
-  await probe('v4 prices','/v4/product/info/prices',{filter:{product_id:[testItem.product_id],visibility:'ALL'},last_id:'',limit:10});
-  await probe('v1 prices','/v1/product/prices',{filter:{product_id:[testItem.product_id],visibility:'ALL'},last_id:'',limit:10});
-}
-console.log('=== END DIAG 2 ===');
-process.exit(0);
-
-// Завершаем скрипт для диагностики — не пишем в базу
-process.exit(0);
-
+// === 4) Запись products (без price — цена нигде не используется) ===
 const rows=items.map(b=>{
-  const a=attrs[b.product_id]||{}, p=prices[b.product_id]||{};
+  const a=attrs[b.product_id]||{};
   let sum=0; (byProduct.get(b.product_id)||new Map()).forEach(v=>sum+=v.present);
-  return { product_id:b.product_id, offer_id:a.offer_id??b.offer_id??'', name:a.name??'', price:Number(p.price??0), stock:sum, visibility:a.visibility??'', raw:a, updated_at:new Date().toISOString() };
+  return { product_id:b.product_id, offer_id:a.offer_id??b.offer_id??'', name:a.name??'', stock:sum, visibility:a.visibility??'', raw:a, updated_at:new Date().toISOString() };
 });
 if(rows.length){
   const up=await fetch(`${process.env.SUPABASE_URL}/rest/v1/products?on_conflict=product_id`,{
@@ -119,6 +97,7 @@ if(rows.length){
   if(!up.ok) throw new Error(`supabase products -> HTTP ${up.status}: ${await up.text()}`);
 }
 
+// === 5) Перезапись product_stocks ===
 const SR={ apikey:process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` };
 for(let i=0;i<items.length;i+=100){
   const pids=items.slice(i,i+100).map(x=>x.product_id).join(',');
@@ -135,7 +114,8 @@ for(let i=0;i<stockRows.length;i+=500){
   });
   if(!up.ok) throw new Error(`supabase stocks -> HTTP ${up.status}: ${await up.text()}`);
 }
-// проверка постранично
+
+// === 6) Самопроверка ===
 let vsum=0,vcount=0,voff=0;
 while(true){
   const vr=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?select=present&limit=1000&offset=${voff}`,{headers:SR});
