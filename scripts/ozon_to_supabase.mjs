@@ -126,3 +126,19 @@ while(true){
 }
 console.log('DB stocks rows:',vcount,'| DB sum present:',vsum);
 console.log('synced products:',rows.length,'| stocks rows:',stockRows.length);
+
+// === 7) Чистка остатков карточек, отсутствующих в выдаче Ozon ===
+const itemPids=new Set(items.map(x=>x.product_id));
+const stalePids=new Set();
+let soff=0;
+while(true){
+  const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?select=product_id&limit=1000&offset=${soff}`,{headers:SR});
+  const j=await r.json();
+  j.forEach(x=>{ if(!itemPids.has(x.product_id)) stalePids.add(x.product_id); });
+  if(j.length<1000)break; soff+=1000;
+}
+const stale=[...stalePids];
+for(let i=0;i<stale.length;i+=100){
+  await fetch(`${process.env.SUPABASE_URL}/rest/v1/product_stocks?product_id=in.(${stale.slice(i,i+100).join(',')})`,{method:'DELETE',headers:SR});
+}
+console.log('stale stock products removed:', stale.length);
