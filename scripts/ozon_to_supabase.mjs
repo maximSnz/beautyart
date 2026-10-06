@@ -83,28 +83,24 @@ for(const b of items){
   await sleep(150);
 }
 
-// === ДИАГНОСТИКА: проверка конкретного товара ДО записи ===
-const testOffer = 'SHOECOV-STD-BLU-WHT-500PR';
-const testItem = items.find(x => x.offer_id === testOffer);
-console.log('=== TEST PRODUCT SEARCH ===');
-console.log('Found in items?', !!testItem);
-if (testItem) {
-  console.log('product_id:', testItem.product_id);
-  console.log('offer_id:', testItem.offer_id);
-  
-  const testStocks = await ozon('/v1/product/info/stocks-by-warehouse/fbo', {
-    offer_ids: [testOffer],
-    last_id: '',
-    limit: 1000
-  });
-  console.log('Stocks response:', JSON.stringify(testStocks, null, 2));
-  
-  const testInfo = await ozon('/v2/product/info', {
-    product_id: testItem.product_id
-  });
-  console.log('Product info:', JSON.stringify(testInfo, null, 2));
+// === ДИАГНОСТИКА 2: где лежат остатки и какой метод цен живой ===
+const testOffer='SHOECOV-STD-BLU-WHT-500PR';
+const testItem=items.find(x=>x.offer_id===testOffer);
+console.log('=== DIAG 2 ===');
+console.log('Found in items?', !!testItem, 'product_id:', testItem?.product_id);
+async function probe(name,path,body){
+  try{ const r=await ozon(path,body); console.log('OK  ',name,'=>',JSON.stringify(r).slice(0,4000)); }
+  catch(e){ console.log('FAIL',name,'=>',String(e.message).slice(0,300)); }
 }
-console.log('=== END TEST ===');
+if(testItem){
+  await probe('FBO stocks','/v1/product/info/stocks-by-warehouse/fbo',{offer_ids:[testOffer],last_id:'',limit:1000});
+  await probe('FBS stocks','/v1/product/info/stocks-by-warehouse/fbs',{offer_ids:[testOffer],last_id:'',limit:1000});
+  await probe('v3 product info','/v3/product/info',{product_id:testItem.product_id});
+  await probe('v4 prices','/v4/product/info/prices',{filter:{product_id:[testItem.product_id],visibility:'ALL'},last_id:'',limit:10});
+  await probe('v1 prices','/v1/product/prices',{filter:{product_id:[testItem.product_id],visibility:'ALL'},last_id:'',limit:10});
+}
+console.log('=== END DIAG 2 ===');
+process.exit(0);
 
 // Завершаем скрипт для диагностики — не пишем в базу
 process.exit(0);
