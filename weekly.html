@@ -1099,7 +1099,7 @@ function render(){
       const prodNode=(p,dir)=>{
         const cl=p.clArr.filter(g=>g.dir===dir);
         const ch=cl.reduce((s,g)=>s+g.change,0);
-        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}:${dir}"><summary><span class="clname" title="${esc(p.name)}">${freshMark(p.o)}${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
+        let out=`<details class="cluster" data-jump-id="prod:${esc(p.o)}:${dir}"><summary><span class="clname" title="${esc(p.name)}">${esc(p.o)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${cl.length} кл.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         cl.forEach(g=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
             <td><span class="caret">▾</span>${esc(g.c)}${g.rec?`<span class="rec ${g.rec.cls}">${g.rec.txt}</span>`:''}</td>
@@ -1130,7 +1130,7 @@ function render(){
         let out=`<details class="cluster" data-jump-id="cl:${mkk}:${dir}:${esc(cname)}"><summary><span class="clname">${esc(cname)}</span><span class="cltot">Σ ${f1(ch)} шт/день • ${list.length} поз.</span></summary><div class="tablewrap"><table><thead>${head7}</thead>`;
         list.sort((a,b)=>b.change-a.change).forEach(x=>{
           out+=`<tbody class="clbody closed"><tr class="clrow" onclick="this.closest('tbody').classList.toggle('closed')">
-            <td><span class="caret">▾</span>${freshMark(x.o)}<span title="${esc(x.name)}">${esc(x.o)}</span>${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
+            <td><span class="caret">▾</span><span title="${esc(x.name)}">${esc(x.o)}</span>${x.rec?`<span class="rec ${x.rec.cls}">${x.rec.txt}</span>`:''}</td>
             <td class="num">${fmt(x.cs)}</td><td class="num">${fmt(x.csum)}</td>${daysCell(x.cs,x.c1)}${cmpCell(x.c3,x.c4)}${cmpCell(x.c2,x.c3)}${cmpCell(x.c1,x.c2)}</tr>`+whRows(x.arr)+`</tbody>`;
         });
         out+=`</table></div></details>`;
@@ -1179,7 +1179,7 @@ function render(){
     const head=`<tr><th>Артикул</th><th>Название</th><th>Остаток</th><th>Цена</th><th>Сумма</th><th>Дней</th><th>${lbl(d3)}</th><th>${lbl(d2)}</th><th>${lbl(d1)}</th></tr>`;
     const whBlock=(w,inFire)=>{
       const btn=inFire?`<button class="wact" title="Вернуть в основной список" onclick="toggleFire('${w.id}',event)">🧯</button>`:`<button class="wact" title="В список «Пожар»" onclick="toggleFire('${w.id}',event)">🔥</button>`;
-      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${freshMark(o.o)}${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
+      const body=w.rows.length?w.rows.map(o=>`<tr><td>${esc(o.o)}</td><td>${esc(o.name)}</td><td class="num">${fmt(o.stock)}</td><td class="num">${fmt(o.cost)}</td><td class="num">${fmt(o.sum)}</td>${daysCell(o.stock,o.s1)}${cmpCell(o.s3,o.s4)}${cmpCell(o.s2,o.s3)}${cmpCell(o.s1,o.s2)}</tr>`).join(''):`<tr><td colspan="9" style="color:#94a3b8">нет данных</td></tr>`;
       return `<details class="wh"><summary>${btn}<span class="whname">${esc(w.name)}</span><span class="whtot">${fmt(w.sum)} ₽ • ${fmt(w.total)} шт</span></summary>
         <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
     };
