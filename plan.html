@@ -1074,8 +1074,9 @@ async function computeOrderTemps(){
     let sum=0;baseDays.forEach(x=>{sum+=m?(m.get(x)||0):0;});
     const avg=sum/baseDiv;
     const yest=m?(m.get(yISO)||0):0;
+    const execEnd=yISO<periodEnd?yISO:periodEnd;
     let exec=0;
-    if(m)m.forEach((v,k)=>{if(k>=periodStart&&k<=yISO)exec+=v;});
+    if(m)m.forEach((v,k)=>{if(k>=periodStart&&k<=execEnd)exec+=v;});
     const eElapsed=effDaysRange(periodStart, yISO<periodEnd?yISO:periodEnd);
     const proj=eElapsed>0? exec/eElapsed*effTotal : null;
     const need=pl.plan_qty/0.95;
