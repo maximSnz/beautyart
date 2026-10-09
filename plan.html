@@ -1085,7 +1085,12 @@ async function computeOrderTemps(){
     const k=yIsWe?0.7:1;
     const expected=rp*k;
     const rcExp=rc*k;
-    res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rcExp,devCatch:avg-rcExp,rp:rp,expected:expected,devPlan:yest-expected,proj:proj,price:pl.price});
+const price=pl.price||0;
+const yestRub=yest*price;
+const avgRub=avg*price;
+const rcExpRub=rcExp*price;
+const expectedRub=expected*price;
+res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rcExp,devCatch:avg-rcExp,rp:rp,expected:expected,devPlan:yest-expected,proj:proj,price:price,yestRub:yestRub,avgRub:avgRub,devAvgRub:yestRub-avgRub,rcExpRub:rcExpRub,devCatchRub:avgRub-rcExpRub,expectedRub:expectedRub,devPlanRub:yestRub-expectedRub});
   });
   res.m1.sort((a,b)=>a.devPlan-b.devPlan);
   res.m2.sort((a,b)=>a.devPlan-b.devPlan);
@@ -1130,6 +1135,45 @@ async function renderOrderTemps(gid){
   });
   h+='</tbody></table>';
   box.innerHTML=(pre?`<div class="psub" style="padding:6px 10px;margin-bottom:6px;background:rgba(217,119,6,.08);border:1px dashed rgba(217,119,6,.35);border-radius:8px">⏳ Предпериод: календарный период начинается ${ddmm(periodStart)} — темпы показаны на предстоящий период, выполнение пока 0</div>`:'')+h;
+}
+ async function renderRevTemps(gid){
+  const box=document.getElementById('ordbody_'+gid);
+  if(!box)return;
+  const now=new Date(); now.setHours(0,0,0,0);
+  if(!WEEKISO.length){box.innerHTML='<div class="psub">нет недель</div>';return;}
+  const [yy,mm]=MONTH.split('-').map(Number);
+  const periodStart=localISO(new Date(yy,mm-1,1));
+  const pre=localISO(now)<periodStart;
+  const data=await computeOrderTemps();
+  const rows=(data[gid]||[]).slice();
+  const s=TEMP_SORT[gid];
+  const cmp=(a,b)=>{
+    const va=a[s.col], vb=b[s.col];
+    if(typeof va==='string'&&typeof vb==='string'){
+      const c=va.localeCompare(vb,'ru');
+      return s.dir==='asc'?c:-c;
+    }
+    return s.dir==='asc'?(va-vb):(vb-va);
+  };
+  rows.sort(cmp);
+  const arrow=(col)=>{
+    const active=s.col===col;
+    const mark=s.dir==='asc'?'▴':'▾';
+    return `<span class="sortArrow">${active?mark:'⇅'}</span>`;
+  };
+  const sortCls=(col)=>`shead sortable${s.col===col?' sorted':''}`;
+  const yISO=addDaysISO(localISO(new Date()),-1);
+  const yIsWe=isWeekend(yISO);
+  const baseLbl=yIsWe?'пред. 2 выходных':'3 будн. дня';
+  let h=`<table class="temp"><thead><tr><th rowspan="2" class="shead sortable${s.col==='offer'?' sorted':''}" onclick="toggleTempSort('${gid}','offer')">Артикул${arrow('offer')}</th><th rowspan="2" class="ghead sep shead sortable${s.col==='yestRub'?' sorted':''}" onclick="toggleTempSort('${gid}','yestRub')">Выручка<br>вчера, ₽${arrow('yestRub')}</th><th colspan="2" class="ghead sep">Средний темп (${baseLbl}), ₽</th><th colspan="2" class="ghead sep" title="${yIsWe?'догоняющий темп выручки в масштабе выходного дня (×0,7)':'догоняющий темп выручки'}">Догоняющий темп, ₽</th><th colspan="2" class="ghead sep">Плановый темп, ₽</th></tr><tr><th class="shead sep sortable${s.col==='avgRub'?' sorted':''}" onclick="toggleTempSort('${gid}','avgRub')">Средние${arrow('avgRub')}</th><th class="${sortCls('devAvgRub')}" onclick="toggleTempSort('${gid}','devAvgRub')">Откл.${arrow('devAvgRub')}</th><th class="shead sep sortable${s.col==='rcExpRub'?' sorted':''}" onclick="toggleTempSort('${gid}','rcExpRub')">Требуемые${arrow('rcExpRub')}</th><th class="${sortCls('devCatchRub')}" onclick="toggleTempSort('${gid}','devCatchRub')">Откл.${arrow('devCatchRub')}</th><th class="shead sep sortable${s.col==='expectedRub'?' sorted':''}" onclick="toggleTempSort('${gid}','expectedRub')">Требуемые${arrow('expectedRub')}</th><th class="${sortCls('devPlanRub')}" onclick="toggleTempSort('${gid}','devPlanRub')">Откл.${arrow('devPlanRub')}</th></tr></thead><tbody>`;
+  const fmtRub=v=>fmt(Math.round(v));
+  const devRubCls=v=>v<-0.5?'r':(v>0.5?'g':'n');
+  const rndRub=v=>(v>0?'+':'')+fmtRub(v);
+  rows.forEach(r=>{
+    h+=`<tr><td class="num">${esc(r.offer)}</td><td class="num sep">${fmtRub(r.yestRub)}</td><td class="num sep">${fmtRub(r.avgRub)}</td><td class="num ${devRubCls(r.devAvgRub)}">${rndRub(r.devAvgRub)}</td><td class="num sep" title="догоняющий темп выручки с поправкой на тип вчерашнего дня">${fmtRub(r.rcExpRub)}</td><td class="num ${devRubCls(r.devCatchRub)}">${rndRub(r.devCatchRub)}</td><td class="num sep" title="плановый темп выручки, скорректированный под тип вчерашнего дня">${fmtRub(r.expectedRub)}</td><td class="num ${devRubCls(r.devPlanRub)}">${rndRub(r.devPlanRub)}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  box.innerHTML=(pre?`<div class="psub" style="padding:6px 10px;margin-bottom:6px;background:rgba(217,119,6,.08);border:1px dashed rgba(217,119,6,.35);border-radius:8px">⏳ Предпериод: календарный период начинается ${ddmm(periodStart)} — темпы выручки показаны на предстоящий период, выполнение пока 0</div>`:'')+h;
 }
 async function renderProgBar(gid){
   const val=document.getElementById('progval_'+gid);
@@ -2138,9 +2182,11 @@ function mxCard(id,title,list,gid,total){
   const h=hypStats(list);
   const wMar=s.tRub>0?s.tMar/s.tRub*100:0;
   const wFMar=s.tFRev>0?s.tFMar/s.tFRev*100:0;
-  const ordOn=(ORDMODE[gid]==='orders');
+const ordMode=ORDMODE[gid]||'summary';
+const ordOn=ordMode==='orders';
+const revOn=ordMode==='rev';
   const pieSwitch=`<span class="pieSwitch ${PIEMODE[gid]==='forecast'?'on':''}" title="Клик — переключить План/Прогноз" onclick="togglePieMode('${gid}')"><span class="psKnob"></span><span class="psLab ${PIEMODE[gid]==='plan'?'act':''}">План</span><span class="psLab ${PIEMODE[gid]==='forecast'?'act':''}">Прогноз</span></span>`;
-  const body=ordOn?`<div class="tempwrap" id="ordbody_${gid}"><div class="psub" style="padding:10px">загрузка…</div></div>`:`
+const body=(ordOn||revOn)?`<div class="tempwrap" id="ordbody_${gid}"><div class="psub" style="padding:10px">загрузка…</div></div>`:
     <div class="panel panel-charts">
       <div class="panelhead"><span class="paneltitle">Структура маржинальности</span>${pieSwitch}</div>
       <div class="piesrow">
@@ -2160,7 +2206,7 @@ function mxCard(id,title,list,gid,total){
   <div class="speedo-val n" id="speedoval_orders_${gid}">…</div>
   <div class="speedo-sub" id="speedosub_orders_${gid}">расчёт…</div>
 </div>
-<div class="speedo-item" title="Выручка (PNL, uncapped), ₽: заказы вчера × цена, к плану (перевыполнение учитывается)">
+<div class="speedo-item clickable" title="Выручка (PNL, uncapped), ₽: вчера к плану — клик: слайд темпов" onclick="setOrdMode('${gid}','rev')">
   <div class="speedo-label">Выручка (PNL, uncapped), ₽</div>
   <svg class="speedo-svg" id="speedo_rev_${gid}" viewBox="0 0 80 50"></svg>
   <div class="speedo-val n" id="speedoval_rev_${gid}">…</div>
@@ -2221,7 +2267,7 @@ function mxCard(id,title,list,gid,total){
       </div>`:''}
     </div>`;
   const stop=total?'event.stopPropagation();':'';
-  const pm=`<span class="pmwrap"><button class="pmbtn ${ordOn?'':'on'}" onclick="${stop}setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="${stop}setOrdMode('${gid}','orders')">Заказы</button></span>`;
+const pm=`<span class="pmwrap"><button class="pmbtn ${ordOn||revOn?'':'on'}" onclick="${stop}setOrdMode('${gid}','summary')">Сводка</button><button class="pmbtn ${ordOn?'on':''}" onclick="${stop}setOrdMode('${gid}','orders')">Заказы</button><button class="pmbtn ${revOn?'on':''}" onclick="${stop}setOrdMode('${gid}','rev')">Выручка</button></span>`;
   const head=total
     ?`<div class="mxtitle totalhead" onclick="toggleTotal()"><span class="totalcaret" id="totalcaret">${TOTAL_OPEN?'▾':'▸'}</span>${title} • ${list.length} поз.</div>`
     :`<div class="mxtitle">${title} • ${list.length} поз.${pm}</div>`;
@@ -2237,8 +2283,11 @@ function render(){
   const m2=f.filter(r=>matrixOf(r.offer_id)==='m2');
   const listAll=m1.concat(m2);
   document.getElementById('summary').innerHTML=mxCard('3','Итого',listAll,'t',true)+mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
-  ['m1','m2','t'].forEach(g=>{
-    if(ORDMODE[g]==='orders'){ renderOrderTemps(g); } else { renderSpeedo(g,'orders'); renderSpeedo(g,'rev'); }
+['m1','m2','t'].forEach(g=>{
+    const mode=ORDMODE[g]||'summary';
+    if(mode==='orders'){ renderOrderTemps(g); }
+    else if(mode==='rev'){ renderRevTemps(g); }
+    else { renderSpeedo(g,'orders'); renderSpeedo(g,'rev'); }
     renderKpiPnl(g);
   });
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
