@@ -485,11 +485,10 @@ function toggleTotal(){
 }
 let TEMP_SORT={m1:{col:'devPlan',dir:'desc'},m2:{col:'devPlan',dir:'desc'},t:{col:'devPlan',dir:'desc'}};
 function toggleTempSort(gid,col){
-  const s=TEMP_SORT[gid];
-  if(s.col===col){ s.dir=s.dir==='desc'?'asc':'desc'; }
-  else{ s.col=col; s.dir='desc'; }
-  if(ORDMODE[gid]==='rev') renderRevTemps(gid);
-  else renderOrderTemps(gid);
+const s=TEMP_SORT[gid];
+if(s.col===col){ s.dir=s.dir==='desc'?'asc':'desc'; }
+else{ s.col=col; s.dir='desc'; }
+if((ORDMODE[gid]||'summary')==='rev') renderRevTemps(gid); else renderOrderTemps(gid);
 }
 function setOrdMode(gid,m){ORDMODE[gid]=m;render();}
 function togglePieMode(gid){PIEMODE[gid]=PIEMODE[gid]==='plan'?'forecast':'plan';render();}
@@ -2285,12 +2284,12 @@ function render(){
   const listAll=m1.concat(m2);
   document.getElementById('summary').innerHTML=mxCard('3','Итого',listAll,'t',true)+mxCard('1','Илья',m1,'m1')+mxCard('2','Ольга',m2,'m2');
 ['m1','m2','t'].forEach(g=>{
-    const mode=ORDMODE[g]||'summary';
-    if(mode==='orders'){ renderOrderTemps(g); }
-    else if(mode==='rev'){ renderRevTemps(g); }
-    else { renderSpeedo(g,'orders'); renderSpeedo(g,'rev'); }
-    renderKpiPnl(g);
-  });
+const mode=ORDMODE[g]||'summary';
+if(mode==='orders'){ renderOrderTemps(g); }
+else if(mode==='rev'){ renderRevTemps(g); }
+else { renderSpeedo(g,'orders'); renderSpeedo(g,'rev'); }
+renderKpiPnl(g);
+});
   const m1p=m1.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const m2p=m2.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0);
   const p1=PIEMODE.m1==='plan'?pieStats(m1p,'plan'):pieStats(m1,'forecast');
