@@ -1137,7 +1137,7 @@ async function renderOrderTemps(gid){
   box.innerHTML=(pre?`<div class="psub" style="padding:6px 10px;margin-bottom:6px;background:rgba(217,119,6,.08);border:1px dashed rgba(217,119,6,.35);border-radius:8px">⏳ Предпериод: календарный период начинается ${ddmm(periodStart)} — темпы показаны на предстоящий период, выполнение пока 0</div>`:'')+h;
 }
  async function renderRevTemps(gid){
-const box=document.getElementById('revbody_'+gid);
+const box=document.getElementById('ordbody_'+gid);
   if(!box)return;
   const now=new Date(); now.setHours(0,0,0,0);
   if(!WEEKISO.length){box.innerHTML='<div class="psub">нет недель</div>';return;}
