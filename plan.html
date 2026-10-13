@@ -112,7 +112,8 @@
  tr.zeroplan td{opacity:.45}
  tr.rowdown td{background:rgba(227,61,120,.12)}
  tr.rowup td{background:rgba(22,163,74,.12)}
- tr.rowrestock td{font-weight:900;color:#1C0D2E;-webkit-text-stroke:.35px currentColor}
+ tr.rowrestock td{font-weight:900;-webkit-text-stroke:.8px currentColor;paint-order:stroke fill;letter-spacing:.2px}
+ tr.rowrestock td.okey::before{content:'▲ ';color:#16a34a;-webkit-text-stroke:0}
  .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
  .dateshort:hover{color:#E33D78}
  .datelocked{cursor:default;color:#94a3b8;font-size:.85em;border-bottom:none;white-space:nowrap}
@@ -1058,7 +1059,7 @@ async function computeOrderTemps(){
   }
   const baseDiv=baseDays.length;
   const fetchFrom=baseDays[0]<periodStart?baseDays[0]:periodStart;
-  const byOffer=new Map(),revOffer=new Map();let off=0;
+  const byOffer=new Map(),revOffer=new Map(),revDay=new Map();let off=0;
   const execEndAll=yISO<periodEnd?yISO:periodEnd;
   while(true){
     const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?sale_date=gte.${fetchFrom}&sale_date=lte.${yISO}&select=offer_id,sale_date,qty,revenue&order=id&limit=1000&offset=${off}`,{headers:HD});
@@ -1066,6 +1067,7 @@ async function computeOrderTemps(){
     const j=await r.json();
     j.forEach(x=>{
       let m=byOffer.get(x.offer_id);if(!m){m=new Map();byOffer.set(x.offer_id,m);}m.set(x.sale_date,(m.get(x.sale_date)||0)+Number(x.qty||0));
+      let rd=revDay.get(x.offer_id);if(!rd){rd=new Map();revDay.set(x.offer_id,rd);}rd.set(x.sale_date,(rd.get(x.sale_date)||0)+Number(x.revenue||0));
       if(x.sale_date>=periodStart&&x.sale_date<=execEndAll)revOffer.set(x.offer_id,(revOffer.get(x.offer_id)||0)+Number(x.revenue||0));
     });
     if(j.length<1000)break;off+=1000;
@@ -1104,6 +1106,9 @@ res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rc
   // выручка с 1-го числа по вчера / эфф. дни прошедшие × эфф. дни месяца (все неархивные позиции группы)
   const eEl=effDaysRange(periodStart,execEndAll);
   res.projRev={m1:null,m2:null,t:null};
+  // фактическая выручка вчера и средняя за те же базовые дни (для подсветки строк)
+  res.factRev=new Map();
+  revDay.forEach((rd,o)=>{let sm=0;baseDays.forEach(x=>{sm+=rd.get(x)||0;});res.factRev.set(o,{yest:rd.get(yISO)||0,avg:sm/baseDiv});});
   if(eEl>0&&execEndAll>=periodStart){
     const acc={m1:0,m2:0};
     ROWS.forEach(p=>{acc[matrixOf(p.offer_id)]+=revOffer.get(p.offer_id)||0;});
@@ -2420,7 +2425,7 @@ renderKpiPnl(g);
   openProto.forEach(pid=>{loadSmartBase(pid);});
   applyRowMarks();
 }
-// пополнение остатков: сумма по складам на последнюю дату снимка против предыдущей даты
+// пополнение остатков: сумма по складам на последнюю дату снимка против снимка двумя днями ранее
 let RESTOCK=null;
 async function loadRestock(){
   if(RESTOCK)return RESTOCK;
@@ -2428,7 +2433,7 @@ async function loadRestock(){
   const r1=await fetch(SUPABASE_URL+'/rest/v1/stock_history?select=report_date&order=report_date.desc&limit=1',{headers:HD});
   const last=r1.ok?((await r1.json())[0]||{}).report_date:null;
   if(!last){RESTOCK={map:new Map()};return RESTOCK;}
-  const r2=await fetch(SUPABASE_URL+`/rest/v1/stock_history?report_date=lt.${last}&select=report_date&order=report_date.desc&limit=1`,{headers:HD});
+  const r2=await fetch(SUPABASE_URL+`/rest/v1/stock_history?report_date=lte.${addDaysISO(last,-2)}&select=report_date&order=report_date.desc&limit=1`,{headers:HD});
   const prev=r2.ok?((await r2.json())[0]||{}).report_date:null;
   const sum=rows=>{const m=new Map();rows.forEach(x=>m.set(x.offer_id,(m.get(x.offer_id)||0)+Number(x.stock||0)));return m;};
   const [a,b]=await Promise.all([pages(`stock_history?report_date=eq.${last}&select=offer_id,stock`),prev?pages(`stock_history?report_date=eq.${prev}&select=offer_id,stock`):Promise.resolve([])]);
@@ -2438,13 +2443,14 @@ async function loadRestock(){
   return RESTOCK;
 }
 // подсветка строк: красный — выручка вчера ниже средней, зелёный — выше; без плана — полупрозрачная;
-// жирный — остатки пополнились более чем на 10% от плана месяца
+// жирный — остатки за 2 дня пополнились более чем на 10% от плана месяца
 async function applyRowMarks(){
   let temps=null,st=null;
   try{temps=await computeOrderTemps();}catch(e){console.warn('row marks (темпы):',e&&e.message);}
   try{st=await loadRestock();}catch(e){console.warn('row marks (остатки):',e&&e.message);}
   const byOffer=new Map();
   if(temps)(temps.t||[]).forEach(x=>byOffer.set(x.offer,x));
+  const fr=temps&&temps.factRev?temps.factRev:new Map();
   document.querySelectorAll('#tb tr[data-pid]').forEach(tr=>{
     const pid=Number(tr.dataset.pid),p=BYID[pid];if(!p)return;
     const pl=PLAN[pid]||{plan_qty:0};
@@ -2452,9 +2458,10 @@ async function applyRowMarks(){
     tr.classList.remove('rowdown','rowup','rowrestock');
     const t=byOffer.get(p.offer_id);
     if(t&&!tr.classList.contains('zeroplan')){
-      if(t.yestRub<t.avgRub){tr.classList.add('rowdown');}
-      else if(t.yestRub>t.avgRub){tr.classList.add('rowup');}
-      notes.push(`выручка вчера ${fmt(Math.round(t.yestRub))} ₽ / средняя ${fmt(Math.round(t.avgRub))} ₽`);
+      const f=fr.get(p.offer_id)||{yest:0,avg:0};
+      if(f.yest<f.avg){tr.classList.add('rowdown');}
+      else if(f.yest>f.avg){tr.classList.add('rowup');}
+      notes.push(`выручка вчера ${fmt(Math.round(f.yest))} ₽ / средняя ${fmt(Math.round(f.avg))} ₽ (факт)${f.yest===f.avg?' — без изменений':''}`);
     }
     const s=st&&st.map.get(p.offer_id);
     if(s&&st.prev){
