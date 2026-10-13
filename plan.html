@@ -109,7 +109,10 @@
  .resetbtn:hover{opacity:1;color:#d97706}
  .stocklink{color:#544273;text-decoration:underline;transition:transform .2s ease,color .2s;display:inline-block}
  .stocklink:hover{transform:scale(1.05);color:#E33D78}
- tr.zeroplan td{background:rgba(227,61,120,.12)}
+ tr.zeroplan td{opacity:.45}
+ tr.rowdown td{background:rgba(227,61,120,.12)}
+ tr.rowup td{background:rgba(22,163,74,.12)}
+ tr.rowrestock td{font-weight:900;color:#1C0D2E;-webkit-text-stroke:.35px currentColor}
  .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
  .dateshort:hover{color:#E33D78}
  .datelocked{cursor:default;color:#94a3b8;font-size:.85em;border-bottom:none;white-space:nowrap}
@@ -1055,12 +1058,16 @@ async function computeOrderTemps(){
   }
   const baseDiv=baseDays.length;
   const fetchFrom=baseDays[0]<periodStart?baseDays[0]:periodStart;
-  const byOffer=new Map();let off=0;
+  const byOffer=new Map(),revOffer=new Map();let off=0;
+  const execEndAll=yISO<periodEnd?yISO:periodEnd;
   while(true){
-    const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?sale_date=gte.${fetchFrom}&sale_date=lte.${yISO}&select=offer_id,sale_date,qty&limit=1000&offset=${off}`,{headers:HD});
-    if(!r.ok)break;
+    const r=await fetch(SUPABASE_URL+`/rest/v1/product_sales?sale_date=gte.${fetchFrom}&sale_date=lte.${yISO}&select=offer_id,sale_date,qty,revenue&order=id&limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok)throw new Error('product_sales HTTP '+r.status);
     const j=await r.json();
-    j.forEach(x=>{let m=byOffer.get(x.offer_id);if(!m){m=new Map();byOffer.set(x.offer_id,m);}m.set(x.sale_date,(m.get(x.sale_date)||0)+Number(x.qty||0));});
+    j.forEach(x=>{
+      let m=byOffer.get(x.offer_id);if(!m){m=new Map();byOffer.set(x.offer_id,m);}m.set(x.sale_date,(m.get(x.sale_date)||0)+Number(x.qty||0));
+      if(x.sale_date>=periodStart&&x.sale_date<=execEndAll)revOffer.set(x.offer_id,(revOffer.get(x.offer_id)||0)+Number(x.revenue||0));
+    });
     if(j.length<1000)break;off+=1000;
   }
   const effRemain=tISO<=periodEnd?effDaysRange(tISO<periodStart?periodStart:tISO,periodEnd):0;
@@ -1093,6 +1100,15 @@ const rcExpRub=rcExp*price;
 const expectedRub=expected*price;
 res[gid].push({offer:p.offer_id,yest:yest,avg:avg,devAvg:yest-avg,rc:rc,rcExp:rcExp,devCatch:avg-rcExp,rp:rp,expected:expected,devPlan:yest-expected,proj:proj,price:price,yestRub:yestRub,avgRub:avgRub,devAvgRub:yestRub-avgRub,rcExpRub:rcExpRub,devCatchRub:avgRub-rcExpRub,expectedRub:expectedRub,devPlanRub:yestRub-expectedRub});
   });
+  // прогноз выручки (PNL) по фактической выручке, как на главном дашборде:
+  // выручка с 1-го числа по вчера / эфф. дни прошедшие × эфф. дни месяца (все неархивные позиции группы)
+  const eEl=effDaysRange(periodStart,execEndAll);
+  res.projRev={m1:null,m2:null,t:null};
+  if(eEl>0&&execEndAll>=periodStart){
+    const acc={m1:0,m2:0};
+    ROWS.forEach(p=>{acc[matrixOf(p.offer_id)]+=revOffer.get(p.offer_id)||0;});
+    res.projRev={m1:acc.m1/eEl*effTotal,m2:acc.m2/eEl*effTotal,t:(acc.m1+acc.m2)/eEl*effTotal};
+  }
   res.m1.sort((a,b)=>a.devPlan-b.devPlan);
   res.m2.sort((a,b)=>a.devPlan-b.devPlan);
   res.t=res.m1.concat(res.m2);
@@ -1293,15 +1309,15 @@ async function renderKpiPnl(gid){
   if(!elRev && !elQty)return;
   const data=await computeOrderTemps();
   const rows=data[gid]||[];
-  let rev=0, qty=0, any=false;
+  let qty=0, any=false;
   rows.forEach(x=>{ 
     if(x.proj!=null){ 
-      rev+=x.proj*(x.price||0); 
       qty+=x.proj;
       any=true; 
     } 
   });
-  if(elRev) elRev.textContent=any? fmt(rev):'—';
+  const rev=data.projRev?data.projRev[gid]:null;
+  if(elRev) elRev.textContent=rev!=null? fmt(rev):'—';
   if(elQty) elQty.textContent=any? fmt(qty):'—';
 }
 async function exportPlanExcel(){
@@ -2332,7 +2348,7 @@ renderKpiPnl(g);
     const zp=(pl.plan_qty||0)===0;
     const hasActive=(PROTO[pid]||[]).some(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
     const dateLocked=hasActive;
-    let h=`<tr${zp?' class="zeroplan"':''}>
+    let h=`<tr data-pid="${pid}"${zp?' class="zeroplan"':''}>
       <td class="num okey" title="${esc(p.name)} — открыть протокол" onclick="toggleProto(${pid})">${esc(p.offer_id)}</td>`;
     if(dateLocked){
       h+=`<td><span class="datelocked" title="дата зафиксирована гипотезой">${wd?ddmm(wd):'—'}</span></td>`;
@@ -2402,6 +2418,53 @@ renderKpiPnl(g);
   });
   document.getElementById('tb').innerHTML=html||`<tr><td colspan="${totalCols}" style="color:#94a3b8">нет данных</td></tr>`;
   openProto.forEach(pid=>{loadSmartBase(pid);});
+  applyRowMarks();
+}
+// пополнение остатков: сумма по складам на последнюю дату снимка против предыдущей даты
+let RESTOCK=null;
+async function loadRestock(){
+  if(RESTOCK)return RESTOCK;
+  const pages=async q=>{let out=[],off=0;while(true){const r=await fetch(SUPABASE_URL+'/rest/v1/'+q+`&order=id&limit=1000&offset=${off}`,{headers:HD});if(!r.ok)throw new Error('stock_history HTTP '+r.status);const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}return out;};
+  const r1=await fetch(SUPABASE_URL+'/rest/v1/stock_history?select=report_date&order=report_date.desc&limit=1',{headers:HD});
+  const last=r1.ok?((await r1.json())[0]||{}).report_date:null;
+  if(!last){RESTOCK={map:new Map()};return RESTOCK;}
+  const r2=await fetch(SUPABASE_URL+`/rest/v1/stock_history?report_date=lt.${last}&select=report_date&order=report_date.desc&limit=1`,{headers:HD});
+  const prev=r2.ok?((await r2.json())[0]||{}).report_date:null;
+  const sum=rows=>{const m=new Map();rows.forEach(x=>m.set(x.offer_id,(m.get(x.offer_id)||0)+Number(x.stock||0)));return m;};
+  const [a,b]=await Promise.all([pages(`stock_history?report_date=eq.${last}&select=offer_id,stock`),prev?pages(`stock_history?report_date=eq.${prev}&select=offer_id,stock`):Promise.resolve([])]);
+  const now=sum(a),before=sum(b),map=new Map();
+  now.forEach((v,o)=>map.set(o,{now:v,before:before.get(o)||0}));
+  RESTOCK={last,prev,map};
+  return RESTOCK;
+}
+// подсветка строк: красный — выручка вчера ниже средней, зелёный — выше; без плана — полупрозрачная;
+// жирный — остатки пополнились более чем на 10% от плана месяца
+async function applyRowMarks(){
+  let temps=null,st=null;
+  try{temps=await computeOrderTemps();}catch(e){console.warn('row marks (темпы):',e&&e.message);}
+  try{st=await loadRestock();}catch(e){console.warn('row marks (остатки):',e&&e.message);}
+  const byOffer=new Map();
+  if(temps)(temps.t||[]).forEach(x=>byOffer.set(x.offer,x));
+  document.querySelectorAll('#tb tr[data-pid]').forEach(tr=>{
+    const pid=Number(tr.dataset.pid),p=BYID[pid];if(!p)return;
+    const pl=PLAN[pid]||{plan_qty:0};
+    const notes=[];
+    tr.classList.remove('rowdown','rowup','rowrestock');
+    const t=byOffer.get(p.offer_id);
+    if(t&&!tr.classList.contains('zeroplan')){
+      if(t.yestRub<t.avgRub){tr.classList.add('rowdown');}
+      else if(t.yestRub>t.avgRub){tr.classList.add('rowup');}
+      notes.push(`выручка вчера ${fmt(Math.round(t.yestRub))} ₽ / средняя ${fmt(Math.round(t.avgRub))} ₽`);
+    }
+    const s=st&&st.map.get(p.offer_id);
+    if(s&&st.prev){
+      const d=s.now-s.before;
+      if(pl.plan_qty>0&&d>0.1*pl.plan_qty)tr.classList.add('rowrestock');
+      notes.push(`остатки ${ddmm(st.prev)}→${ddmm(st.last)}: ${fmt(s.before)}→${fmt(s.now)} шт (${d>=0?'+':''}${fmt(d)}${pl.plan_qty>0?`, ${d>=0?'+':''}${f1(d/pl.plan_qty*100)}% плана`:''})`);
+    }
+    const td=tr.querySelector('td.okey');
+    if(td){const base=(td.dataset.t0=td.dataset.t0||td.title);td.title=notes.length?base+'\n'+notes.join('\n'):base;}
+  });
 }
 </script>
 </body>
