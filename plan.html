@@ -112,6 +112,8 @@
  tr.zeroplan td{opacity:.45}
  tr.rowdown td{background:rgba(227,61,120,.12)}
  tr.rowup td{background:rgba(22,163,74,.12)}
+ tr.anareq td{background:rgba(227,61,120,.6)!important;font-weight:700} /* запрос аналитики от РОПа — важнее подсветки роста/падения */
+ .anaflag{margin-right:3px}
  tr.rowrestock td{font-weight:900;-webkit-text-stroke:.8px currentColor;paint-order:stroke fill;letter-spacing:.2px}
  tr.rowrestock td.okey::before{content:'▲ ';color:#16a34a;-webkit-text-stroke:0}
  .dateshort{cursor:pointer;color:#544273;font-size:.85em;border-bottom:1px dashed rgba(84,66,115,.4);white-space:nowrap}
@@ -477,7 +479,7 @@ const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
 const TAX_RATE=0.03;
-let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={},SKU_PID={};
+let ROWS=[],PLAN={},BYID={},WD={},WEEKS=[],WEEKISO=[],PPM={},PROTO={},NOTES={},DEV={},OFFER_PID={},SKU_PID={},ANAREQ={};
 let EXP={qty:false,rev:false,mar:false,price:false,pct:false};
 let GM={m1:false,m2:false};
 let PIEMODE={m1:'plan',m2:'plan',t:'plan'};
@@ -730,6 +732,15 @@ async function loadPPM(){
   const added=ext.filter(r=>!seen.has(r.product_id));
   PPM={};
   [...cur, ...added].forEach(x=>PPM[x.product_id]={weekday:x.weekday,protocol:x.protocol,work_date:x.work_date});
+}
+// запросы аналитики от РОПа (главная → analytics_requests): открытые подсвечиваются розовым и «❗»; снимает РОП на главной
+async function loadAnaReq(){
+  ANAREQ={};
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/analytics_requests?closed_at=is.null&select=product_id,created_at&order=created_at.asc&limit=1000',{headers:HD});
+    if(!r.ok)return; // нет таблицы — страница работает без запросов
+    (await r.json()).forEach(x=>{ANAREQ[x.product_id]=x;});
+  }catch(e){console.warn('analytics_requests:',e.message);}
 }
 async function loadProto(){
   const [y,m]=MONTH.split('-').map(Number);
@@ -1388,7 +1399,7 @@ async function load(){
       BYID={}; ROWS.forEach(p=>BYID[p.product_id]=p);
       OFFER_PID={}; ROWS.forEach(p=>OFFER_PID[p.offer_id]=p.product_id);
       SKU_PID={}; ROWS.forEach(p=>{const sku=p.raw&&p.raw.sku!=null?String(p.raw.sku):'';if(sku)SKU_PID[sku]=p.product_id;});
-      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory()]);
+      await Promise.all([loadPlans(),loadWeeks(),loadPPM(),loadProto(),loadDev(),loadCosts(),loadCostHistory(),loadAnaReq()]);
       const planCnt=ROWS.filter(r=>((PLAN[r.product_id]||{}).plan_qty||0)>0).length;
       document.getElementById('meta').textContent=`Период: ${MONTH} • позиций: ${ROWS.length} • в плане: ${planCnt} • обновлено: ${new Date().toLocaleString('ru-RU')}`;
       render(); backgroundFix(); return;
@@ -2356,8 +2367,10 @@ renderKpiPnl(g);
     const zp=(pl.plan_qty||0)===0;
     const hasActive=(PROTO[pid]||[]).some(it=>!it.parent_id&&it.deadline&&it.deadline>=localISO(new Date())&&it.fact_dev==null);
     const dateLocked=hasActive;
-    let h=`<tr data-pid="${pid}"${zp?' class="zeroplan"':''}>
-      <td class="num okey" title="${esc(p.name)} — открыть протокол" onclick="toggleProto(${pid})">${esc(p.offer_id)}</td>`;
+    const ana=ANAREQ[pid];
+    const trc=[zp?'zeroplan':'',ana?'anareq':''].filter(Boolean).join(' ');
+    let h=`<tr data-pid="${pid}"${trc?` class="${trc}"`:''}>
+      <td class="num okey" title="${esc(p.name)}${ana?' — РОП запросил аналитику '+ddmm(localISO(new Date(ana.created_at))):''} — открыть протокол" onclick="toggleProto(${pid})">${ana?'<span class="anaflag">❗</span>':''}${esc(p.offer_id)}</td>`;
     if(dateLocked){
       h+=`<td><span class="datelocked" title="дата зафиксирована гипотезой">${wd?ddmm(wd):'—'}</span></td>`;
     }else{
