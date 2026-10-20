@@ -908,6 +908,22 @@ async function syncPnl(extraWeeks){
     const part=body.slice(i,i+500);
     await fetch(SUPABASE_URL+'/rest/v1/sales_plan_weeks?on_conflict=product_id,week,metric',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(part)});
   }
+  // дневная маржа CF (для суточного графика главной) — та же формула, что у недели, по каждому дню с начислениями:
+  // mar = pnl − себестоимость × продажи − реклама дня − налог × выручка P; сумма дней недели = недельный факт
+  const dayBody=[];
+  day.forEach((m,pid)=>{
+    const am=adsMap.get(pid);
+    m.forEach((g,d)=>{
+      if(d<first||d>last)return;
+      const ci=costAt(pid,d),ads=am?(am.get(d)||0):0,cogs=ci.cost*g.sales;
+      const mar=g.pnl-cogs-ads-TAX_RATE*g.revP;
+      dayBody.push({product_id:pid,day:d,mar:Math.round(mar*100)/100,revn:Math.round(g.gmv*100)/100,sales:g.sales,cogs:Math.round(cogs*100)/100,cost_provisional:!!ci.prov,updated_at:new Date().toISOString()});
+    });
+  });
+  for(let i=0;i<dayBody.length;i+=500){
+    const r=await fetch(SUPABASE_URL+'/rest/v1/cf_daily?on_conflict=product_id,day',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify(dayBody.slice(i,i+500))});
+    if(!r.ok){console.warn('cf_daily: HTTP',r.status,'— дневная маржа не сохранена (нет таблицы?)');break;}
+  }
 }
 async function fixHypotheses(){
   const today=localISO(new Date());
