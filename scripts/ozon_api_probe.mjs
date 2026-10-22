@@ -38,6 +38,16 @@ const today=mskDay(new Date().toISOString());
 const DAYS=(process.env.DAYS||'').split(',').map(s=>s.trim()).filter(Boolean);
 if(!DAYS.length)DAYS.push(addDays(today,-2));
 const d=DAYS[0]; console.log('День:',d);
+// Проход 7 (22.10.2026): теряет ли чтение начислений «как в plan.html» (страницы по 1000, order=source_id — не уникален) строки
+if(process.env.CHECK==='paging'){
+  for(const day of DAYS){
+    const dd=day;
+    const pg=async ord=>{let out=[],off=0;for(;;){const r=await fetch(`${SB}/rest/v1/ozon_charges?charge_date=eq.${dd}&order=${ord}&select=row_key&limit=1000&offset=${off}`,{headers:SR});const j=await r.json();out=out.concat(j.map(x=>x.row_key));if(j.length<1000)break;off+=1000;}return out;};
+    const a=await pg('source_id.asc'),b=await pg('row_key');const sa=new Set(a),sb=new Set(b);
+    console.log(`${dd}: как plan.html (order=source_id) строк ${a.length}, уникальных ${sa.size}, дублей ${a.length-sa.size}, потеряно ${[...sb].filter(k=>!sa.has(k)).length}; по row_key строк ${b.length}`);
+  }
+  console.log('Готово. В базу ничего не записано.');process.exit(0);
+}
 
 let acc=[],last_id='',pg=0;
 do{const r=await ozon('/v1/finance/accrual/by-day',last_id?{date:d,last_id}:{date:d}); if(r.status!==200){console.log('by-day HTTP',msg(r));break;}
