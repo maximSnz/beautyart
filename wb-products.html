@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beauty Art — База товаров WB</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
+ .login{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ .wrap{max-width:1200px;margin:0 auto 40px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ h2{font-family:'Forum';color:#1C0D2E}
+ input,select{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ table{width:100%;border-collapse:collapse;font-size:.88em}
+ th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
+ th{color:#666}
+ .hide{display:none}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
+ .err{color:#E33D78;font-size:.9em;margin:8px 0}
+ .cost{font-weight:700;color:#1C0D2E}
+ .acts{white-space:nowrap}
+ .acts button{margin-right:4px}
+ .histrow td{background:#f8f9fb}
+ .hist{font-size:.85em;color:#544273}
+ .cur{color:#22c55e;font-weight:700}
+ .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+ .toolbar input{flex:1;min-width:200px}
+ .legend{margin-left:auto;color:#94a3b8;font-size:.8em;white-space:nowrap}
+ details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 14px}
+ details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;user-select:none}
+ details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ details.arc .inner{padding:10px 14px}
+ tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
+ .editable{cursor:pointer;white-space:nowrap}
+ .editable::after{content:" ✎";opacity:.3;font-size:.8em}
+ .editable:hover{color:#E33D78}
+ .editable:hover::after{opacity:1}
+ .diff{background:rgba(253,224,71,.35);border-radius:4px}
+ .muted{color:#94a3b8}
+
+ /* === ШАПКА (на градиенте) === */
+ .header {
+   max-width: 1200px; margin: 20px auto 20px;
+   display: flex; align-items: center; gap: 20px;
+   padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
+   border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
+   box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
+   position: relative; z-index: 200;
+ }
+ .logo-link { display: inline-block; flex: 0 0 auto; }
+ .logo {
+   width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+   transition: transform .3s ease; display: block;
+ }
+ .logo-link:hover .logo { transform: scale(1.1); }
+ .company-name {
+   font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
+   text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
+ }
+ .header-nav { margin-left: auto; display: flex; gap: 10px; }
+ .nav-item { position: relative; }
+ .nav-btn {
+   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+   border-radius: 10px; color: #fff; padding: 10px 16px;
+   font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
+   display: inline-flex; align-items: center; gap: 8px; transition: all .3s;
+   text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+ }
+ .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+ .nav-btn .caret { font-size: .72em; transition: transform .2s; }
+ .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
+ .nav-menu {
+   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+   background: rgba(255,255,255,0.18);
+   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
+   padding: 8px; display: none; z-index: 300;
+   box-shadow: 0 10px 30px rgba(28,13,46,.25);
+ }
+ .nav-item.open .nav-menu { display: block; }
+ .nav-menu a {
+   display: block; padding: 10px 14px; border-radius: 8px; color: #fff;
+   text-decoration: none; font-family: 'Forum', serif; font-size: .95em;
+   transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25);
+ }
+ .nav-menu a:hover { background: rgba(255,255,255,0.22); }
+
+ @media (max-width:640px){
+   body{padding:8px}
+   .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
+   h2{font-size:1.15em}
+   .toolbar{flex-direction:column;align-items:stretch}
+   button{padding:10px 14px;font-size:1em}
+   table{font-size:.78em}
+   th,td{padding:5px 6px}
+   .meta{font-size:.78em}
+   .header { flex-wrap: wrap; }
+   .header-nav { margin-left: 0; width: 100%; }
+ }
+</style><style>
+ /* === Единая шапка и ширина рабочего пространства (эталон шапки — beautyart-home, ширины — purchase.html) === */
+ body{padding:16px}
+ .header{max-width:1700px;margin:0 auto 16px;padding:14px 26px;gap:20px;border:1px solid rgba(255,255,255,.3);border-radius:16px;background:rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(28,13,46,.2);box-sizing:border-box}
+ .logo{width:52px}
+ .company-name{font-size:1.8em;letter-spacing:2px}
+ .wrap,.container,.protected-content{max-width:1700px;box-sizing:border-box}
+ @media (max-width:640px){ body{padding:8px} }
+ /* вход — как в plan.html */
+ .login-box{max-width:400px;margin:100px auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(28,13,46,.3);border:2px solid rgba(84,66,115,.2);text-align:center;box-sizing:border-box}
+ .login-logo{width:80px;height:auto;margin-bottom:15px}
+ .login-title{font-family:'Forum',serif;font-size:1.8em;color:#1C0D2E;margin-bottom:10px}
+ .login-subtitle{color:#666;font-size:.95em;margin-bottom:25px;font-family:'Forum',serif}
+ .password-input{width:100%;padding:14px 16px;border:2px solid rgba(84,66,115,.2);border-radius:10px;font-size:1em;font-family:'Forum',serif;margin-bottom:15px;box-sizing:border-box}
+ .password-input:focus{outline:none;border-color:#E33D78}
+ .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#78A6C7,#E33D78);color:#fff;border:none;border-radius:10px;font-size:1.05em;font-family:'Forum',serif;cursor:pointer;transition:all .3s}
+ .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(227,61,120,.4)}
+ .error-message{display:none;color:#E33D78;font-size:.9em;margin-top:15px;font-family:'Forum',serif}
+</style>
+</head>
+<body>
+<div class="login-box" id="login">
+    <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="login-logo">
+    <div class="login-title">Закрытый раздел</div>
+    <div class="login-subtitle">Введите почту и пароль для доступа</div>
+    <input type="email" id="email" class="password-input" placeholder="Почта" autocomplete="username" onkeypress="if(event.key==='Enter')go()">
+    <input type="password" id="pwd" class="password-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')go()">
+    <button class="login-btn" onclick="go()">Войти</button>
+    <div class="error-message" id="errorMessage">Неверный пароль. Попробуйте ещё раз.</div>
+</div>
+<div class="hide" id="app">
+  <div class="header">
+    <a href="https://maximsnz.github.io/beautyart-home/index.html" class="logo-link" title="На главную">
+      <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+    </a>
+    <div class="company-name">Beauty Art</div>
+  </div>
+  <div class="wrap">
+    <h2>📦 База товаров WB</h2>
+    <div class="meta" id="meta">загрузка…</div>
+    <div class="err" id="err"></div>
+    <div class="toolbar">
+      <input id="q" placeholder="Поиск по названию / артикулу / артикулу WB / ШК" oninput="render()">
+      <button onclick="load()">⟳ Обновить</button>
+      <div class="legend"><span class="diff">&nbsp;желтым&nbsp;</span> — отличается от «Базы товаров Ozon» ИП (наведите) • 🕘 история • 🗄 архив</div>
+    </div>
+
+    <details class="arc" id="arcDetails">
+      <summary>🗄 Архив и ушедшие из WB (<span id="arcCount">0</span>)</summary>
+      <div class="inner">
+        <table><thead><tr>
+          <th>Артикул</th><th>Название</th><th>Артикул WB</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>ШК</th><th title="Штук в коробе WB">В коробе, шт</th><th title="Коробов на паллете">На паллете, кор.</th><th>Себестоимость, ₽</th><th>Действия</th>
+        </tr></thead><tbody id="arcBody"></tbody></table>
+      </div>
+    </details>
+
+    <table><thead><tr>
+      <th>Артикул</th><th>Название</th><th>Артикул WB</th><th>Поставщик</th><th>НДС</th><th>ЧЗ</th><th>ШК</th><th title="Штук в коробе WB">В коробе, шт</th><th title="Коробов на паллете">На паллете, кор.</th><th>Себестоимость, ₽</th><th>Действия</th>
+    </tr></thead><tbody id="tb"></tbody></table>
+  </div>
+</div>
+<script src="../beautyart-home/auth.js?v=20261021"></script>
+<script>
+// База товаров WB (ИП) — автономная: свои поставщик, НДС, ЧЗ, в коробе, на паллете, себестоимость (решение 22.10.2026).
+// С «Базой товаров Ozon» ИП связи нет; совпадение по ШК — только подсказка о расхождении (жёлтая ячейка).
+const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+const COLS=11;
+let ROWS=[],PRICES={},META={},OZ={};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const art=r=>(r.vendor_code||'')+(r.tech_size&&r.tech_size!=='0'?' · '+r.tech_size:'');
+async function go(){
+  if(!await BA_AUTH.login(SUPABASE_URL,HD))return;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  load();
+}
+async function getAll(path){
+  let out=[],off=0;
+  for(;;){
+    const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok) throw new Error(path.split('?')[0].replace('/rest/v1/','')+' HTTP '+r.status);
+    const j=await r.json(); out=out.concat(j); if(j.length<1000) break; off+=1000;
+  }
+  return out;
+}
+async function load(){
+  const err=document.getElementById('err'); err.textContent='';
+  for(let a=1;a<=3;a++){
+    try{
+      const [wp,pr,mr,op,oc]=await Promise.all([
+        getAll('/rest/v1/wb_products?select=*&order=chrt_id'),
+        getAll('/rest/v1/wb_product_prices?select=chrt_id,cost,created_at,created_by&order=created_at.desc,id.desc'),
+        getAll('/rest/v1/wb_product_meta_history?select=chrt_id,field,value,created_at,created_by&order=created_at.desc,id.desc'),
+        getAll('/rest/v1/products?select=product_id,offer_id,barcode,supplier,vat,cz,boxes_per_pallet&order=product_id'),
+        getAll('/rest/v1/product_prices?select=product_id,cost,created_at&order=created_at.desc,product_id')
+      ]);
+      ROWS=wp;
+      PRICES={}; pr.forEach(p=>{(PRICES[p.chrt_id]=PRICES[p.chrt_id]||[]).push(p);});
+      META={}; mr.forEach(m=>{(META[m.chrt_id]=META[m.chrt_id]||[]).push(m);});
+      // Ozon ИП по ШК — только для подсказки о расхождении
+      const ocost={}; oc.forEach(c=>{ if(!(c.product_id in ocost)) ocost[c.product_id]=Number(c.cost); });
+      OZ={}; op.forEach(p=>{ const b=String(p.barcode||'').trim(); if(b) OZ[b]={...p,cost:ocost[p.product_id]??null}; });
+      const act=ROWS.filter(r=>!r.archived&&!r.wb_archived);
+      const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
+      const noBox=act.filter(r=>!r.box_qty).length, nd=act.filter(r=>diffs(r).length).length;
+      document.getElementById('meta').textContent=`Размеров в работе: ${act.length} (карточек ${new Set(act.map(r=>r.nm_id)).size}) • синхронизировано с WB: ${last?new Date(last).toLocaleString('ru-RU'):'ещё не было'}`
+        +(noBox?` • не заполнено «В коробе»: ${noBox}`:'')+(nd?` • расходится с Ozon ИП: ${nd}`:'');
+      render(); return;
+    }catch(e){ if(a<3){await sleep(800*a);continue;} err.textContent='Ошибка загрузки: '+e.message; }
+  }
+}
+const ozOf=r=>{ for(const b of (r.barcodes||[])) if(OZ[b]) return OZ[b]; return null; };
+const curCost=r=>{ const c=(PRICES[r.chrt_id]||[])[0]; return c?Number(c.cost):null; };
+// какие поля расходятся с Ozon ИП (у товара с тем же ШК); пустое на WB — тоже расхождение, если на Ozon заполнено
+function diffs(r){
+  const o=ozOf(r); if(!o) return [];
+  const out=[], norm=v=>v==null?'':String(v).trim();
+  if(norm(o.supplier)&&norm(o.supplier)!==norm(r.supplier)) out.push('supplier');
+  if(norm(o.vat)&&norm(o.vat)!==norm(r.vat)) out.push('vat');
+  if(!!o.cz!==!!r.cz) out.push('cz');
+  if(o.boxes_per_pallet!=null&&o.boxes_per_pallet!==r.boxes_per_pallet) out.push('boxes_per_pallet');
+  if(o.cost!=null&&o.cost!==curCost(r)) out.push('cost');
+  return out;
+}
+const LBL={supplier:'Поставщик',vat:'НДС',cz:'ЧЗ',barcode:'ШК',box_qty:'В коробе, шт',boxes_per_pallet:'На паллете, кор.',cost:'Себестоимость'};
+function td(r,field,inner,click,extraCls=''){
+  const o=ozOf(r), d=diffs(r).includes(field);
+  const ov=field==='cost'?(o?.cost==null?'—':o.cost.toLocaleString('ru-RU')+' ₽'):field==='cz'?(o?.cz?'да':'нет'):(o?.[field]??'—');
+  const t=d?`на Ozon ИП (${esc(o.offer_id)}): ${esc(ov)}`:(click?'Изменить: '+LBL[field]:'');
+  return `<td class="${click?'editable ':''}${d?'diff ':''}${extraCls}" title="${t}"${click?` onclick="${click}"`:''}>${inner}</td>`;
+}
+function cells(r){
+  const c=curCost(r);
+  return `<td>${esc(art(r))}</td><td>${esc(r.title)}<div class="muted" style="font-size:.85em">${esc(r.subject||'')}</div></td><td>${r.nm_id}</td>
+    ${td(r,'supplier',esc(r.supplier||'—'),`editText(${r.chrt_id},'supplier')`)}
+    ${td(r,'vat',esc(r.vat||'—'),`editText(${r.chrt_id},'vat')`)}
+    ${td(r,'cz',`<input type="checkbox" ${r.cz?'checked':''} onchange="setCz(${r.chrt_id},this.checked)">`,'')}
+    <td title="ШК из карточки WB">${esc((r.barcodes||[]).join(', ')||'—')}</td>
+    ${td(r,'box_qty',r.box_qty??'—',`editInt(${r.chrt_id},'box_qty')`)}
+    ${td(r,'boxes_per_pallet',r.boxes_per_pallet??'—',`editInt(${r.chrt_id},'boxes_per_pallet')`)}
+    ${td(r,'cost',c==null?'—':c.toLocaleString('ru-RU'),`editCost(${r.chrt_id})`,'cost')}`;
+}
+function render(){
+  const q=document.getElementById('q').value.toLowerCase().trim();
+  const all=ROWS.filter(r=>!q||[r.title,r.vendor_code,String(r.nm_id),...(r.barcodes||[])].some(x=>String(x||'').toLowerCase().includes(q)));
+  const act=all.filter(r=>!r.archived&&!r.wb_archived), arc=all.filter(r=>r.archived||r.wb_archived);
+  document.getElementById('arcCount').textContent=arc.length;
+  document.getElementById('arcBody').innerHTML=arc.map(r=>`<tr id="row-${r.chrt_id}">${cells(r)}
+      <td class="acts">${r.wb_archived?'<span class="muted" title="Карточки нет в выдаче WB">нет в WB</span> ':''}<button onclick="hist(${r.chrt_id})">🕘</button>${r.archived?`<button onclick="setArchived(${r.chrt_id},false)">↩</button>`:''}</td></tr>`).join('')
+    ||`<tr><td colspan="${COLS}" class="muted">Архив пуст</td></tr>`;
+  const sorted=[...act].sort((a,b)=>(a.supplier||'—').localeCompare(b.supplier||'—','ru')||(a.vendor_code||'').localeCompare(b.vendor_code||'','ru')||String(a.tech_size).localeCompare(String(b.tech_size)));
+  let html='', last=null;
+  for(const r of sorted){
+    const sup=r.supplier||'—';
+    if(sup!==last){ html+=`<tr class="group"><td colspan="${COLS}">${esc(sup)}</td></tr>`; last=sup; }
+    html+=`<tr id="row-${r.chrt_id}">${cells(r)}<td class="acts"><button onclick="hist(${r.chrt_id})">🕘</button><button onclick="setArchived(${r.chrt_id},true)">🗄</button></td></tr>`;
+  }
+  document.getElementById('tb').innerHTML=html||`<tr><td colspan="${COLS}" class="muted">Нет товаров — ночная синхронизация с WB ещё не прошла</td></tr>`;
+}
+async function setField(id,field,val){
+  const body={[field]:val,updated_at:new Date().toISOString()};
+  const r=await fetch(SUPABASE_URL+`/rest/v1/wb_products?chrt_id=eq.${id}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const row=ROWS.find(x=>x.chrt_id===id); if(row) row[field]=val;
+}
+async function saveMeta(id,field,value){
+  const d0=new Date(); d0.setHours(0,0,0,0); const d1=new Date(d0); d1.setDate(d1.getDate()+1);
+  await fetch(SUPABASE_URL+`/rest/v1/wb_product_meta_history?chrt_id=eq.${id}&field=eq.${field}&created_at=gte.${d0.toISOString()}&created_at=lt.${d1.toISOString()}`,{method:'DELETE',headers:HD});
+  await fetch(SUPABASE_URL+'/rest/v1/wb_product_meta_history',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{chrt_id:id,field,value,created_by:'закупщик'}])});
+}
+async function editText(id,field){
+  const row=ROWS.find(x=>x.chrt_id===id); if(!row)return;
+  const val=prompt(`${LBL[field]} для ${art(row)} (текущее: ${row[field]||'—'}):`, row[field]||'');
+  if(val===null)return; const v=val.trim(); if(v===(row[field]||''))return;
+  try{ await setField(id,field,v||null); await saveMeta(id,field,v); await load(); }catch(e){alert('Не сохранилось: '+e.message);}
+}
+async function setCz(id,val){ try{ await setField(id,'cz',val); await saveMeta(id,'cz',val?'да':'нет'); render(); }catch(e){alert('Не сохранилось: '+e.message);} }
+async function editInt(id,field){
+  const row=ROWS.find(x=>x.chrt_id===id); if(!row)return;
+  const val=prompt(`${LBL[field]} для ${art(row)} (текущее: ${row[field]??'—'}):`, row[field]??'');
+  if(val===null)return; const t=val.trim();
+  const n=t===''?null:Number(t.replace(/\s/g,''));
+  if(n!==null&&(!Number.isInteger(n)||n<=0)){alert('Введите целое число больше 0');return;}
+  if(n===(row[field]??null))return;
+  try{ await setField(id,field,n); await saveMeta(id,field,n===null?'':String(n)); await load(); }catch(e){alert('Не сохранилось: '+e.message);}
+}
+async function setArchived(id,val){ try{ await setField(id,'archived',val); await load(); }catch(e){ alert('Не сохранилось: '+e.message); } }
+async function editCost(id){
+  const row=ROWS.find(x=>x.chrt_id===id); if(!row)return;
+  const cur=curCost(row);
+  const val=prompt(`Себестоимость для ${art(row)} (текущая: ${cur??'—'}):`, cur??'');
+  if(val===null||val==='')return;
+  const n=Number(String(val).replace(',','.').replace(/\s/g,''));
+  if(!isFinite(n)||n<0){alert('Введите число');return;}
+  try{
+    const d0=new Date(); d0.setHours(0,0,0,0); const d1=new Date(d0); d1.setDate(d1.getDate()+1);
+    await fetch(SUPABASE_URL+`/rest/v1/wb_product_prices?chrt_id=eq.${id}&created_by=eq.закупщик&created_at=gte.${d0.toISOString()}&created_at=lt.${d1.toISOString()}`,{method:'DELETE',headers:HD});
+    const r=await fetch(SUPABASE_URL+'/rest/v1/wb_product_prices',{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{chrt_id:id,cost:n,created_by:'закупщик'}])});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    await load();
+  }catch(e){ alert('Не сохранилось: '+e.message); }
+}
+function hist(id){
+  const old=document.getElementById('hist-'+id); if(old){old.remove();return;}
+  const seen=new Set(), costs=[];
+  for(const p of (PRICES[id]||[])){ const k=new Date(p.created_at).toDateString(); if(seen.has(k))continue; seen.add(k); costs.push(p); }
+  const dayMap=new Map();
+  const add=(d,html)=>{ const k=d.toDateString(); if(!dayMap.has(k))dayMap.set(k,{d:new Date(d.getFullYear(),d.getMonth(),d.getDate()),parts:[]}); dayMap.get(k).parts.push(html); };
+  costs.forEach((p,i)=>add(new Date(p.created_at),`<span class="${i===0?'cur':''}">${Number(p.cost).toLocaleString('ru-RU')} ₽</span>${i===0?' (текущая)':''}`));
+  (META[id]||[]).forEach(m=>add(new Date(m.created_at),`${LBL[m.field]||m.field}: <b>${esc(m.value||'')}</b>`));
+  const lines=[...dayMap.values()].sort((a,b)=>b.d-a.d).map(g=>`<div>${g.d.toLocaleDateString('ru-RU')} — ${g.parts.join(' • ')}</div>`).join('');
+  const row=document.getElementById('row-'+id); if(row) row.insertAdjacentHTML('afterend',`<tr class="histrow" id="hist-${id}"><td colspan="${COLS}"><div class="hist">История изменений: ${lines||'нет изменений'}</div></td></tr>`);
+}
+if(BA_AUTH.has(SUPABASE_URL))go();
+</script></body></html>

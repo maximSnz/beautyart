@@ -1,0 +1,19 @@
+name: wb-products-sync
+# Карточки и размеры WB → wb_products (база ИП). Пишет только поля WB; поля закупки ведёт wb-products.html.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 0 * * *'   # 00:30 UTC = 03:30 Мск, раз в сутки
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Sync WB cards -> Supabase
+        run: node scripts/wb_products_sync.mjs
+        env:
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
