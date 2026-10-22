@@ -1,0 +1,15 @@
+name: wb-api-probe
+# Пробная проверка методов API WB. Только чтение из WB, в базу не пишет; печатает структуру ответов без значений.
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Probe WB API (structure only)
+        run: node scripts/wb_api_probe.mjs
+        env:
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
