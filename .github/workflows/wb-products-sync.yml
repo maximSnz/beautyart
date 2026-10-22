@@ -3,7 +3,7 @@ name: wb-products-sync
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 0 * * *'   # 00:30 UTC = 03:30 Мск, раз в сутки
+    - cron: '30 0 * * *'   # 00:30 UTC = 03:30 Мск, раз в сутки (после ozon-products-sync)
 jobs:
   sync:
     runs-on: ubuntu-latest
