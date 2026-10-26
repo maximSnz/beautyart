@@ -39,6 +39,13 @@ const DAYS=(process.env.DAYS||'').split(',').map(s=>s.trim()).filter(Boolean);
 if(!DAYS.length)DAYS.push(addDays(today,-2));
 const d=DAYS[0]; console.log('День:',d);
 // Проход 7 (22.10.2026): теряет ли чтение начислений «как в plan.html» (страницы по 1000, order=source_id — не уникален) строки
+// Проход 8 (26.10.2026): в каком поясе время отправления в API — сверка с выгрузкой кабинета (CHECK=time, DAYS = один день).
+// Печатает только последние 4 символа номера отправления и время created_at / in_process_at как их отдаёт API.
+if(process.env.CHECK==='time'){
+  const d=DAYS[0];const j=(await ozon('/v3/posting/fbo/list',{dir:'ASC',filter:{since:d+'T18:00:00.000Z',to:d+'T23:59:59.999Z'},limit:100,cursor:''})).json;
+  (j?.postings||[]).filter((p,i)=>i%15===0).slice(0,6).forEach(p=>console.log(`…${p.posting_number.slice(-4)}: created_at ${p.created_at} | in_process_at ${p.in_process_at}`));
+  process.exit(0);
+}
 if(process.env.CHECK==='paging'){
   for(const day of DAYS){
     const dd=day;
