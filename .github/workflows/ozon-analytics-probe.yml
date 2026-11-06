@@ -1,0 +1,16 @@
+name: ozon-analytics-probe
+# Проба API Ozon для аналитики товара: воронка, рынок и конкуренты, ценовой индекс. Только чтение, только ручной запуск.
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Probe Ozon analytics API (read-only)
+        run: node scripts/ozon_analytics_probe.mjs
+        env:
+          OZON_CLIENT_ID: ${{ secrets.OZON_CLIENT_ID }}
+          OZON_API_KEY: ${{ secrets.OZON_API_KEY }}
