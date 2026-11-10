@@ -1408,12 +1408,12 @@ async function onMonth(v){ if(!v)return; MONTH=v; const err=document.getElementB
 }
 function toggleMetric(k){ EXP[k]=!EXP[k]; render(); }
 function toggleGM(k){ GM[k]=!GM[k]; render(); }
-// группы перчаток (как в отчёте РОПа на главной): ключ — артикул до кода цвета включительно; раскрытые — только на время просмотра
+// группы перчаток (как в отчёте РОПа на главной): ключ — артикул до кода цвета и фасовки включительно; раскрытые — только на время просмотра
 const GLV_COLORS=new Set(['BLK','BLU','PNK','GRY','YLW','PUR','CLR','WHT','GRN','RED','ORG','BRN','BEG']);
 function gloveFamily(offer){
   const s=String(offer).split('-');
   if(s[0]!=='GLV')return null;
-  for(let i=2;i<s.length;i++)if(GLV_COLORS.has(s[i]))return i<s.length-1?s.slice(0,i+1).join('-'):null;
+  for(let i=2;i<s.length;i++)if(GLV_COLORS.has(s[i])){const e=/^\d+$/.test(s[i+1]||'')?i+1:i;return e>i||e<s.length-1?s.slice(0,e+1).join('-'):null;}   // фасовка (число после цвета) — часть группы, 10.11.2026
   return null;
 }
 let FAMOPEN=new Set();
