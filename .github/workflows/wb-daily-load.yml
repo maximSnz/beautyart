@@ -1,6 +1,6 @@
 name: wb-daily-load
-# Ночная загрузка WB (ИП): заказы, остатки по складам, поставки. Пока только ручной запуск в режиме проверки —
-# читает API WB и «Базу товаров WB», в базу ничего не пишет. Расписание и запись — после SQL таблиц и «да» владельца.
+# Ночная загрузка WB (ИП): заказы, остатки по складам, поставки → wb_orders, wb_stock_history, wb_supplies, wb_supply_goods.
+# Пока только ручной запуск: write=0 — проверка (в базу ничего не пишется), write=1 — запись. Расписание — после сверки с кабинетом.
 on:
   workflow_dispatch:
     inputs:
@@ -8,6 +8,11 @@ on:
         description: 'День ГГГГ-ММ-ДД (пусто — вчера по Москве)'
         required: false
         default: ''
+      write:
+        description: 'Записать в базу (1) или только проверить (0)'
+        type: choice
+        options: ['0', '1']
+        default: '0'
 concurrency: wb-daily-load
 jobs:
   load:
@@ -17,10 +22,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - name: WB API (check only)
+      - name: WB API -> Supabase
         run: node scripts/wb_daily_load.mjs
         env:
           DAY: ${{ github.event.inputs.day }}
+          WRITE: ${{ github.event.inputs.write }}
           WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
