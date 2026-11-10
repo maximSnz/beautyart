@@ -1,0 +1,26 @@
+name: wb-daily-load
+# Ночная загрузка WB (ИП): заказы, остатки по складам, поставки. Пока только ручной запуск в режиме проверки —
+# читает API WB и «Базу товаров WB», в базу ничего не пишет. Расписание и запись — после SQL таблиц и «да» владельца.
+on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'День ГГГГ-ММ-ДД (пусто — вчера по Москве)'
+        required: false
+        default: ''
+concurrency: wb-daily-load
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: WB API (check only)
+        run: node scripts/wb_daily_load.mjs
+        env:
+          DAY: ${{ github.event.inputs.day }}
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
