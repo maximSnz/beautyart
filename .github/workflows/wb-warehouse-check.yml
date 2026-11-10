@@ -1,0 +1,16 @@
+name: wb-warehouse-check
+# Разовая проверка названий складов WB в заказах, остатках и поставках. Только чтение из WB, в базу не пишет;
+# в лог — только названия складов, даты и число артикулов (репозиторий публичный).
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Check WB warehouse names
+        run: node scripts/wb_warehouse_check.mjs
+        env:
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
