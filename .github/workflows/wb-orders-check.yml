@@ -1,0 +1,23 @@
+name: wb-orders-check
+# Разовая сверка числа заказов WB: статистика supplier/orders против воронки продаж (nm-report).
+# Только чтение из WB, в базу не пишет; в лог — только отношения в % и число артикулов (репозиторий публичный).
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Дни через запятую ГГГГ-ММ-ДД'
+        required: false
+        default: '2026-11-09,2026-11-10'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Compare WB orders (statistics vs funnel)
+        run: node scripts/wb_orders_check.mjs
+        env:
+          DAYS: ${{ github.event.inputs.days }}
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
