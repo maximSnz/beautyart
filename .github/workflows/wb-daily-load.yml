@@ -1,7 +1,12 @@
 name: wb-daily-load
-# Ночная загрузка WB (ИП): заказы, остатки по складам, поставки → wb_orders, wb_stock_history, wb_supplies, wb_supply_goods.
-# Пока только ручной запуск: write=0 — проверка (в базу ничего не пишется), write=1 — запись. Расписание — после сверки с кабинетом.
+# Ночная загрузка WB (ИП): заказы («Лента заказов» API), остатки по складам, поставки → wb_orders, wb_stock_history, wb_supplies,
+# wb_supply_goods — после wb-products-sync. Запись в базу — только если переменная репозитория WB_LOAD_WRITE = 1
+# (Settings → Variables) или при ручном запуске с write=1; иначе режим проверки — в базу ничего не пишется.
+# Итоги — в журнал бота администратора (admin_load_log, «WB»); ошибка — сообщение в Telegram.
 on:
+  workflow_run:
+    workflows: [wb-products-sync]
+    types: [completed]
   workflow_dispatch:
     inputs:
       day:
@@ -16,6 +21,7 @@ on:
 concurrency: wb-daily-load
 jobs:
   load:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -26,7 +32,21 @@ jobs:
         run: node scripts/wb_daily_load.mjs
         env:
           DAY: ${{ github.event.inputs.day }}
-          WRITE: ${{ github.event.inputs.write }}
+          WRITE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.write || vars.WB_LOAD_WRITE || '0' }}
           WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Журнал бота администратора (всегда, даже при ошибке)
+        if: always()
+        run: node scripts/admin_notify.mjs
+        env:
+          MODE: load
+          LOAD: wb
+          STATUS: ${{ job.status }}
+          DAY: ${{ github.event.inputs.day }}
+          WRITE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.write || vars.WB_LOAD_WRITE || '0' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

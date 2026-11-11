@@ -9,6 +9,9 @@ const H = { Authorization: T, 'Content-Type': 'application/json' }, SR = { apike
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const msk = (n = 0) => new Date(Date.now() + 3 * 36e5 + n * 864e5).toISOString().slice(0, 10); // дата по Москве
 const YEST = msk(-1), D = process.env.DAY || YEST, SNAPSHOT = D === YEST, WRITE = process.env.WRITE === '1';
+import fs from 'node:fs';
+// итоги шагов для журнала бота администратора (scripts/admin_notify.mjs, LOAD=wb, читает load_summary.txt; в публичный лог не печатается)
+const SUM = [], note = t => { SUM.push(t); try { fs.writeFileSync('load_summary.txt', SUM.join('\n') + '\n'); } catch (e) {} };
 const shift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
 
 async function call(method, url, body) {
@@ -81,6 +84,7 @@ const orders = feed.map(x => { const p = BY_CHRT.get(x.chrtId); const st = Strin
 if (orders.some(x => !x.srid)) throw new Error('заказ без srid — запись остановлена');
 if (orders.length - uniq(orders.map(x => x.srid)).length) throw new Error('srid повторяется в ленте — запись остановлена');
 await upsert('wb_orders', 'srid', orders);
+note(`заказы (лента): ${orders.length} строк, оформлено за ${D}: ${orders.filter(x => x.order_day === D).length}, отмен среди них: ${orders.filter(x => x.order_day === D && x.is_cancel).length}`);
 console.log(`   дни оформления: с ${orders.map(x => x.order_day).sort()[0]} по ${orders.map(x => x.order_day).sort().pop()}`);
 console.log(`   статусы: ${uniq(orders.map(x => x.status)).join(' | ')}`);
 console.log(`   размер (chrtId) не найден в «Базе товаров WB»: ${orders.filter(x => !BY_CHRT.has(x.chrt_id)).length} строк`);
@@ -114,6 +118,7 @@ if (SNAPSHOT) {
   console.log(`   сумма складов ≠ «Всего находится на складах»: ${bad} позиций из ${rem.length}`);
   if (!rem.length) throw new Error('отчёт остатков пустой — запись остановлена');
   await upsert('wb_stock_history', 'report_date,barcode,warehouse_name', stock);
+  note(`остатки за ${D}: ${stock.length} строк, складов ${uniq(stock.map(x => x.warehouse_name)).length}, ШК без размера ${uniq(stock.filter(x => x.chrt_id == null).map(x => x.barcode)).length}${bad ? `, сумма складов ≠ итогу WB у ${bad} позиций` : ''}`);
 }
 
 // 3) Поставки FBO за 120 дней: карточка поставки (СЦ, статус, количества) и состав (ШК × количество)
@@ -150,5 +155,6 @@ console.log(`   состав: строк ${goodsRows}; поля: ${[...goodsFiel
 const gk = new Map(); goodRows.forEach(g => { const k = `${g.supply_id}|${g.barcode}`; if (gk.has(k)) { const a = gk.get(k); ['quantity','accepted_quantity','ready_for_sale_quantity','unloading_quantity','supplier_box_amount'].forEach(f => a[f] = (a[f] ?? 0) + (g[f] ?? 0)); } else gk.set(k, { ...g }); });
 await upsert('wb_supplies', 'supply_id', supRows);
 await upsert('wb_supply_goods', 'supply_id,barcode', [...gk.values()]);
+note(`поставки: ${supRows.length}, не принятых (статус < 5): ${supRows.filter(x => (x.status_id ?? 0) < 5).length}`);
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));

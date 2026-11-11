@@ -3,12 +3,13 @@
 // по кнопкам меню (Edge Function tg-bot, «Админ → Дата / Лог ошибок»); в Telegram сами по себе уходят только тревоги.
 // MODE=load  — шаг после ozon-daily-load (всегда, даже при падении): итоги шагов из load_summary.txt + свежесть → журнал;
 //              загрузка не удалась или журнал недоступен — сообщение в Telegram.
+// LOAD=wb   — то же для ночной загрузки WB (wb-daily-load, только ИП): своя свежесть (заказы, остатки WB), в заголовке и журнале — «WB».
 // MODE=watch — сторож: упала синхронизация товаров / к утру нет успешной загрузки — тревога (Telegram + журнал); при ручном запуске — полный статус.
 // Сообщение уходит только в Telegram (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID); в публичный лог цифры не пишутся.
 import fs from 'node:fs';
 const SB=process.env.SUPABASE_URL, SR={apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`};
 const REPO=process.env.GITHUB_REPOSITORY||'', ENT=/-ooo$/.test(REPO)?'ООО':'ИП';
-const MODE=process.env.MODE||'watch', EVENT=process.env.EVENT||'';
+const MODE=process.env.MODE||'watch', EVENT=process.env.EVENT||'', WB=process.env.LOAD==='wb';
 const mskDay=iso=>new Date(new Date(iso).getTime()+3*3600e3).toISOString().slice(0,10);
 const mskTime=iso=>new Date(new Date(iso).getTime()+3*3600e3).toISOString().slice(11,16);
 const addDays=(iso,n)=>{const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
@@ -22,6 +23,9 @@ async function lastValue(table,col){
 }
 // свежесть: заказы/начисления/остатки/маржа/реклама — по вчера (реклама из API с 30.10.2026); спрос — не старше суток
 async function freshness(){
+  if(WB){const out=[];let bad=0;
+    for(const [name,t,c] of [['заказы WB','wb_orders','order_day'],['остатки WB','wb_stock_history','report_date']]){const v=await lastValue(t,c);const ok=v&&String(v).slice(0,10)>=YEST;if(!ok)bad++;out.push(`${ok?'':'⚠️'}${name} ${dm(v&&String(v).slice(0,10))}`);}
+    return {text:out.join(' · '),bad};}
   const f=[['заказы','product_sales','sale_date',YEST],['начисления','ozon_charges','charge_date',YEST],['остатки','stock_history','report_date',YEST],
            ['маржа CF','cf_daily','day',YEST],['реклама','ozon_ad_spend','spend_date',YEST]];
   const out=[];let bad=0;
@@ -52,9 +56,9 @@ const fr=await freshness();
 if(MODE==='load'){
   const st=process.env.STATUS||'unknown', ok=st==='success', write=process.env.WRITE==='1';
   let lines=[];try{lines=fs.readFileSync('load_summary.txt','utf8').split('\n').filter(Boolean);}catch(e){}
-  const head=`${ok?'✅':'❌'} <b>${ENT}</b> · ночная загрузка за ${dm(process.env.DAY||YEST)} — ${ok?'готово':st==='cancelled'?'остановлена (время вышло?)':'ОШИБКА'}${write?'':' (режим проверки)'}`;
+  const head=`${ok?'✅':'❌'} <b>${ENT}</b> · ${WB?'WB · ':''}ночная загрузка за ${dm(process.env.DAY||YEST)} — ${ok?'готово':st==='cancelled'?'остановлена (время вышло?)':'ОШИБКА'}${write?'':' (режим проверки)'}`;
   const body=lines.map(esc).join('\n')||(ok?'':'итогов шагов нет — упала в самом начале');
-  const logged=await log({kind:'load',day:process.env.DAY||YEST,status:st,write,summary:lines.join('\n')||null,freshness:fr.text,run_url:RUN_URL});
+  const logged=await log({kind:'load',day:process.env.DAY||YEST,status:st,write,summary:(WB?['WB'+(lines.length?':':' — итогов шагов нет'),...lines]:lines).join('\n')||null,freshness:fr.text,run_url:RUN_URL});
   if(!ok||!logged)await send(`${head}\n${body}\n\n<i>Свежесть:</i> ${fr.text}\n<a href="${RUN_URL}">лог запуска</a>${logged?'':'\n<i>журнал admin_load_log недоступен — сводка отправлена сообщением</i>'}`);
   else console.log('Загрузка успешна, итоги — в журнале, сообщение не отправлено');
 }else{
