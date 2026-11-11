@@ -1,4 +1,5 @@
 // Ночная загрузка WB (только ИП) — шаг 1 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Склады WB»).
+// Заказы — «Лента заказов» API (с 11.11.2026; sql/2026-11-11_wb_orders_feed.sql), остатки — warehouse_remains, поставки — supplies.
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
@@ -45,36 +46,51 @@ for (const t of ['wb_orders', 'wb_stock_history', 'wb_supplies', 'wb_supply_good
 // 0) «База товаров WB»: ШК → размер (chrt_id); только чтение
 const prod = [];
 for (let off = 0; ; off += 1000) {
-  const r = await fetch(`${SB}/rest/v1/wb_products?select=chrt_id,nm_id,tech_size,barcodes&order=chrt_id&limit=1000&offset=${off}`, { headers: SR });
+  const r = await fetch(`${SB}/rest/v1/wb_products?select=chrt_id,nm_id,tech_size,vendor_code,barcodes&order=chrt_id&limit=1000&offset=${off}`, { headers: SR });
   if (!r.ok) throw new Error(`supabase wb_products -> HTTP ${r.status}: ${await r.text()}`);
   const p = await r.json(); prod.push(...p); if (p.length < 1000) break;
 }
 const BY_BC = new Map(); prod.forEach(p => (p.barcodes || []).forEach(b => BY_BC.set(String(b), p.chrt_id)));
 const BY_NM = new Map(); prod.forEach(p => BY_NM.set(`${p.nm_id}|${p.tech_size}`, p.chrt_id));
+const BY_CHRT = new Map(prod.map(p => [p.chrt_id, p]));
 const chrtOf = (bc, nm, ts) => BY_BC.get(String(bc)) ?? BY_NM.get(`${nm}|${ts}`) ?? null;
 console.log(`\n0) База товаров WB: размеров ${prod.length}, ШК ${BY_BC.size}`);
 
-// 1) Заказы: все изменённые за 14 дней до D (новые заказы и поздние отмены) — строка = заказ (srid), повторная загрузка
-//    перезаписывает ту же строку. День заказа — дата из поля date (время Москвы, как в кабинете WB).
-const o = need(await call('GET', `https://statistics-api.wildberries.ru/api/v1/supplier/orders?dateFrom=${shift(D, -13)}`), 'supplier/orders') || [];
-console.log(`\n1) Заказы (изменённые с ${shift(D, -13)}): строк ${o.length}; поля: ${fields(o)}`);
-const orders = o.map(x => ({
-  srid: x.srid, order_day: String(x.date).slice(0, 10), order_ts: x.date, last_change: x.lastChangeDate,
-  nm_id: x.nmId, barcode: x.barcode ? String(x.barcode) : null, chrt_id: chrtOf(x.barcode, x.nmId, x.techSize),
-  supplier_article: x.supplierArticle, tech_size: x.techSize, warehouse_name: x.warehouseName, warehouse_type: x.warehouseType,
-  country: x.countryName, okrug: x.oblastOkrugName, region: x.regionName,
-  total_price: num(x.totalPrice), discount_percent: num(x.discountPercent), spp: num(x.spp), finished_price: num(x.finishedPrice),
-  price_with_disc: num(x.priceWithDisc), is_cancel: !!x.isCancel, cancel_date: x.isCancel ? ts(x.cancelDate) : null, g_number: x.gNumber ?? null,
-}));
+// 1) Заказы — «Лента заказов» API (с 11.11.2026; статистика supplier/orders теряла 12–16% заказов в статусе «создан»).
+//    Период ленты — по дате ТЕКУЩЕГО статуса: берём всё, что меняло статус с D−13 по сейчас (новые заказы, выкупы, отмены);
+//    строка = заказ (srid), повторная загрузка перезаписывает ту же строку. День заказа — createdAt по Москве.
+//    Лимит метода — 1 запрос в минуту, страница до 1000 заказов, глубина — 31 день.
+const mskTs = v => { const t = Date.parse(v); return isNaN(t) ? null : new Date(t + 3 * 36e5).toISOString().slice(0, 19); };
+const nowMsk = () => new Date(Date.now() + 3 * 36e5).toISOString().slice(0, 19) + '.00000+03:00';
+const feed = []; let snap = null, off = 0;
+for (let page = 0; page < 40; page++) {
+  const r = need(await call('POST', 'https://seller-analytics-api.wildberries.ru/api/analytics/v1/order-feed', {
+    selectedPeriod: { start: `${shift(D, -13)}T00:00:00.00000+03:00`, end: nowMsk() },
+    pagination: { offset: off, limit: 1000, ...(snap ? { snapshotTime: snap } : {}) } }), 'order-feed');
+  const os = r?.data?.orders || []; snap = r?.data?.snapshotTime || snap; feed.push(...os); off += os.length;
+  if (os.length < 1000) break;
+  await sleep(61000);
+}
+console.log(`\n1) Заказы — лента (статус менялся с ${shift(D, -13)}): строк ${feed.length}; поля: ${fields(feed)}`);
+const orders = feed.map(x => { const p = BY_CHRT.get(x.chrtId); const st = String(x.status || '');
+  return { srid: x.srid, source: 'feed', order_day: (mskTs(x.createdAt) || '').slice(0, 10) || null, order_ts: mskTs(x.createdAt), last_change: mskTs(x.updatedAt),
+    nm_id: x.nmId ?? null, chrt_id: x.chrtId ?? null, supplier_article: p?.vendor_code ?? null, tech_size: p?.tech_size ?? null,
+    warehouse_name: x.warehouseName || null, warehouse_region: x.warehouseRegion || null, okrug: x.destinationDistrict || null,
+    destination_city: x.destinationCity || null, price_with_disc: num(x.sellerPrice), status: st || null,
+    is_cancel: /cancel|declin|reject|отказ|отмен/i.test(st), is_b2b: x.isB2b ?? null, is_mp: x.isMp ?? null }; });
 if (orders.some(x => !x.srid)) throw new Error('заказ без srid — запись остановлена');
+if (orders.length - uniq(orders.map(x => x.srid)).length) throw new Error('srid повторяется в ленте — запись остановлена');
 await upsert('wb_orders', 'srid', orders);
-const dayRows = orders.filter(x => x.order_day === D);
-console.log(`   заказов за ${D}: строк ${dayRows.length}; srid пустой: ${orders.filter(x => !x.srid).length}; srid повторяется: ${orders.length - uniq(orders.map(x => x.srid)).length}`);
-console.log(`   без размера в «Базе товаров WB»: ${orders.filter(x => x.chrt_id == null).length} строк, артикулы: ${uniq(orders.filter(x => x.chrt_id == null).map(x => x.supplier_article)).slice(0, 20).join(' | ') || '—'}`);
-console.log(`   страны: ${uniq(orders.map(x => x.country)).join(' | ')}`);
+console.log(`   дни оформления: с ${orders.map(x => x.order_day).sort()[0]} по ${orders.map(x => x.order_day).sort().pop()}`);
+console.log(`   статусы: ${uniq(orders.map(x => x.status)).join(' | ')}`);
+console.log(`   размер (chrtId) не найден в «Базе товаров WB»: ${orders.filter(x => !BY_CHRT.has(x.chrt_id)).length} строк`);
 console.log(`   округа: ${uniq(orders.map(x => x.okrug)).join(' | ')}`);
-console.log(`   склады: ${uniq(orders.map(x => `${x.warehouse_name} (${x.warehouse_type})`)).join(' | ')}`);
-console.log(`   дни заказов: с ${orders.map(x => x.order_day).sort()[0]} по ${orders.map(x => x.order_day).sort().pop()}`);
+console.log(`   склады: ${uniq(orders.map(x => x.warehouse_name)).join(' | ')}`);
+// строки из статистики (source='stat', до 11.11.2026) за дни D−6…D, которых нет в ленте: доля и признак отмены в статистике
+{ const ids = new Set(orders.map(x => x.srid));
+  const r = await fetch(`${SB}/rest/v1/wb_orders?select=srid,order_day,is_cancel&source=eq.stat&order_day=gte.${shift(D, -6)}&order_day=lte.${D}&order=srid&limit=5000`, { headers: SR });
+  if (r.ok) { const st = await r.json(), miss = st.filter(x => !ids.has(x.srid));
+    console.log(`   строки статистики за ${shift(D, -6)}…${D}, которых нет в ленте: ${miss.length ? (miss.length / st.length * 100).toFixed(1) + '%' : '0'} (из них отмена в статистике: ${miss.filter(x => x.is_cancel).length ? (miss.filter(x => x.is_cancel).length / miss.length * 100).toFixed(0) + '%' : '0'})`); } }
 
 // 2) Остатки: снимок на сейчас (отчёт аналитики: задание → статус → скачивание) — только если D = вчера, report_date = D
 if (SNAPSHOT) {
