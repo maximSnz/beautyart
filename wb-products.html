@@ -202,7 +202,7 @@ async function load(){
       // Ozon ИП по ШК — только для подсказки о расхождении
       const ocost={}; oc.forEach(c=>{ if(!(c.product_id in ocost)) ocost[c.product_id]=Number(c.cost); });
       OZ={}; op.forEach(p=>{ const b=String(p.barcode||'').trim(); if(b) OZ[b]={...p,cost:ocost[p.product_id]??null}; });
-      const act=ROWS.filter(r=>!r.archived&&!r.wb_archived);
+      const act=ROWS.filter(r=>!r.archived&&!r.wb_archived&&!r.wb_trash);
       const last=ROWS.reduce((m,x)=>x.updated_at&&x.updated_at>m?x.updated_at:m,'');
       const noBox=act.filter(r=>!r.box_qty).length, nd=act.filter(r=>diffs(r).length).length;
       document.getElementById('meta').textContent=`Размеров в работе: ${act.length} (карточек ${new Set(act.map(r=>r.nm_id)).size}) • синхронизировано с WB: ${last?new Date(last).toLocaleString('ru-RU'):'ещё не было'}`
@@ -245,10 +245,10 @@ function cells(r){
 function render(){
   const q=document.getElementById('q').value.toLowerCase().trim();
   const all=ROWS.filter(r=>!q||[r.title,r.vendor_code,String(r.nm_id),...(r.barcodes||[])].some(x=>String(x||'').toLowerCase().includes(q)));
-  const act=all.filter(r=>!r.archived&&!r.wb_archived), arc=all.filter(r=>r.archived||r.wb_archived);
+  const act=all.filter(r=>!r.archived&&!r.wb_archived&&!r.wb_trash), arc=all.filter(r=>r.archived||r.wb_archived||r.wb_trash);
   document.getElementById('arcCount').textContent=arc.length;
   document.getElementById('arcBody').innerHTML=arc.map(r=>`<tr id="row-${r.chrt_id}">${cells(r)}
-      <td class="acts">${r.wb_archived?'<span class="muted" title="Карточки нет в выдаче WB">нет в WB</span> ':''}<button onclick="hist(${r.chrt_id})">🕘</button>${r.archived?`<button onclick="setArchived(${r.chrt_id},false)">↩</button>`:''}</td></tr>`).join('')
+      <td class="acts">${r.wb_archived?'<span class="muted" title="Карточки нет в выдаче WB">нет в WB</span> ':''}${r.wb_trash?'<span class="muted" title="Карточка в корзине WB: остатки распродаются, в заявку не идёт. Вернуть — восстановить карточку в кабинете WB">в корзине WB</span> ':''}<button onclick="hist(${r.chrt_id})">🕘</button>${r.archived?`<button onclick="setArchived(${r.chrt_id},false)">↩</button>`:''}</td></tr>`).join('')
     ||`<tr><td colspan="${COLS}" class="muted">Архив пуст</td></tr>`;
   const sorted=[...act].sort((a,b)=>(a.supplier||'—').localeCompare(b.supplier||'—','ru')||(a.vendor_code||'').localeCompare(b.vendor_code||'','ru')||String(a.tech_size).localeCompare(String(b.tech_size)));
   let html='', last=null;
