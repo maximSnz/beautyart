@@ -70,7 +70,7 @@ for (const d of DAYS) {
 console.log('\n===== Лента заказов (order-feed)');
 const FD = []; let snap = null, off = 0, fieldsShown = false;
 for (let i = 0; i < 30; i++) {
-  const body = { selectedPeriod: { start: `${DAYS[0]}T00:00:00.00000+03:00`, end: new Date().toISOString() }, pagination: { offset: off, limit: 1000, ...(snap ? { snapshotTime: snap } : {}) } };
+  const body = { selectedPeriod: { start: `${DAYS[0]}T00:00:00.00000+03:00`, end: new Date(Date.now() + 3 * 36e5).toISOString().replace('Z', '').replace(/\.(\d{3})$/, '.$100+03:00') }, pagination: { offset: off, limit: 1000, ...(snap ? { snapshotTime: snap } : {}) } };
   const r = await call('POST', 'https://seller-analytics-api.wildberries.ru/api/analytics/v1/order-feed', body);
   if (r.status !== 200) { console.log(`  HTTP ${r.status}: ${(r.text || '').slice(0, 300)}`); break; }
   const os = r.json?.data?.orders || []; snap = r.json?.data?.snapshotTime || snap;
