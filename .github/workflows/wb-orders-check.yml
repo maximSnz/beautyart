@@ -1,5 +1,5 @@
 name: wb-orders-check
-# Разовая сверка числа заказов WB: статистика supplier/orders против воронки продаж (nm-report).
+# Разовая сверка числа заказов WB: статистика supplier/orders, воронка продаж и лента заказов (API аналитики).
 # Только чтение из WB, в базу не пишет; в лог — только отношения в % и число артикулов (репозиторий публичный).
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
