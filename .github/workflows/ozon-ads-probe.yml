@@ -7,6 +7,11 @@ on:
         description: 'День сверки ГГГГ-ММ-ДД (пусто — последний день с рекламой в базе)'
         required: false
         default: ''
+      forbid:
+        description: 'Разбор отказа Ozon в отчёте по SKU (1) — кампании за день−1…день'
+        type: choice
+        options: ['0', '1']
+        default: '0'
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -19,6 +24,7 @@ jobs:
         run: node scripts/ozon_ads_probe.mjs
         env:
           DAY: ${{ github.event.inputs.day }}
+          FORBID: ${{ github.event.inputs.forbid }}
           OZON_PERF_CLIENT_ID: ${{ secrets.OZON_PERF_CLIENT_ID }}
           OZON_PERF_CLIENT_SECRET: ${{ secrets.OZON_PERF_CLIENT_SECRET }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

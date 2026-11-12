@@ -41,6 +41,32 @@ if(camps.length){printShape('Устройство кампании:',camps[0]);
   const by={};camps.forEach(c=>{const k=`${c.advObjectType||'?'} / ${c.state||'?'} / ${c.paymentType||c.placement||'?'}`;by[k]=(by[k]||0)+1;});
   console.log('Кампаний',camps.length,'— тип / состояние / оплата:');Object.entries(by).forEach(([k,v])=>console.log('  '+k+': '+v));}
 
+// 3б. Разбор отказа (12.11.2026): FORBID=1 — как ночная загрузка: кампании с расходом за DAY−1…DAY, отчёт по SKU пачками по 10,
+// пачка с отказом — по одной; по кампаниям с отказом — тип, состояние, размещение, число товаров, что отдают другие методы. Только чтение.
+if(process.env.FORBID==='1'){
+  const add=(iso,n)=>{const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
+  const D0=add(D,-1);
+  const ex=await perf(`/api/client/statistics/expense?dateFrom=${D0}&dateTo=${D}`);
+  const ids=[...new Set(String(ex.text||'').split('\n').slice(1).map(l=>l.split(';')).filter(c=>c.length>3&&Number(String(c[3]).replace(',','.'))>0).map(c=>String(c[0]).trim()))];
+  console.log(`\n[FORBID] период ${D0}…${D}, кампаний с расходом ${ids.length}`);
+  const batches=[];for(let i=0;i<ids.length;i+=10)batches.push(ids.slice(i,i+10));const bad=[];
+  while(batches.length){const b=batches.shift();
+    const r=await perf('/api/client/statistics',{method:'POST',body:{campaigns:b,dateFrom:D0,dateTo:D,groupBy:'DATE'}});
+    if(r.status===200)continue;
+    console.log(`  пачка из ${b.length}: HTTP ${r.status} ${String(r.text).slice(0,160)}`);
+    if(b.length>1)batches.unshift(...b.map(x=>[x]));else bad.push(b[0]);}
+  console.log(`[FORBID] кампаний с отказом: ${bad.length}`);
+  const byId=new Map(camps.map(c=>[String(c.id),c]));
+  for(const id of bad){const c=byId.get(id);
+    console.log(`  кампания …${id.slice(-3)}: ${c?`тип ${c.advObjectType}, состояние ${c.state}, оплата ${c.PaymentType||'?'}, размещение ${JSON.stringify(c.placement)}, режим ${c.productCampaignMode||'?'}, автосоздана ${c.isAutocreated}, с ${c.fromDate||'?'} по ${c.toDate||'?'}`:'НЕТ в списке /api/client/campaign'}`);
+    for(const d of [D0,D]){const one=await perf('/api/client/statistics',{method:'POST',body:{campaigns:[id],dateFrom:d,dateTo:d,groupBy:'DATE'}});console.log(`    отчёт по SKU за ${d} отдельно: HTTP ${one.status} ${one.status===200?'':String(one.text).slice(0,120)}`);}
+    const pr=await perf(`/api/client/campaign/${id}/v2/products`);console.log(`    товары кампании (v2/products): HTTP ${pr.status}, товаров ${pr.json?.products?.length??'?'}`);
+    const sp=await perf(`/api/client/campaign/${id}/search_promo/products`);if(sp.status!==404)console.log(`    товары (search_promo/products): HTTP ${sp.status}, ${String(sp.text||'').slice(0,80).replace(/\d{5,}/g,'…')}`);
+    const dl=await perf(`/api/client/statistics/daily?campaignIds=${id}&dateFrom=${D0}&dateTo=${D}`);console.log(`    statistics/daily: HTTP ${dl.status}, строк ${String(dl.text||'').split('\n').length-1}`);
+  }
+  console.log('Готово. В базу ничего не записано.');process.exit(0);
+}
+
 // 4. Расходы за день по кампаниям
 for(const path of [`/api/client/statistics/expense?dateFrom=${D}&dateTo=${D}`,`/api/client/statistics/daily?dateFrom=${D}&dateTo=${D}`]){
   const r=await perf(path);console.log(`\n${path.split('?')[0]}: HTTP ${r.status}, ${r.type}`);
