@@ -64,6 +64,13 @@ if(process.env.FORBID==='1'){
     const sp=await perf(`/api/client/campaign/${id}/search_promo/products`);if(sp.status!==404)console.log(`    товары (search_promo/products): HTTP ${sp.status}, ${String(sp.text||'').slice(0,80).replace(/\d{5,}/g,'…')}`);
     const dl=await perf(`/api/client/statistics/daily?campaignIds=${id}&dateFrom=${D0}&dateTo=${D}`);console.log(`    statistics/daily: HTTP ${dl.status}, строк ${String(dl.text||'').split('\n').length-1}`);
   }
+  // есть ли расход «оплаты за заказ» (SEARCH_PROMO) уже в начислениях (ozon_charges) — тогда в рекламу его добавлять нельзя (задвоение)
+  const promoIds=new Set(camps.filter(c=>c.advObjectType==='SEARCH_PROMO').map(c=>String(c.id)));
+  let promoExp=0;String(ex.text||'').split('\n').slice(1).forEach(l=>{const c=l.split(';');if(c.length>3&&promoIds.has(String(c[0]).trim()))promoExp+=Number(String(c[3]).replace(',','.'))||0;});
+  const ch=[];for(const d of [D0,D])for(let off=0;;off+=1000){const r=await fetch(`${SB}/rest/v1/ozon_charges?charge_date=eq.${d}&select=row_key,offer_id,charge_type,group_name,amount&order=row_key&limit=1000&offset=${off}`,{headers:SR});const j=await r.json();if(!Array.isArray(j)){console.log('  ozon_charges: ошибка',JSON.stringify(j).slice(0,120));break;}ch.push(...j);if(j.length<1000)break;}
+  const t={};ch.forEach(x=>{const k=`${x.group_name||'?'} / ${x.charge_type}`;t[k]=t[k]||{n:0,s:0,noOffer:0};t[k].n++;t[k].s+=Number(x.amount||0);if(!x.offer_id)t[k].noOffer++;});
+  console.log(`\n[FORBID] начисления ${D0}…${D}: строк ${ch.length}; расход SEARCH_PROMO по statistics/expense ${promoExp>0?'есть':'0'}`);
+  Object.entries(t).filter(([k])=>/продвиж|реклам|заказ|promo/i.test(k)).forEach(([k,v])=>console.log(`  ${k}: строк ${v.n}, без артикула ${v.noOffer}, сумма к расходу SEARCH_PROMO ${promoExp?(Math.abs(v.s)/promoExp*100).toFixed(1)+'%':'—'}`));
   console.log('Готово. В базу ничего не записано.');process.exit(0);
 }
 
