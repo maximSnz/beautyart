@@ -3,7 +3,7 @@ name: wb-products-sync
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 0 * * *'   # 00:30 UTC = 03:30 Мск, раз в сутки (после ozon-products-sync)
+    - cron: '15 21 * * *'   # 21:15 UTC = 00:15 Мск: GitHub задерживает плановые запуски на часы — встаём в очередь сразу после конца дня по Москве (день WB — по Мск), за ним wb-daily-load
 jobs:
   sync:
     runs-on: ubuntu-latest
