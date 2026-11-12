@@ -8,6 +8,7 @@ if (!T || !SB || !KEY) throw new Error('нет секретов WB_API_TOKEN / S
 const H = { Authorization: T, 'Content-Type': 'application/json' }, SR = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const msk = (n = 0) => new Date(Date.now() + 3 * 36e5 + n * 864e5).toISOString().slice(0, 10); // дата по Москве
+const FEED_DAYS = Math.min(30, Math.max(1, Number(process.env.FEED_DAYS) || 14)); // глубина ленты: по умолчанию 14 дн, разовая догрузка — до 30 (предел WB — 31 день назад)
 const YEST = msk(-1), D = process.env.DAY || YEST, SNAPSHOT = D === YEST, WRITE = process.env.WRITE === '1';
 import fs from 'node:fs';
 // итоги шагов для журнала бота администратора (scripts/admin_notify.mjs, LOAD=wb, читает load_summary.txt; в публичный лог не печатается)
@@ -68,13 +69,13 @@ const nowMsk = () => new Date(Date.now() + 3 * 36e5).toISOString().slice(0, 19) 
 const feed = []; let snap = null, off = 0;
 for (let page = 0; page < 40; page++) {
   const r = need(await call('POST', 'https://seller-analytics-api.wildberries.ru/api/analytics/v1/order-feed', {
-    selectedPeriod: { start: `${shift(D, -13)}T00:00:00.00000+03:00`, end: nowMsk() },
+    selectedPeriod: { start: `${shift(D, -(FEED_DAYS - 1))}T00:00:00.00000+03:00`, end: nowMsk() },
     pagination: { offset: off, limit: 1000, ...(snap ? { snapshotTime: snap } : {}) } }), 'order-feed');
   const os = r?.data?.orders || []; snap = r?.data?.snapshotTime || snap; feed.push(...os); off += os.length;
   if (os.length < 1000) break;
   await sleep(61000);
 }
-console.log(`\n1) Заказы — лента (статус менялся с ${shift(D, -13)}): строк ${feed.length}; поля: ${fields(feed)}`);
+console.log(`\n1) Заказы — лента (статус менялся с ${shift(D, -(FEED_DAYS - 1))}): строк ${feed.length}; поля: ${fields(feed)}`);
 const orders = feed.map(x => { const p = BY_CHRT.get(x.chrtId); const st = String(x.status || '');
   return { srid: x.srid, source: 'feed', order_day: (mskTs(x.createdAt) || '').slice(0, 10) || null, order_ts: mskTs(x.createdAt), last_change: mskTs(x.updatedAt),
     nm_id: x.nmId ?? null, chrt_id: x.chrtId ?? null, supplier_article: p?.vendor_code ?? null, tech_size: p?.tech_size ?? null,

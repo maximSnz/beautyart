@@ -18,6 +18,10 @@ on:
         type: choice
         options: ['0', '1']
         default: '0'
+      feed_days:
+        description: 'Глубина ленты заказов, дней (14 — ночная; до 30 — разовая догрузка)'
+        required: false
+        default: '14'
 concurrency: wb-daily-load
 jobs:
   load:
@@ -33,6 +37,7 @@ jobs:
         env:
           DAY: ${{ github.event.inputs.day }}
           WRITE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.write || vars.WB_LOAD_WRITE || '0' }}
+          FEED_DAYS: ${{ github.event.inputs.feed_days }}
           WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beauty Art — Остатки WB</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
+ .login{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ .wrap{max-width:1200px;margin:0 auto 40px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ h2{font-family:'Forum';color:#1C0D2E}
+ input,select{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ table{width:100%;border-collapse:collapse;font-size:.88em}
+ th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
+ th{color:#666}
+ .hide{display:none}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
+ .err{color:#E33D78;font-size:.9em;margin:8px 0}
+ .cost{font-weight:700;color:#1C0D2E}
+ .acts{white-space:nowrap}
+ .acts button{margin-right:4px}
+ .histrow td{background:#f8f9fb}
+ .hist{font-size:.85em;color:#544273}
+ .cur{color:#22c55e;font-weight:700}
+ .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+ .toolbar input{flex:1;min-width:200px}
+ .legend{margin-left:auto;color:#94a3b8;font-size:.8em;white-space:nowrap}
+ details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 14px}
+ details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;user-select:none}
+ details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ details.arc .inner{padding:10px 14px}
+ tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
+ .editable{cursor:pointer;white-space:nowrap}
+ .editable::after{content:" ✎";opacity:.3;font-size:.8em}
+ .editable:hover{color:#E33D78}
+ .editable:hover::after{opacity:1}
+ .diff{background:rgba(253,224,71,.35);border-radius:4px}
+ .muted{color:#94a3b8}
+
+ /* === ШАПКА (на градиенте) === */
+ .header {
+   max-width: 1200px; margin: 20px auto 20px;
+   display: flex; align-items: center; gap: 20px;
+   padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
+   border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
+   box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
+   position: relative; z-index: 200;
+ }
+ .logo-link { display: inline-block; flex: 0 0 auto; }
+ .logo {
+   width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+   transition: transform .3s ease; display: block;
+ }
+ .logo-link:hover .logo { transform: scale(1.1); }
+ .company-name {
+   font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
+   text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
+ }
+ .header-nav { margin-left: auto; display: flex; gap: 10px; }
+ .nav-item { position: relative; }
+ .nav-btn {
+   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+   border-radius: 10px; color: #fff; padding: 10px 16px;
+   font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
+   display: inline-flex; align-items: center; gap: 8px; transition: all .3s;
+   text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+ }
+ .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+ .nav-btn .caret { font-size: .72em; transition: transform .2s; }
+ .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
+ .nav-menu {
+   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+   background: rgba(255,255,255,0.18);
+   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
+   padding: 8px; display: none; z-index: 300;
+   box-shadow: 0 10px 30px rgba(28,13,46,.25);
+ }
+ .nav-item.open .nav-menu { display: block; }
+ .nav-menu a {
+   display: block; padding: 10px 14px; border-radius: 8px; color: #fff;
+   text-decoration: none; font-family: 'Forum', serif; font-size: .95em;
+   transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25);
+ }
+ .nav-menu a:hover { background: rgba(255,255,255,0.22); }
+
+ @media (max-width:640px){
+   body{padding:8px}
+   .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
+   h2{font-size:1.15em}
+   .toolbar{flex-direction:column;align-items:stretch}
+   button{padding:10px 14px;font-size:1em}
+   table{font-size:.78em}
+   th,td{padding:5px 6px}
+   .meta{font-size:.78em}
+   .header { flex-wrap: wrap; }
+   .header-nav { margin-left: 0; width: 100%; }
+ }
+</style><style>
+ /* === Единая шапка и ширина рабочего пространства (эталон шапки — beautyart-home, ширины — purchase.html) === */
+ body{padding:16px}
+ .header{max-width:1700px;margin:0 auto 16px;padding:14px 26px;gap:20px;border:1px solid rgba(255,255,255,.3);border-radius:16px;background:rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(28,13,46,.2);box-sizing:border-box}
+ .logo{width:52px}
+ .company-name{font-size:1.8em;letter-spacing:2px}
+ .wrap,.container,.protected-content{max-width:1700px;box-sizing:border-box}
+ @media (max-width:640px){ body{padding:8px} }
+ /* вход — как в plan.html */
+ .login-box{max-width:400px;margin:100px auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(28,13,46,.3);border:2px solid rgba(84,66,115,.2);text-align:center;box-sizing:border-box}
+ .login-logo{width:80px;height:auto;margin-bottom:15px}
+ .login-title{font-family:'Forum',serif;font-size:1.8em;color:#1C0D2E;margin-bottom:10px}
+ .login-subtitle{color:#666;font-size:.95em;margin-bottom:25px;font-family:'Forum',serif}
+ .password-input{width:100%;padding:14px 16px;border:2px solid rgba(84,66,115,.2);border-radius:10px;font-size:1em;font-family:'Forum',serif;margin-bottom:15px;box-sizing:border-box}
+ .password-input:focus{outline:none;border-color:#E33D78}
+ .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#78A6C7,#E33D78);color:#fff;border:none;border-radius:10px;font-size:1.05em;font-family:'Forum',serif;cursor:pointer;transition:all .3s}
+ .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(227,61,120,.4)}
+ .error-message{display:none;color:#E33D78;font-size:.9em;margin-top:15px;font-family:'Forum',serif}
+</style>
+<style>
+ /* === Остатки WB === */
+ td.n,th.n{text-align:right;white-space:nowrap}
+ tr.row{cursor:pointer}
+ tr.row:hover td{background:#fdf2f8}
+ .d-red{background:rgba(248,113,113,.28);font-weight:700;border-radius:4px}
+ .d-yel{background:rgba(253,224,71,.45);border-radius:4px}
+ tr.tot td{font-weight:700;border-top:2px solid rgba(84,66,115,.3);background:#f8f9fb}
+ tr.det td{background:#f8f9fb}
+ .det{display:flex;gap:28px;flex-wrap:wrap;font-size:.92em;color:#544273}
+ .det table{width:auto;font-size:.95em}
+ .det th,.det td{padding:3px 10px 3px 0;border-bottom:none}
+ .hint{color:#94a3b8;font-size:.82em}
+</style>
+</head>
+<body>
+<div class="login-box" id="login">
+    <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="login-logo">
+    <div class="login-title">Закрытый раздел</div>
+    <div class="login-subtitle">Введите почту и пароль для доступа</div>
+    <input type="email" id="email" class="password-input" placeholder="Почта" autocomplete="username" onkeypress="if(event.key==='Enter')go()">
+    <input type="password" id="pwd" class="password-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')go()">
+    <button class="login-btn" onclick="go()">Войти</button>
+    <div class="error-message" id="errorMessage">Неверный пароль. Попробуйте ещё раз.</div>
+</div>
+<div class="hide" id="app">
+  <div class="header">
+    <a href="https://maximsnz.github.io/beautyart-home/index.html" class="logo-link" title="На главную">
+      <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+    </a>
+    <div class="company-name">Beauty Art</div>
+  </div>
+  <div class="wrap">
+    <h2>🏬 Остатки WB</h2>
+    <div class="meta" id="meta">загрузка…</div>
+    <div class="err" id="err"></div>
+    <div class="toolbar">
+      <input id="q" placeholder="Поиск по артикулу / названию / артикулу WB / поставщику" oninput="render()">
+      <button onclick="load()">⟳ Обновить</button>
+      <div class="legend" id="legend"></div>
+    </div>
+    <details class="arc" id="arcDetails">
+      <summary>🧺 Распродаём: корзина WB и архив с остатком (<span id="arcCount">0</span>)</summary>
+      <div class="inner"><table><thead id="arcHead"></thead><tbody id="arcBody"></tbody></table></div>
+    </details>
+    <table><thead id="thead"></thead><tbody id="tb"></tbody></table>
+  </div>
+</div>
+<script src="../beautyart-home/auth.js?v=20261021"></script>
+<script>
+// Остатки WB (ИП) — шаг 3 плана переноса WB (ROADMAP, этап 1). Только чтение: данные ночной загрузки wb-daily-load.
+// Решения владельца (purchasing.md): всё по WB в целом, вместе с заграницей (12.11.2026, в отличие от Ozon); спрос — все заказы
+// «Ленты заказов» вместе с отменами за 28 дней до вчера (как «Среднесуточные продажи» Ozon — проверено 12.11.2026); сроки — wb_lead_times.
+const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+const DEMAND_DAYS=28;                       // окно спроса, как у Ozon
+const SUP_TRANSIT=new Set([2,3,4,6]);       // поставки, которые везут или принимают: запланировано, отгрузка разрешена, идёт приёмка, отгружено на воротах
+const PSEUDO=/^В пути/;                     // строки снимка «В пути до получателей» / «В пути возвраты на склад WB» — не склады
+const COLS=11;
+let P=[],ST={},ORD={},SUP={},LT=null,OKSC={},SNAP=null,WIN=null,OPEN=new Set();
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}), nf1=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
+const art=r=>(r.vendor_code||'')+(r.tech_size&&r.tech_size!=='0'?' · '+r.tech_size:'');
+const mskDay=n=>new Date(Date.now()+3*36e5+n*864e5).toISOString().slice(0,10);
+const dm=s=>s?s.slice(8,10)+'.'+s.slice(5,7):'—';
+async function go(){
+  if(!await BA_AUTH.login(SUPABASE_URL,HD))return;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  load();
+}
+async function getAll(path){
+  let out=[],off=0;
+  for(;;){
+    const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok) throw new Error(path.split('?')[0].replace('/rest/v1/','')+' HTTP '+r.status);
+    const j=await r.json(); out=out.concat(j); if(j.length<1000) break; off+=1000;
+  }
+  return out;
+}
+async function load(){
+  const err=document.getElementById('err'); err.textContent='';
+  try{
+    const last=await getAll('/rest/v1/wb_stock_history?select=report_date&order=report_date.desc&limit=1');
+    SNAP=last[0]?.report_date||null;
+    const y=mskDay(-1); WIN={from:mskDay(-DEMAND_DAYS),to:y};
+    const [pr,st,od,sp,sg,lt,ok]=await Promise.all([
+      getAll('/rest/v1/wb_products?select=chrt_id,nm_id,vendor_code,tech_size,title,subject,supplier,box_qty,archived,wb_archived,wb_trash&order=chrt_id'),
+      SNAP?getAll(`/rest/v1/wb_stock_history?select=barcode,warehouse_name,chrt_id,qty&report_date=eq.${SNAP}&order=barcode,warehouse_name`):[],
+      getAll(`/rest/v1/wb_orders?select=srid,chrt_id,order_day,okrug,is_cancel&source=eq.feed&order_day=gte.${WIN.from}&order_day=lte.${WIN.to}&order=srid`),
+      getAll('/rest/v1/wb_supplies?select=supply_id,status_id,warehouse_name,supply_date,create_date&order=supply_id'),
+      getAll('/rest/v1/wb_supply_goods?select=supply_id,barcode,chrt_id,quantity,accepted_quantity&order=supply_id,barcode'),
+      getAll('/rest/v1/wb_lead_times?select=*&region=eq.Россия').catch(()=>[]),
+      getAll('/rest/v1/wb_okrug_sc?select=okrug,sc&order=okrug').catch(()=>[])
+    ]);
+    P=pr; LT=lt[0]||null; OKSC={}; ok.forEach(x=>OKSC[x.okrug]=x.sc);
+    ST={}; st.forEach(x=>{ if(x.chrt_id==null)return; const s=ST[x.chrt_id]=ST[x.chrt_id]||{wh:0,toCl:0,ret:0,by:{}};
+      if(x.warehouse_name==='В пути до получателей') s.toCl+=x.qty; else if(PSEUDO.test(x.warehouse_name)) s.ret+=x.qty;
+      else { s.wh+=x.qty; s.by[x.warehouse_name]=(s.by[x.warehouse_name]||0)+x.qty; } });
+    ORD={}; od.forEach(x=>{ if(x.chrt_id==null)return; const o=ORD[x.chrt_id]=ORD[x.chrt_id]||{n:0,c:0,ok:{}};
+      o.n++; if(x.is_cancel)o.c++; const k=x.okrug||'не указан'; o.ok[k]=(o.ok[k]||0)+1; });
+    const live=new Map(sp.filter(x=>SUP_TRANSIT.has(x.status_id)).map(x=>[x.supply_id,x]));
+    SUP={}; sg.forEach(g=>{ const s=live.get(g.supply_id); if(!s||g.chrt_id==null)return; const left=Math.max(0,(g.quantity||0)-(g.accepted_quantity||0)); if(!left)return;
+      const o=SUP[g.chrt_id]=SUP[g.chrt_id]||{q:0,list:[]}; o.q+=left; o.list.push(`${s.warehouse_name||'—'} №${g.supply_id}: ${nf.format(left)} шт`); });
+    const lead=LT?['force_majeure_days','approval_days','supplier_to_ff_days','ff_assembly_days','ff_to_wb_days','acceptance_days'].reduce((s,k)=>s+(LT[k]||0),0):null;
+    LT=LT?{...LT,lead}:null;
+    document.getElementById('meta').textContent=`Остатки — снимок за ${dm(SNAP)} • спрос — заказы ${dm(WIN.from)}–${dm(WIN.to)} (${DEMAND_DAYS} дн, «Лента заказов», вместе с отменами и заграницей) • в поставках — ${live.size} поставок в пути и на приёмке`
+      +(LT?` • сроки: до приёмки ${lead} дн + целевой запас ${LT.target_days} дн`:' • сроки WB не заданы (sql/2026-11-12_wb_lead_times.sql)');
+    document.getElementById('legend').innerHTML=LT?`запас: <span class="d-red">&nbsp;меньше ${lead} дн&nbsp;</span> не успеем довезти • <span class="d-yel">&nbsp;${lead}–${lead+LT.target_days} дн&nbsp;</span> пора заказывать`:'';
+    render();
+  }catch(e){ err.textContent='Ошибка загрузки: '+e.message; }
+}
+function calc(r){
+  const s=ST[r.chrt_id]||{wh:0,toCl:0,ret:0,by:{}}, o=ORD[r.chrt_id]||{n:0,c:0,ok:{}}, sp=SUP[r.chrt_id]||{q:0,list:[]};
+  const dem=o.n/DEMAND_DAYS, days=dem>0?(s.wh+sp.q)/dem:null;
+  return {s,o,sp,dem,days};
+}
+function dayCell(d,stockAll){
+  if(d==null) return `<td class="n muted" title="Заказов за ${DEMAND_DAYS} дн нет">${stockAll?'∞':'—'}</td>`;
+  const cls=LT?(d<LT.lead?'d-red':d<LT.lead+LT.target_days?'d-yel':''):'';
+  return `<td class="n"><span class="${cls}" title="(остаток на складах + в поставках) ÷ спрос в день">${nf.format(Math.floor(d))}</span></td>`;
+}
+const HEAD=`<tr><th>Артикул</th><th>Название</th><th class="n" title="Сумма по всем складам WB (вместе с заграницей) на дату снимка">На складах, шт</th>
+  <th class="n" title="Строка снимка WB «В пути до получателей» — уже заказано, в запас не входит">К покупателям, шт</th>
+  <th class="n" title="Строка снимка WB «В пути возвраты на склад WB» — в запас не входит">Возвраты в пути, шт</th>
+  <th class="n" title="Поставки FBO в пути и на приёмке: заявлено − принято">В поставках, шт</th>
+  <th class="n" title="Все заказы «Ленты заказов» за ${DEMAND_DAYS} дн до вчера, вместе с отменами (как у Ozon)">Заказы ${DEMAND_DAYS} дн, шт</th>
+  <th class="n" title="Заказы за ${DEMAND_DAYS} дн ÷ ${DEMAND_DAYS}">Спрос в день</th>
+  <th class="n" title="(На складах + в поставках) ÷ спрос в день">Запас, дн</th><th class="n">В коробе</th><th>Арт. WB</th></tr>`;
+function rowHtml(r,c){
+  return `<tr class="row" id="row-${r.chrt_id}" onclick="toggle(${r.chrt_id})"><td>${OPEN.has(r.chrt_id)?'▾':'▸'} ${esc(art(r))}</td><td>${esc(r.title)}<div class="hint">${esc(r.subject||'')}</div></td>
+    <td class="n">${nf.format(c.s.wh)}</td><td class="n muted">${nf.format(c.s.toCl)}</td><td class="n muted">${nf.format(c.s.ret)}</td>
+    <td class="n" title="${esc(c.sp.list.join('\n'))}">${c.sp.q?nf.format(c.sp.q):'—'}</td>
+    <td class="n" title="${c.o.c?`из них отмен: ${c.o.c}`:''}">${nf.format(c.o.n)}</td><td class="n">${c.dem?nf1.format(c.dem):'—'}</td>
+    ${dayCell(c.days,c.s.wh+c.sp.q)}<td class="n">${r.box_qty??'<span class="muted">—</span>'}</td><td class="muted">${r.nm_id}</td></tr>`+(OPEN.has(r.chrt_id)?detHtml(r,c):'');
+}
+function detHtml(r,c){
+  const wh=Object.entries(c.s.by).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${nf.format(v)}</td></tr>`).join('')||'<tr><td class="muted">нет остатка</td></tr>';
+  const tot=c.o.n, ok=Object.entries(c.o.ok).sort((a,b)=>b[1]-a[1]);
+  const okH=ok.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${nf.format(v)}</td><td class="n">${nf1.format(v/tot*100)}%</td><td class="muted">${esc(OKSC[k]||'—')}</td></tr>`).join('')||'<tr><td class="muted">заказов нет</td></tr>';
+  const sc={}; ok.forEach(([k,v])=>{ const t=OKSC[k]||'без СЦ в справочнике'; sc[t]=(sc[t]||0)+v; });
+  const scH=Object.entries(sc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${nf1.format(v/tot*100)}%</td></tr>`).join('');
+  return `<tr class="det"><td colspan="${COLS}"><div class="det">
+    <div><b>Остаток по складам</b><table>${wh}</table></div>
+    <div><b>Заказы по округам покупателей, ${DEMAND_DAYS} дн</b><table><tr><th>Округ</th><th class="n">шт</th><th class="n">доля</th><th>СЦ</th></tr>${okH}</table></div>
+    ${tot?`<div><b>Подсказка деления по СЦ</b><table>${scH}</table><div class="hint">по справочнику «округ → СЦ»</div></div>`:''}
+    ${c.sp.list.length?`<div><b>В поставках</b><div>${c.sp.list.map(esc).join('<br>')}</div></div>`:''}
+  </div></td></tr>`;
+}
+function toggle(id){ OPEN.has(id)?OPEN.delete(id):OPEN.add(id); render(); }
+function render(){
+  const q=document.getElementById('q').value.toLowerCase().trim();
+  const match=r=>!q||[r.title,r.vendor_code,String(r.nm_id),r.supplier].some(x=>String(x||'').toLowerCase().includes(q));
+  const off=r=>r.archived||r.wb_archived||r.wb_trash;
+  const act=P.filter(r=>!off(r)&&match(r)).map(r=>({r,c:calc(r)}));
+  const arc=P.filter(r=>off(r)&&match(r)).map(r=>({r,c:calc(r)})).filter(x=>x.c.s.wh||x.c.sp.q||x.c.o.n);
+  document.getElementById('thead').innerHTML=HEAD; document.getElementById('arcHead').innerHTML=HEAD;
+  const key=x=>x.c.days==null?1e9:x.c.days;
+  const grp={}; act.forEach(x=>{(grp[x.r.supplier||'—']=grp[x.r.supplier||'—']||[]).push(x);});
+  const T=a=>a.reduce((t,x)=>({wh:t.wh+x.c.s.wh,toCl:t.toCl+x.c.s.toCl,ret:t.ret+x.c.s.ret,sp:t.sp+x.c.sp.q,n:t.n+x.c.o.n}),{wh:0,toCl:0,ret:0,sp:0,n:0});
+  const totRow=(label,t)=>{ const dem=t.n/DEMAND_DAYS; return `<tr class="tot"><td colspan="2">${label}</td><td class="n">${nf.format(t.wh)}</td><td class="n">${nf.format(t.toCl)}</td><td class="n">${nf.format(t.ret)}</td><td class="n">${nf.format(t.sp)}</td><td class="n">${nf.format(t.n)}</td><td class="n">${dem?nf1.format(dem):'—'}</td>${dayCell(dem?(t.wh+t.sp)/dem:null,t.wh+t.sp)}<td></td><td></td></tr>`; };
+  let html=totRow(`Итого: ${act.length} размеров`,T(act));
+  Object.keys(grp).sort((a,b)=>a.localeCompare(b,'ru')).forEach(g=>{
+    const a=grp[g].sort((x,y)=>key(x)-key(y)||String(x.r.vendor_code).localeCompare(String(y.r.vendor_code)));
+    html+=`<tr class="group"><td colspan="${COLS}">${esc(g)} · ${a.length}</td></tr>`+a.map(x=>rowHtml(x.r,x.c)).join('');
+  });
+  document.getElementById('tb').innerHTML=html;
+  document.getElementById('arcCount').textContent=arc.length;
+  document.getElementById('arcBody').innerHTML=arc.sort((x,y)=>y.c.s.wh-x.c.s.wh).map(x=>rowHtml(x.r,x.c)).join('')||`<tr><td colspan="${COLS}" class="muted">Нет</td></tr>`;
+}
+if(BA_AUTH.has(SUPABASE_URL))go();
+</script></body></html>
