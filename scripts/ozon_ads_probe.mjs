@@ -77,22 +77,22 @@ if(process.env.FORBID==='1'){
   for(const [path,body] of [['/api/client/campaign/search_promo/v2/products',{page:0,pageSize:100}],['/api/client/campaign/search_promo/products',{page:0,pageSize:100}]]){
     const r=await perf(path,{method:'POST',body});const list=r.json?.products||r.json?.items||[];
     console.log(`  ${path}: HTTP ${r.status}, товаров ${Array.isArray(list)?list.length:'?'}${r.status!==200?' '+String(r.text||'').slice(0,100).replace(/\d{5,}/g,'…'):''}`);
-    if(Array.isArray(list)&&list.length){printShape('  устройство товара:',list[0]);list.forEach(x=>addSku(x.sku||x.SKU||x.id,'список'));}}
+    if(Array.isArray(list)&&list.length){printShape('  устройство товара:',list[0]);list.forEach(x=>{if(x.searchPromoStatus)addSku(x.sku||x.SKU||x.id,'включена');});console.log(`  из них с включённой «Оплатой за заказ»: ${list.filter(x=>x.searchPromoStatus).length}`);}}
   {const r=await perf('/api/client/statistic/orders/generate',{method:'POST',body:{from:`${D0}T00:00:00Z`,to:`${D}T23:59:59Z`}});
    const uuid=r.json?.UUID||r.json?.uuid;console.log(`  statistic/orders/generate: HTTP ${r.status}${uuid?'':' '+String(r.text||'').slice(0,100)}`);
    if(uuid){let st='';for(let k=0;k<40;k++){await sleep(3000);const q=await perf(`/api/client/statistics/${uuid}`);st=q.json?.state;if(st==='OK'||st==='ERROR')break;}
      console.log(`  отчёт по заказам: ${st}`);
      if(st==='OK'){const rep=await perf(`/api/client/statistics/report?UUID=${uuid}`,{raw:true});const txt=rep.buf.toString('utf8');const lines=txt.split('\n').filter(l=>l.includes(';'));
        let hdr=null,n=0;lines.forEach(l=>{const c=l.split(';').map(x=>x.replace(/^"|"$/g,'').trim());if(!hdr&&c.some(x=>/^sku$/i.test(x))){hdr=c;console.log('  заголовок отчёта:',c.join(' | ').slice(0,300));return;}
-         if(hdr&&c.length===hdr.length){n++;const sku=c[hdr.findIndex(x=>/^sku$/i.test(x))];addSku(sku,'заказы');const cost=c.findIndex((x,i)=>/расход|стоимость/i.test(hdr[i]));tg.push(`заказ: SKU ${sku}${cost>=0?`, ${hdr[cost]} ${c[cost]}`:''}`);}});
+         if(hdr&&c.length===hdr.length){n++;const sku=c[hdr.findIndex(x=>/^sku$/i.test(x))];addSku(sku,'заказы');const ci=hdr.findIndex(x=>/^расход/i.test(x)),di=hdr.findIndex(x=>/^дата/i.test(x)),ai=hdr.findIndex(x=>/^артикул/i.test(x));tg.push(`заказ ${di>=0?c[di]:''}: ${ai>=0&&c[ai]?c[ai]:'SKU '+sku}${ci>=0?`, расход ${c[ci]} ₽`:''}`);}});
        console.log(`  строк заказов: ${n}`);}}}
   const offers=new Map();if(skus.size){const r=await fetch(`${SB}/rest/v1/products?select=offer_id,name,raw->>sku&raw->>sku=in.(${[...skus.keys()].join(',')})`,{headers:SR});const j=await r.json();if(Array.isArray(j))j.forEach(x=>offers.set(String(x.sku),x));}
   console.log(`  товаров «Оплаты за заказ» найдено: ${skus.size}, сопоставлено с базой: ${offers.size}`);
   if(process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_CHAT_ID){
     const lines=[...skus].map(([sku,src])=>{const o=offers.get(sku);return `• ${o?o.offer_id:'SKU '+sku} (${[...src].join(', ')})${o?.name?' — '+o.name.slice(0,60):''}`;});
-    const text=`ИП · «Оплата за заказ» (кампания …${(bad[0]||'').slice(-3)}), ${D0}…${D}\n${lines.join('\n')||'товаров не найдено'}${tg.length?'\n\n'+tg.slice(0,20).join('\n'):''}`;
+    const text=(`ИП · «Оплата за заказ» (кампания …${(bad[0]||'').slice(-3)}), ${D0}…${D}\n${tg.length?'Заказы с расходом:\n'+tg.slice(0,20).join('\n')+'\n\n':''}Товары с включённой оплатой за заказ:\n${lines.join('\n')||'нет'}`).slice(0,4000);
     const r=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text,disable_web_page_preview:true})});
-    console.log('  Telegram:',r.ok?'отправлено':'ошибка HTTP '+r.status);}
+    console.log('  Telegram:',r.ok?'отправлено':'ошибка HTTP '+r.status+' '+(await r.text()).slice(0,120));}
   console.log('Готово. В базу ничего не записано.');process.exit(0);
 }
 
