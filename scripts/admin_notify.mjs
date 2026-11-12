@@ -68,6 +68,7 @@ if(MODE==='load'){
   const body=lines.map(esc).join('\n')||(ok?'':'итогов шагов нет — упала в самом начале');
   const logged=await log({kind:'load',day:process.env.DAY||YEST,status:st,write,summary:(WB?['WB'+(lines.length?':':' — итогов шагов нет'),...lines]:lines).join('\n')||null,freshness:fr.text,run_url:RUN_URL});
   if(!ok||!logged)await send(`${head}\n${body}\n\n<i>Свежесть:</i> ${fr.text}\n<a href="${RUN_URL}">лог запуска</a>${logged?'':'\n<i>журнал admin_load_log недоступен — сводка отправлена сообщением</i>'}`);
+  else if(lines.some(l=>l.startsWith('ℹ️')))await send(`${head}\n${lines.filter(l=>l.startsWith('ℹ️')).map(esc).join('\n')}\n<a href="${RUN_URL}">лог запуска</a>`); // ℹ️ — присылать и при успехе (12.11.2026: «Оплата за заказ» с артикулами)
   else console.log('Загрузка успешна, итоги — в журнале, сообщение не отправлено');
 }else{
   const alerts=[];
