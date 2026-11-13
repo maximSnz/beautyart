@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beauty Art — РНП WB</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:16px;margin:0;color:#1C0D2E}
+ .wrap{max-width:1700px;margin:0 auto 40px;background:#fff;border-radius:16px;padding:24px 28px;box-shadow:0 10px 30px rgba(28,13,46,.3);box-sizing:border-box}
+ h2{font-family:'Forum';color:#1C0D2E;margin:0 0 8px}
+ input,select,textarea{padding:5px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ button:disabled{opacity:.5;cursor:default}
+ .hide{display:none!important}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
+ .err{color:#E33D78;font-size:.9em;margin:8px 0}
+ .toolbar{display:flex;gap:10px;align-items:center;margin:6px 0 12px;flex-wrap:wrap}
+ .toolbar input{min-width:320px}
+ .num{text-align:center}
+ .factcell{color:#94a3b8}
+ .psection{border:1px solid rgba(84,66,115,.15);border-radius:10px;padding:10px 12px;background:#fff}
+ .psectitle{font-weight:700;color:#544273;font-size:.85em;margin-bottom:8px}
+ .psub{font-size:.85em;color:#544273;margin-top:4px}
+ .pulsewrap{overflow-x:auto}
+ .pulsemetric{color:#544273;font-weight:700}
+ .pulsetable{width:auto;min-width:0;font-size:.95em;border-collapse:collapse}
+ .pulsetable th,.pulsetable td{padding:3px 5px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:center;white-space:nowrap}
+ .pulsetable th{color:#94a3b8;font-size:.8em;font-weight:400}
+ .pulsetable th.we{color:#E33D78}
+ .pulsetable th:first-child,.pulsetable td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
+ .pulsetable tr.sub td:first-child{background:#fbfafd}
+ .pitem{border:1px solid rgba(84,66,115,.15);border-radius:8px;background:#fff;padding:7px 10px;margin:0 0 6px;border-left:4px solid}
+ .pitem .pdate{color:#94a3b8;margin-right:8px}
+ .pchild{margin:6px 0 6px 18px;padding:6px 10px;border-left:3px solid rgba(84,66,115,.25);background:#f8f9fb;border-radius:6px;font-size:.92em}
+ .pchild .pdate{color:#94a3b8;margin-right:8px}
+ .pchildform{margin:6px 0 4px 18px;padding:6px 8px;border:1px dashed rgba(84,66,115,.3);border-radius:6px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
+ .pchildform input[type=text]{flex:1;min-width:160px}
+ .paction{color:#1C0D2E}
+ .badge{border-radius:5px;padding:1px 7px;font-size:.85em;font-weight:700;display:inline-block}
+ .badge.g{background:rgba(22,163,74,.15);color:#16a34a}
+ .badge.r{background:rgba(227,61,120,.15);color:#E33D78}
+ .badge.n{background:rgba(148,163,184,.2);color:#64748b}
+ .badge.w{background:rgba(217,119,6,.15);color:#d97706}
+ /* гипотезы: календарь слева, гипотезы выбранного дня справа (как окно РНП Ozon, 12.11.2026) */
+ #hypBox{margin-top:12px;display:flex;flex-direction:column;min-height:0}
+ #hypList{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+ .ehwrap{flex:1 1 auto;min-height:0;display:flex;gap:14px;max-height:520px}
+ .ehleft{flex:0 0 auto;overflow:auto;max-width:280px}
+ .ehdet{flex:1 1 auto;min-width:0;overflow:auto;border-left:1px solid rgba(84,66,115,.15);padding-left:12px}
+ .ehcal{border-collapse:separate;border-spacing:3px;font-size:.88em}
+ .ehcal th,.ehcal td{padding:0}
+ .ehcal th{font-weight:400;color:#94a3b8;font-size:.85em}
+ .ehcal td{width:32px;min-width:32px;height:26px;text-align:center;border-radius:6px;cursor:pointer;position:relative;border:1px solid rgba(84,66,115,.12)}
+ .ehcal td:hover{outline:2px solid rgba(84,66,115,.35)}
+ .ehcal td.ehout{opacity:.35}.ehcal td.ehsel{outline:2px solid #544273}.ehcal td.ehtoday{font-weight:700}
+ .ehcal sup{font-size:.7em;margin-left:1px}
+ .ehdl{position:absolute;right:3px;bottom:3px;width:5px;height:5px;border-radius:50%;background:#544273}
+ .ehleg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.75em;color:#64748b;margin-top:4px;max-width:250px}
+ .ehleg b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:3px;vertical-align:-1px}
+ .ehflt{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:.85em;margin-bottom:4px;max-width:250px}
+ .ehflt input{margin-right:3px}
+ #hypForm{flex:0 0 auto;border-top:1px solid rgba(84,66,115,.15);padding-top:6px;margin-top:8px}
+ #hypForm .pfrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0}
+ #hypForm input[type=text]{flex:1 1 300px}
+ .efsz{display:inline-flex;align-items:center;gap:5px}.efsz.efoff{opacity:.5}
+ /* встроенный режим (?embed=1) — окно товара «Протокола работ» WB: только таблица и гипотезы, на всю высоту окна */
+ body.embed{background:transparent;padding:0}
+ body.embed .header,body.embed .toolbar,body.embed h2{display:none!important}
+ body.embed .wrap{max-width:none;margin:0;padding:4px 2px;border-radius:10px;box-shadow:none;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+ body.embed #pulseBox{flex:0 0 auto}
+ body.embed #hypBox{flex:1 1 auto}
+ body.embed .ehwrap{max-height:none}
+ html:has(body.embed){overflow:hidden}
+</style><style>
+ /* === Единая шапка и ширина рабочего пространства (эталон шапки — beautyart-home) === */
+ .header{max-width:1700px;margin:0 auto 16px;display:flex;align-items:center;padding:14px 26px;gap:20px;border:1px solid rgba(255,255,255,.3);border-radius:16px;background:rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(28,13,46,.2);box-sizing:border-box;position:relative;z-index:200}
+ .logo-link{display:inline-block;flex:0 0 auto}
+ .logo{width:52px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2));transition:transform .3s ease;display:block}
+ .logo-link:hover .logo{transform:scale(1.1)}
+ .company-name{font-family:'Forum',serif;font-size:1.8em;color:#fff;text-shadow:0 2px 8px rgba(28,13,46,.4);letter-spacing:2px}
+ @media (max-width:640px){ body{padding:8px} .wrap{padding:14px} .toolbar input{min-width:0;width:100%} }
+ /* вход — как в plan.html */
+ .login-box{max-width:400px;margin:100px auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(28,13,46,.3);border:2px solid rgba(84,66,115,.2);text-align:center;box-sizing:border-box}
+ .login-logo{width:80px;height:auto;margin-bottom:15px}
+ .login-title{font-family:'Forum',serif;font-size:1.8em;color:#1C0D2E;margin-bottom:10px}
+ .login-subtitle{color:#666;font-size:.95em;margin-bottom:25px;font-family:'Forum',serif}
+ .password-input{width:100%;padding:14px 16px;border:2px solid rgba(84,66,115,.2);border-radius:10px;font-size:1em;font-family:'Forum',serif;margin-bottom:15px;box-sizing:border-box}
+ .password-input:focus{outline:none;border-color:#E33D78}
+ .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#78A6C7,#E33D78);color:#fff;border:none;border-radius:10px;font-size:1.05em;font-family:'Forum',serif;cursor:pointer;transition:all .3s}
+ .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(227,61,120,.4)}
+ .error-message{display:none;color:#E33D78;font-size:.9em;margin-top:15px;font-family:'Forum',serif}
+</style>
+</head>
+<body>
+<div class="login-box" id="login">
+    <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="login-logo">
+    <div class="login-title">Закрытый раздел</div>
+    <div class="login-subtitle">Введите почту и пароль для доступа</div>
+    <input type="email" id="email" class="password-input" placeholder="Почта" autocomplete="username" onkeypress="if(event.key==='Enter')go()">
+    <input type="password" id="pwd" class="password-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')go()">
+    <button class="login-btn" onclick="go()">Войти</button>
+    <div class="error-message" id="errorMessage">Неверный пароль. Попробуйте ещё раз.</div>
+</div>
+<div class="hide" id="app">
+  <div class="header">
+    <a href="https://maximsnz.github.io/beautyart-home/index.html" class="logo-link" title="На главную">
+      <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+    </a>
+    <div class="company-name">Beauty Art</div>
+  </div>
+  <div class="wrap">
+    <h2>🩺 Рука на пульсе WB</h2>
+    <div class="toolbar">
+      <input id="q" list="qlist" placeholder="Артикул продавца и размер (GLV-…-M) или группа перчаток (GLV-…-BLU-50)" onchange="pick(this.value)">
+      <datalist id="qlist"></datalist>
+      <select id="mon" onchange="MONTH=this.value;show()"></select>
+      <span class="meta" id="meta"></span>
+    </div>
+    <div class="err" id="err"></div>
+    <div id="pulseBox"><div class="psub">Выберите размер или группу перчаток.</div></div>
+    <div id="hypBox" class="psection hide"><div id="hypList"></div><div id="hypForm"></div></div>
+  </div>
+</div>
+<script src="../beautyart-home/auth.js?v=20261021"></script>
+<script>
+// «Рука на пульсе» WB (только ИП) — шаг 2 «Протокола работ» WB (ROADMAP, этап 7; 13.11.2026, решение владельца: гипотезы WB ставятся и
+// смотрятся здесь). Строка — размер WB (chrt_id) или группа перчаток (gloveFamily по «артикул продавца-размер», от 2 размеров).
+// Таблица по дням (как РНП plan.html): с 10 дней до 1-го числа по конец месяца; заказы — «Лента заказов» без отмен (wb_orders, полная с 12.10.2026);
+// цена заказа — выручка ÷ шт без отмен; ДРР — реклама размера (wb_cf_daily.ads: расход карточки, делённый на размеры по выручке заказов дня) ÷
+// выручка ВСЕХ заказов дня (с отменами — как модель лимитов wb_drr_limits); лимиты — от цены дня по коэффициентам последнего дня wb_drr_limits;
+// маржа ₽ — wb_cf_daily.mar (по дате операции финансового отчёта); остатки — wb_stock_history без строк «В пути…».
+// SMART-гипотезы — wb_protocol (только по заказам), дата работы — wb_plan_meta (sql/2026-11-13_wb_protocol.sql); факт фиксирует ночная загрузка WB (шаг 8).
+// ?pulse=<артикул-размер или семейство> | ?chrt=<id>; &m=YYYY-MM; &embed=1 — только таблица и гипотезы (окно товара «Протокола работ» WB).
+const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+const FEED_FULL_FROM='2026-10-12', NET_FLOOR=5, PSEUDO=/^В пути/;
+const QS=new URLSearchParams(location.search), EMBED=QS.get('embed')==='1';
+if(EMBED)document.body.classList.add('embed');
+let PRODS=[], BYCHRT=new Map(), CUR=null, D=null, PROTO={}, NOTABLE=false, MONTH=QS.get('m')||'';
+const EH_HIDE=new Set(), EF_SZ=new Set(); let EH_SEL=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const fmt=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:0});
+const f1=n=>Number(n||0).toLocaleString('ru-RU',{maximumFractionDigits:1});
+const localISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseW=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const ddmm=iso=>iso?iso.slice(8,10)+'.'+iso.slice(5,7):'—';
+const addDaysISO=(iso,n)=>{const d=parseW(iso);d.setDate(d.getDate()+n);return localISO(d);};
+const isWeekend=iso=>{const w=parseW(iso).getDay();return w===0||w===6;};
+const mskDayOf=ts=>new Date(new Date(ts).getTime()+3*36e5).toISOString().slice(0,10);   // день по Москве (как order_day ленты)
+function monthOfWeekISO(iso){const d=parseW(iso);d.setDate(d.getDate()-((d.getDay()+6)%7)+3);return d.getFullYear()+'-'+pad(d.getMonth()+1);}   // месяц недели — по четвергу, как plan.html
+function effMonth(y,m){const last=new Date(y,m,0).getDate();let B=0,W=0;for(let d=1;d<=last;d++){const w=new Date(y,m-1,d).getDay();if(w===0||w===6)W++;else B++;}return B+0.7*W;}
+function effDaysRange(f,t){let s=0;for(let d=f;d<=t;d=addDaysISO(d,1))s+=isWeekend(d)?0.7:1;return s;}
+function weekdayOptions(start){const out=[];for(let i=1;out.length<3;i++){const d=addDaysISO(start,i);if(!isWeekend(d))out.push(d);}return out;}
+function lastWeekdaysBefore(iso,n){const out=[];let d=addDaysISO(iso,-1);while(out.length<n){if(!isWeekend(d))out.unshift(d);d=addDaysISO(d,-1);}return out;}
+function dform(n){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b===1?'день':(b>=2&&b<=4?'дня':'дней');}
+// группы перчаток — как plan.html (gloveFamily: артикул до кода цвета и фасовки включительно; размеры — от большего к меньшему)
+const GLV_COLORS=new Set(['BLK','BLU','PNK','GRY','YLW','PUR','CLR','WHT','GRN','RED','ORG','BRN','BEG']);
+const SIZE_ORDER=['XXXL','3XL','XXL','2XL','XL','L','M','S','XS','XXS'];
+const sizeRank=o=>{const t=String(o).toUpperCase().replace(/М/g,'M').replace(/Х/g,'X').replace(/С/g,'S').split('-').reverse().find(x=>SIZE_ORDER.includes(x));return t?SIZE_ORDER.indexOf(t):SIZE_ORDER.length;};
+const bySize=(a,b)=>sizeRank(a.offer)-sizeRank(b.offer)||String(a.offer).localeCompare(String(b.offer));
+function gloveFamily(offer){const s=String(offer).split('-');if(s[0]!=='GLV')return null;
+  for(let i=2;i<s.length;i++)if(GLV_COLORS.has(s[i])){const e=/^\d+$/.test(s[i+1]||'')?i+1:i;return e>i||e<s.length-1?s.slice(0,e+1).join('-'):null;}return null;}
+const shortOf=o=>CUR&&CUR.isG&&o.indexOf(CUR.key)===0?o.slice(CUR.key.length).replace(/^-/,''):o;
+let tellH=()=>{};
+if(EMBED){const b=document.querySelector('.wrap');tellH=()=>{try{parent.postMessage({type:'ba-pulse-h',key:QS.get('pulse')||QS.get('chrt')||'',h:b.scrollHeight},'*');}catch(e){}};new ResizeObserver(()=>tellH()).observe(b);}
+
+async function go(){
+  if(!await BA_AUTH.login(SUPABASE_URL,HD))return;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  init();
+}
+async function getAll(path){let out=[],off=0;
+  for(;;){const r=await fetch(SUPABASE_URL+'/rest/v1/'+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok){const e=new Error(path.split('?')[0]+' HTTP '+r.status);e.status=r.status;e.body=await r.text();throw e;}
+    const j=await r.json();out=out.concat(j);if(j.length<1000)break;off+=1000;}
+  return out;}
+const noTable=e=>e&&(e.status===404||/42P01|PGRST205|does not exist|Could not find the table/.test(e.body||''));
+async function init(){
+  try{PRODS=(await getAll('wb_products?select=chrt_id,nm_id,vendor_code,tech_size,title,archived,wb_archived,wb_trash&order=chrt_id')).map(p=>{const sz=String(p.tech_size||'').trim();
+      return {chrt:Number(p.chrt_id),nm:p.nm_id,vc:p.vendor_code||'',size:sz&&sz!=='0'?sz:'',offer:String(p.vendor_code||p.chrt_id).toUpperCase()+(sz&&sz!=='0'?'-'+sz.toUpperCase():''),title:p.title||'',off:!!(p.archived||p.wb_archived)};});
+    BYCHRT=new Map(PRODS.map(p=>[p.chrt,p]));
+  }catch(e){document.getElementById('err').textContent='Ошибка загрузки базы товаров WB: '+e.message;return;}
+  const act=PRODS.filter(p=>!p.off),fam=new Map();act.forEach(p=>{const f=gloveFamily(p.offer);if(f)(fam.get(f)||fam.set(f,[]).get(f)).push(p);});
+  document.getElementById('qlist').innerHTML=[...[...fam].filter(([,m])=>m.length>1).map(([f,m])=>`<option value="${esc(f)}">группа перчаток · ${m.length} разм.</option>`),
+    ...act.sort((a,b)=>a.offer.localeCompare(b.offer)).map(p=>`<option value="${esc(p.offer)}">${esc(p.title)}</option>`)].join('');
+  const now=new Date(),cm=localISO(now).slice(0,7),pm=localISO(new Date(now.getFullYear(),now.getMonth()-1,1)).slice(0,7);
+  if(!MONTH)MONTH=cm;
+  document.getElementById('mon').innerHTML=[pm,cm].map(m=>`<option value="${m}"${m===MONTH?' selected':''}>${['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join('');
+  const k=QS.get('pulse')||(QS.get('chrt')&&BYCHRT.get(Number(QS.get('chrt')))?BYCHRT.get(Number(QS.get('chrt'))).offer:'');
+  if(k){document.getElementById('q').value=k;pick(k);}
+}
+// выбор: размер (артикул-размер) или семейство перчаток от 2 неархивных размеров
+function pick(v){const key=String(v||'').trim().toUpperCase();if(!key)return;
+  const p=PRODS.find(x=>x.offer===key);
+  const ms=PRODS.filter(x=>!x.off&&gloveFamily(x.offer)===key).sort(bySize);
+  if(p)CUR={key:p.offer,isG:false,members:[p]};
+  else if(ms.length>1)CUR={key,isG:true,members:ms};
+  else{document.getElementById('err').textContent=`«${v}» не найден в «Базе товаров WB».`;return;}
+  document.getElementById('err').textContent='';EH_HIDE.clear();EF_SZ.clear();EH_SEL=null;
+  if(!EMBED){const u=new URL(location.href);u.searchParams.set('pulse',CUR.key);u.searchParams.delete('chrt');history.replaceState(null,'',u);}
+  show();}
+async function show(){if(!CUR)return;
+  const box=document.getElementById('pulseBox');box.innerHTML='<div class="psub">загрузка…</div>';
+  document.getElementById('meta').textContent=CUR.isG?`${CUR.members.length} размеров: ${CUR.members.map(m=>shortOf(m.offer)).join(', ')}`:(CUR.members[0].title||'');
+  try{D=await pulseData();box.innerHTML=pulseRender(D);}
+  catch(e){box.innerHTML=`<div class="err">Ошибка загрузки: ${esc(e.message)}</div>`;return;}
+  document.getElementById('hypBox').classList.remove('hide');
+  await loadHyp();tellH();}
+
+// ===== данные таблицы =====
+async function pulseData(){
+  const [y,m]=MONTH.split('-').map(Number),first=localISO(new Date(y,m-1,1-10)),last=localISO(new Date(y,m,0)),mStart=MONTH+'-01';
+  const today=localISO(new Date()),yest=addDaysISO(today,-1),ids=CUR.members.map(p=>p.chrt),inIds=`chrt_id=in.(${ids.join(',')})`;
+  const oFrom=[first,addDaysISO(today,-14)].sort()[0];   // заказы — и за 14 дней до сегодня (вес размеров в лимитах группы)
+  const [ord,cf,stk,lim,plan,lastO]=await Promise.all([
+    getAll(`wb_orders?source=eq.feed&${inIds}&order_day=gte.${oFrom}&order_day=lte.${last}&select=srid,order_day,chrt_id,price_with_disc,is_cancel&order=srid`),
+    getAll(`wb_cf_daily?${inIds}&day=gte.${first}&day=lte.${last}&select=chrt_id,day,mar,ads,retail,no_cost_qty&order=chrt_id,day`),
+    getAll(`wb_stock_history?${inIds}&report_date=gte.${first}&report_date=lte.${last}&select=report_date,barcode,warehouse_name,chrt_id,qty&order=report_date,barcode,warehouse_name`),
+    getAll(`wb_drr_limits?${inIds}&day=gte.${addDaysISO(today,-14)}&select=*&order=day.desc,chrt_id`).catch(e=>{if(noTable(e))return [];throw e;}),
+    getAll(`wb_sales_plan?month=eq.${MONTH}&${inIds}&select=chrt_id,plan_qty,price,margin_pct&order=chrt_id`),
+    fetch(SUPABASE_URL+'/rest/v1/wb_orders?source=eq.feed&select=order_day&order=order_day.desc&limit=1',{headers:HD}).then(r=>{if(!r.ok)throw new Error('wb_orders HTTP '+r.status);return r.json();})]);
+  // последний полный день ленты: не позже вчера (утром в базе бывают заказы сегодняшнего дня — неполные)
+  const lastOrd=[lastO.length?lastO[0].order_day:'',yest].sort()[0];
+  const days=[];for(let d=first;d<=last;d=addDaysISO(d,1))days.push(d);
+  const size=c=>{const P=plan.find(x=>Number(x.chrt_id)===c),L=lim.find(x=>Number(x.chrt_id)===c);
+    const S={chrt:c,offer:BYCHRT.get(c).offer,q:{},rev:{},qa:{},reva:{},ads:{},mar:{},noc:{},stk:{},q14:0,
+      plan:P&&Number(P.plan_qty)>0?{qty:Number(P.plan_qty),price:Number(P.price||0),pct:P.margin_pct==null?null:Number(P.margin_pct)}:null,lim:L||null};
+    ord.forEach(o=>{if(Number(o.chrt_id)!==c)return;const d=o.order_day,v=Number(o.price_with_disc||0);
+      S.qa[d]=(S.qa[d]||0)+1;S.reva[d]=(S.reva[d]||0)+v;
+      if(!o.is_cancel){S.q[d]=(S.q[d]||0)+1;S.rev[d]=(S.rev[d]||0)+v;if(d>=addDaysISO(today,-14)&&d<today)S.q14++;}});
+    cf.forEach(x=>{if(Number(x.chrt_id)!==c)return;S.ads[x.day]=(S.ads[x.day]||0)+Number(x.ads||0);S.mar[x.day]=(S.mar[x.day]||0)+Number(x.mar||0);if(Number(x.no_cost_qty||0)>0)S.noc[x.day]=(S.noc[x.day]||0)+Number(x.no_cost_qty);});
+    stk.forEach(x=>{if(Number(x.chrt_id)!==c||PSEUDO.test(x.warehouse_name||''))return;S.stk[x.report_date]=(S.stk[x.report_date]||0)+Number(x.qty||0);});
+    return S;};
+  const sizes=ids.map(size);
+  return {days,first,last,mStart,today,lastOrd,sizes,lastCf:cf.length?cf.map(x=>x.day).sort().pop():null};
+}
+// лимиты ДРР при цене P — модель шага 7 wb-daily-load (purchasing.md, «Лимиты ДРР WB»): pre(P) = r − t − u ÷ (P × b);
+// безубыточный = max(0, (pre − 5) × b), плановый = max(0, (pre − план маржинальности) × b); план — wb_sales_plan месяца страницы
+function limAt(S,P){const L=S.lim;if(!L||!(P>0))return {ok:false};
+  const b=Number(L.b),r=Number(L.r),t=Number(L.t),u=Number(L.u);if(!(b>0))return {ok:false};
+  const pre=(r-t-u/(P*b))*100,pp=S.plan&&S.plan.pct!=null?S.plan.pct:(L.plan_pct==null?null:Number(L.plan_pct));
+  return {ok:true,p:P,pre,be:Math.max(0,(pre-NET_FLOOR)*b),target:pp==null?null:Math.max(0,(pre-pp)*b),day:L.day};}
+// значения размера по дням
+function sizeVals(S,X){const {days,today,lastOrd,mStart}=X;let lastP=null;
+  const exec=Object.entries(S.q).filter(([d])=>d>=mStart&&d<=lastOrd).reduce((s,[,v])=>s+v,0);
+  const [y,m]=MONTH.split('-').map(Number),effM=effMonth(y,m),effRem=effDaysRange(today>mStart?today:mStart,X.last);
+  return days.map(d=>{const has=d>=FEED_FULL_FROM&&d<=lastOrd&&d<today;
+    const q=has?(S.q[d]||0):null,rev=has?(S.rev[d]||0):null,qa=S.qa[d]||0,reva=S.reva[d]||0;
+    if(has&&qa>0)lastP=reva/qa;
+    let planDay=null,catchDay=null;
+    if(d>=today&&S.plan){const k=isWeekend(d)?0.7:1;planDay=S.plan.qty/effM*k;catchDay=effRem>0?Math.max(0,S.plan.qty-exec)/effRem*k:null;}
+    const ads=S.ads[d]||0,P=d<today&&qa>0?reva/qa:(d>=today&&S.lim?Number(S.lim.price):lastP);
+    const drr=d<today&&d<=lastOrd&&ads>0?(reva>0?ads/reva*100:Infinity):null;
+    return {d,q,rev,qa,reva,price:q>0?rev/q:null,ads,drr,L:limAt(S,P),mar:S.mar[d]!=null?S.mar[d]:null,noc:S.noc[d]||0,stk:S.stk[d]!=null?S.stk[d]:null,planDay,catchDay};});}
+// группа перчаток: суммы размеров; цена = Σ выручки ÷ Σ шт; ДРР = Σ рекламы ÷ Σ выручки всех заказов; лимиты — лимиты размеров при цене дня,
+// взвешенные выручкой размера за день (нет выручки — заказами за 14 дней), как РНП группы plan.html
+function groupVals(rows,sizes){return rows[0].map((_,i)=>{const c=rows.map(r=>r[i]),S=(f)=>c.some(x=>x[f]!=null)?c.reduce((s,x)=>s+(x[f]||0),0):null;
+  const q=S('q'),rev=S('rev'),reva=c.reduce((s,x)=>s+x.reva,0),ads=c.reduce((s,x)=>s+x.ads,0),d=c[0].d;
+  const ws=c.map((x,j)=>({L:x.L,w:x.reva>0?x.reva:sizes[j].q14})).filter(x=>x.L.ok&&x.w>0),W=ws.reduce((s,x)=>s+x.w,0);
+  const L=W>0?{ok:true,grp:true,pre:ws.reduce((s,x)=>s+x.L.pre*x.w,0)/W,be:ws.reduce((s,x)=>s+x.L.be*x.w,0)/W,target:ws.every(x=>x.L.target!=null)?ws.reduce((s,x)=>s+x.L.target*x.w,0)/W:null}:{ok:false};
+  return {d,q,rev,reva,price:q>0?rev/q:null,ads,drr:c.some(x=>x.drr!=null)?(reva>0?ads/reva*100:Infinity):null,L,mar:S('mar'),noc:c.reduce((s,x)=>s+x.noc,0),stk:S('stk'),
+    planDay:c.some(x=>x.planDay!=null)?c.reduce((s,x)=>s+(x.planDay||0),0):null,catchDay:c.some(x=>x.catchDay!=null)?c.reduce((s,x)=>s+(x.catchDay||0),0):null};});}
+
+// ===== отрисовка таблицы (как pulseRender plan.html) =====
+function pulseRender(X){const {days,today}=X,isG=CUR.isG;
+  const rows=X.sizes.map(S=>sizeVals(S,X)),G=isG?groupVals(rows,X.sizes):rows[0];
+  const planPrice=isG?(()=>{const ps=X.sizes.filter(s=>s.plan);const q=ps.reduce((s,x)=>s+x.plan.qty,0);return q>0?ps.reduce((s,x)=>s+x.plan.qty*x.plan.price,0)/q:null;})():(X.sizes[0].plan?X.sizes[0].plan.price:null);
+  const grad=(vals,rgb,inv)=>{const n=vals.filter(v=>v!=null),mn=n.length?Math.min(...n):0,mx=n.length?Math.max(...n):0;
+    return v=>{if(v==null||!n.length)return '';const t=mx===mn?.5:(v-mn)/(mx-mn);return `background:rgba(${rgb},${(inv?0.44-0.38*t:0.06+0.44*t).toFixed(2)});`;};};
+  const rOrders=V=>{const bg=grad(V.map(v=>v.q),'22,163,74');return V.map(v=>{
+    if(v.q!=null)return `<td class="num" style="${bg(v.q)}">${fmt(v.q)}</td>`;
+    if(v.d>=today){if(v.planDay==null&&v.catchDay==null)return '<td class="num">—</td>';
+      return `<td class="num factcell" title="План дня / догоняющий темп, шт (выходной × 0,7)">${v.planDay!=null?fmt(v.planDay):'—'}${v.catchDay!=null?'/'+fmt(v.catchDay):''}</td>`;}
+    return `<td class="num"${v.d<FEED_FULL_FROM?' title="«Лента заказов» полная с 12.10.2026"':v.d>X.lastOrd?' title="заказы за день ещё не загружены"':''}>—</td>`;}).join('');};
+  const rPrice=(V,pp)=>V.map(v=>`<td class="num" style="${v.price!=null&&pp!=null&&v.price<pp*0.98?'background:rgba(227,61,120,.14);':''}">${v.price==null?'—':fmt(v.price)}</td>`).join('');
+  const ZBG={red:'background:rgba(227,61,120,0.38);',yellow:'background:rgba(253,224,71,0.45);',green:'background:rgba(22,163,74,0.30);'};
+  const zone=(v,L)=>{if(v==null)return null;if(!isFinite(v))return 'red';if(!L.ok)return null;if(v>L.be)return 'red';if(L.target!=null&&v>L.target)return 'yellow';return 'green';};
+  const rDrr=V=>V.map(v=>{const L=v.L,z=zone(v.drr,L);
+    const lt=L.ok?`<div style="font-size:.78em;color:#64748b;line-height:1.1">(${L.target!=null?f1(L.target)+'/':''}${f1(L.be)})</div>`:'';
+    const tip=L.ok?(L.grp?`Лимиты группы (взвешены по размерам): плановый ${L.target!=null?f1(L.target)+'%':'— нет плана'} / безубыточный ${f1(L.be)}%; до рекламы ${f1(L.pre)}%`
+      :`Лимиты при цене ${fmt(L.p)} ₽${v.d>=today?' (средняя за 7 дней)':''}: плановый ${L.target!=null?f1(L.target)+'%':'— нет плана'} / безубыточный ${f1(L.be)}% (маржинальность до рекламы ${f1(L.pre)}%)`)
+      +(v.drr!=null?`\nРеклама ${fmt(v.ads)} ₽ ÷ выручка всех заказов ${fmt(v.reva)} ₽`:''):(v.drr!=null?`Реклама ${fmt(v.ads)} ₽ ÷ выручка всех заказов ${fmt(v.reva)} ₽; лимитов нет — коэффициенты модели ещё не посчитаны`:'');
+    return `<td class="num" style="${z?ZBG[z]:''}"${tip?` title="${esc(tip)}"`:''}>${v.drr==null?'—':(isFinite(v.drr)?f1(v.drr):'∞')}${lt}</td>`;}).join('');
+  const rMar=V=>{const bg=grad(V.map(v=>v.mar),'22,163,74');return V.map(v=>v.mar==null?'<td class="num">—</td>'
+    :`<td class="num" style="${bg(v.mar)}${v.noc?'font-style:italic':''}" title="${esc(`${ddmm(v.d)}: маржа ${fmt(v.mar)} ₽ по операциям финансового отчёта этого дня${v.noc?`\nНет себестоимости у ${fmt(v.noc)} шт — маржа завышена`:''}`)}">${fmt(v.mar)}${v.noc?'*':''}</td>`).join('');};
+  const rStock=V=>{const bg=grad(V.map(v=>v.stk),'227,61,120',true);return V.map(v=>`<td class="num" style="${bg(v.stk)}">${v.stk==null?'—':fmt(v.stk)}</td>`).join('');};
+  const metric=(id,name,tip,fn,pp)=>{const lbl=n=>`<td class="pulsemetric" title="${esc(tip+(isG?'\n\n▸ — показать размеры.':''))}">${isG?`<span style="cursor:pointer" onclick="subToggle('${id}',this)">▸</span> `:''}${n}</td>`;
+    let h=`<tr>${lbl(name)}${fn(G,pp)}</tr>`;
+    if(isG)X.sizes.forEach((S,j)=>{h+=`<tr class="sub ps_${id}" style="display:none;background:#fbfafd"><td class="pulsemetric" style="font-weight:400;padding-left:18px" title="${esc(S.offer)}">${esc(shortOf(S.offer))}</td>${fn(rows[j],S.plan?S.plan.price:null)}</tr>`;});
+    return h;};
+  let h='<div class="pulsewrap"><table class="pulsetable"><thead><tr><th>Параметр</th>'+days.map(d=>`<th class="${isWeekend(d)?'we':''}${d===today?'" style="font-weight:700;color:#544273':''}">${ddmm(d)}</th>`).join('')+'</tr></thead><tbody>';
+  h+=metric('ord','Заказы, шт','Заказы за день по «Ленте заказов» WB без отмен (по Москве).\n\nС сегодняшнего дня — план дня / догоняющий темп: сколько заказов в день нужно, чтобы выйти на план месяца (wb_sales_plan; выходной × 0,7).'+(isG?'\n\nГруппа — сумма размеров.':''),rOrders);
+  h+=metric('prc','Цена заказа, ₽','Средняя цена заказа за день: выручка ÷ шт, без отмен (цена продавца со скидкой).\n\n'+(planPrice!=null?`Цена в плане — ${fmt(planPrice)} ₽; розовым — ниже плана больше чем на 2%.`:'Плана на месяц нет.'),rPrice,planPrice);
+  const L0=X.sizes.find(s=>s.lim);
+  h+=metric('drr','ДРР, %','Реклама дня ÷ выручка всех заказов дня (с отменами — как модель лимитов), %. Реклама карточки делится на размеры по выручке заказов дня.\n\nПод значением — лимиты при цене дня (плановый / безубыточный): зелёный — до планового, жёлтый — до безубыточного (маржинальность 5%), красный — выше.'
+    +(L0?`\n\nКоэффициенты модели — ночная загрузка ${ddmm(L0.lim.day)} (недель калибровки ${L0.lim.weeks}; заказы ${ddmm(L0.lim.cal_from)}…${ddmm(L0.lim.cal_to)}).`:'\n\nЛимитов пока нет: wb_drr_limits ещё не заполнена ночной загрузкой.'),rDrr);
+  h+=metric('mar','Маржа, ₽','Маржа WB за день, ₽ — по дате операции финансового отчёта (wb_cf_daily): к перечислению − возмещение издержек − себестоимость − налог 3% − реклама.\n\n* и курсив — у части проданных штук нет себестоимости, маржа завышена. Заливка — чем больше маржа, тем зеленее.'+(isG?'\n\nГруппа — сумма размеров.':''),rMar);
+  h+=metric('stk','Остатки, шт','Остаток на складах WB на день снимка (без «В пути до получателей» и «В пути возвраты»).'+(isG?' Группа — сумма размеров.':''),rStock);
+  return h+`</tbody></table><div class="psub" style="margin-top:6px">Заказы загружены по ${ddmm(X.lastOrd)}; маржа — по ${ddmm(X.lastCf)}. ДРР: под значением — лимиты при цене этого дня (плановый/безубыточный).${isG?' ▸ у названия строки — размеры группы.':''}</div></div>`;}
+function subToggle(id,el){const open=el.textContent==='▸';el.textContent=open?'▾':'▸';document.querySelectorAll('.ps_'+id).forEach(r=>r.style.display=open?'':'none');tellH();}
+
+// ===== SMART-гипотезы (как окно РНП plan.html: embedHyp / embedHypDraw / embedFormFor / embedAdd / renderItem / verdict) =====
+async function loadHyp(){const box=document.getElementById('hypList'),ids=CUR.members.map(p=>p.chrt);
+  try{const rows=await getAll(`wb_protocol?chrt_id=in.(${ids.join(',')})&select=*&order=created_at,id`);NOTABLE=false;
+    PROTO={};ids.forEach(id=>{PROTO[id]=rows.filter(x=>Number(x.chrt_id)===id);});}
+  catch(e){if(noTable(e)){NOTABLE=true;PROTO={};}else{box.innerHTML=`<div class="psectitle">🎯 SMART-гипотезы</div><div class="err">Ошибка загрузки гипотез: ${esc(e.message)}</div>`;return;}}
+  hypDraw();formDraw();}
+function verdict(it){if(it.fact_ctx==null)return null;
+  const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):null,fact=JSON.parse(it.fact_ctx);if(!base)return null;
+  const B=base.orders,F=fact.orders,T=Number(it.target_orders);
+  if(B==null||F==null||it.target_orders==null||isNaN(T))return null;
+  if(Math.abs(T-B)<0.01)return F>=B?'success':'fail';
+  const pr=(F-B)/(T-B),tol=Math.abs(T-B)*0.1;
+  if(pr>=1||Math.abs(F-T)<=tol)return 'success';
+  return pr>0?'partial':'fail';}
+function renderItem(it){
+  const today=new Date();today.setHours(0,0,0,0);
+  const dl=it.deadline?parseW(it.deadline):null,daysLeft=dl?Math.round((dl-today)/864e5):null;
+  const base=it.baseline_ctx?JSON.parse(it.baseline_ctx):{},fact=it.fact_ctx?JSON.parse(it.fact_ctx):null;
+  const cd=new Date(it.created_at),created=ddmm(localISO(cd))+' '+cd.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const v=verdict(it);let status,cls='n';
+  if(v==null){status=daysLeft!=null&&daysLeft<0?'<span class="n">ждёт ночной фиксации факта</span>':daysLeft===0?'<span class="badge n">в работе (сегодня)</span>':`<span class="badge n">в работе (осталось ${daysLeft} ${dform(daysLeft)})</span>`;}
+  else if(v==='success'){status='<span class="badge g">успешна</span>';cls='g';}
+  else if(v==='partial'){status='<span class="badge w">частичный успех</span>';cls='w';}
+  else{status='<span class="badge r">неудачна</span>';cls='r';}
+  const bWin=base.orders_from?`${ddmm(base.orders_from)}…${ddmm(base.orders_to)}`:'—';
+  const kids=(PROTO[it.chrt_id]||[]).filter(c=>c.parent_id===it.id);
+  const kidsHtml=kids.map(k=>`<div class="pchild"><span class="pdate">${new Date(k.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','')}</span><span class="paction">${esc(k.action)}</span></div>`).join('');
+  const addForm=it.fact_ctx==null?`<div class="pchildform"><input type="text" id="pca_${it.id}" placeholder="Текст дополнения"><button onclick="addChild(${it.chrt_id},${it.id},this)">Сохранить</button></div>`:'';
+  return `<div class="pitem" style="border-left-color:${cls==='g'?'#16a34a':cls==='w'?'#d97706':cls==='r'?'#E33D78':'rgba(84,66,115,.25)'}">
+    <div><span class="pdate">${created}</span><span class="paction">${esc(it.action)}</span></div>
+    <div class="psub">Метрика: заказы • Контроль: ${ddmm(it.deadline)}${it.user_email?' • '+esc(it.user_email):''}</div>
+    <div class="psub">База: ${f1(base.orders)} шт/день (${bWin}, будни)</div>
+    <div class="psub">Цель: ${f1(it.target_orders)} шт/день</div>
+    ${fact?`<div class="psub">Факт (${ddmm(fact.orders_from)}…${ddmm(fact.orders_to)}, будни): ${f1(fact.orders)} шт/день</div>`:''}
+    <div class="psub">${status}</div>${kidsHtml}${addForm}</div>`;}
+// календарь: закрашены дни постановки (цвет — итог), точка — день контроля, рамка — выбранный день; у группы — чек-боксы размеров (фильтр)
+const EH_ST={success:['rgba(22,163,74,.38)','успешна'],partial:['rgba(253,224,71,.7)','частичный успех'],fail:['rgba(227,61,120,.38)','неудачна'],work:['rgba(84,66,115,.2)','в работе'],wait:['rgba(148,163,184,.4)','ждёт фиксации']};
+const ehState=it=>verdict(it)||(it.deadline>=localISO(new Date())?'work':'wait');
+const ehDay=it=>localISO(new Date(it.created_at));
+function hypDraw(){const box=document.getElementById('hypList');if(!box||!D)return;
+  if(NOTABLE){box.innerHTML='<div class="psectitle">🎯 SMART-гипотезы WB</div><div class="err">Таблиц гипотез WB ещё нет — запустить sql/2026-11-13_wb_protocol.sql в базе ИП.</div>';return;}
+  const isG=CUR.isG,ms=CUR.members,today=localISO(new Date()),from=D.first,to=D.last;
+  const items=[];ms.forEach(p=>{if(EH_HIDE.has(p.chrt))return;(PROTO[p.chrt]||[]).filter(x=>!x.parent_id&&x.deadline).forEach(it=>items.push({it,p}));});
+  const byC=new Map(),byD=new Map();items.forEach(x=>{const c=ehDay(x.it);(byC.get(c)||byC.set(c,[]).get(c)).push(x);(byD.get(x.it.deadline)||byD.set(x.it.deadline,[]).get(x.it.deadline)).push(x);});
+  const inR=d=>d>=from&&d<=to;
+  if(!EH_SEL||!inR(EH_SEL)){const ds=[...byC.keys()].filter(d=>inR(d)&&d<=today).sort();EH_SEL=ds.length?ds[ds.length-1]:today;}
+  const RANK={fail:0,partial:1,wait:2,work:3,success:4};
+  const d0=parseW(from);d0.setDate(d0.getDate()-((d0.getDay()+6)%7));const d1=parseW(to);d1.setDate(d1.getDate()+(7-d1.getDay())%7);
+  let cal='<table class="ehcal"><tr>'+['пн','вт','ср','чт','пт','сб','вс'].map(w=>`<th>${w}</th>`).join('')+'</tr><tr>';
+  for(let d=new Date(d0),k=0;d<=d1;d.setDate(d.getDate()+1),k++){if(k&&k%7===0)cal+='</tr><tr>';const iso=localISO(d),c=byC.get(iso)||[],dl=byD.get(iso)||[];
+    const st=c.length?c.map(x=>ehState(x.it)).sort((a,b)=>RANK[a]-RANK[b])[0]:null;
+    const tip=`${ddmm(iso)}${c.length?`: поставлено ${c.length} — `+c.map(x=>(isG?shortOf(x.p.offer)+' ':'')+EH_ST[ehState(x.it)][1]).join(', '):''}${dl.length?`\nконтроль: ${dl.length}`:''}`;
+    cal+=`<td class="${inR(iso)?'':'ehout'}${iso===EH_SEL?' ehsel':''}${iso===today?' ehtoday':''}" style="${st?'background:'+EH_ST[st][0]:''}" title="${esc(tip)}" onclick="EH_SEL='${iso}';hypDraw()">${d.getDate()}${c.length>1?`<sup>${c.length}</sup>`:''}${dl.length?'<i class="ehdl"></i>':''}</td>`;}
+  cal+='</tr></table>';
+  const leg=Object.values(EH_ST).map(([c,t])=>`<span><b style="background:${c}"></b>${t}</span>`).join('')+'<span><i class="ehdl" style="position:static;display:inline-block"></i> контроль</span>';
+  const flt=isG?`<div class="ehflt">${ms.map(p=>`<label><input type="checkbox"${EH_HIDE.has(p.chrt)?'':' checked'} onchange="EH_HIDE[this.checked?'delete':'add'](${p.chrt});hypDraw()">${esc(shortOf(p.offer))}</label>`).join('')}</div>`:'';
+  const lst=(arr,title)=>arr.length?`<div class="psub" style="margin:4px 0 2px"><b>${title}</b></div>`+arr.sort((a,b)=>String(b.it.created_at).localeCompare(String(a.it.created_at))).map(x=>(isG?`<div class="psub" style="margin-top:4px"><b>${esc(x.p.offer)}</b></div>`:'')+renderItem(x.it)).join(''):'';
+  const cs=byC.get(EH_SEL)||[],ds=(byD.get(EH_SEL)||[]).filter(x=>ehDay(x.it)!==EH_SEL);
+  const det=(lst(cs,`Поставлены ${ddmm(EH_SEL)}`)+lst(ds,`Контроль ${ddmm(EH_SEL)}`))||`<div class="psub">${ddmm(EH_SEL)}: гипотез нет${EH_HIDE.size?' (с учётом фильтра размеров)':''}. Закрашенные дни — когда гипотезы ставились.</div>`;
+  box.innerHTML=`<div class="psectitle">🎯 SMART-гипотезы WB · ${ddmm(from)}–${ddmm(to)}</div><div class="ehwrap"><div class="ehleft">${flt}${cal}<div class="ehleg">${leg}</div></div><div class="ehdet">${det}</div></div>`;
+  tellH();}
+// постановка — только по заказам; у группы — отмеченные размеры (по умолчанию — самый продаваемый за 14 дней), цель и база — свои у каждого,
+// действие и день контроля — общие; на каждый размер — своя запись wb_protocol
+async function ordersBaseWindow(chrt,start){const days=lastWeekdaysBefore(start,3);
+  const rows=await getAll(`wb_orders?source=eq.feed&chrt_id=eq.${chrt}&order_day=gte.${days[0]}&order_day=lte.${days[2]}&is_cancel=eq.false&select=srid&order=srid`);
+  return {avg:Math.round(rows.length/days.length*100)/100,from:days[0],to:days[2],days:days.length};}
+function formDraw(){const box=document.getElementById('hypForm');
+  if(NOTABLE){box.innerHTML='';return;}
+  const isG=CUR.isG,ms=CUR.members,start=localISO(new Date());
+  if(!EF_SZ.size){const best=[...D.sizes].sort((a,b)=>b.q14-a.q14)[0];EF_SZ.add(best?best.chrt:ms[0].chrt);}
+  const late=lastWeekdaysBefore(start,3).filter(d=>d>D.lastOrd);
+  const szs=ms.map(p=>{const c=EF_SZ.has(p.chrt);
+    return `<span class="efsz${c?'':' efoff'}">${isG?`<label><input type="checkbox"${c?' checked':''} onchange="EF_SZ[this.checked?'add':'delete'](${p.chrt});formDraw()">${esc(shortOf(p.offer))}</label>`:''}`
+      +`<input type="number" id="pt_${p.chrt}" step="0.01" placeholder="${isG?'цель':'Цель: заказы'}, шт/день" style="width:${isG?95:170}px"${c?'':' disabled'}><span class="psub" id="eb_${p.chrt}"></span></span>`;}).join('');
+  box.innerHTML=`<div class="psectitle">➕ Новая гипотеза (по заказам)${isG?' — отметьте размеры':''}</div><div class="pfrow">${szs}</div>`
+    +`<div class="pfrow"><input type="text" id="ea" placeholder="Гипотеза (действие)${isG?' — общее для отмеченных размеров':''}"><label>Контроль <select id="ed">${weekdayOptions(start).map(o=>`<option value="${o}">${ddmm(o)}</option>`).join('')}</select></label><button onclick="addHyp(this)">Добавить</button></div>`
+    +`<div class="psub">База — заказы без отмен за 3 будних дня до сегодня; контроль — один из 3 следующих будних дней, факт — среднее по будням с дня после постановки по день контроля (фиксирует ночная загрузка WB).${late.length?` <b style="color:#E33D78">Заказы за ${late.map(ddmm).join(', ')} ещё не загружены — база будет занижена.</b>`:''}</div>`;
+  ms.forEach(p=>{if(!EF_SZ.has(p.chrt))return;ordersBaseWindow(p.chrt,start).then(w=>{const el=document.getElementById('eb_'+p.chrt);if(el)el.textContent=`база ${f1(w.avg)}`;}).catch(()=>{});});
+  tellH();}
+async function post(table,body,q=''){const r=await fetch(SUPABASE_URL+`/rest/v1/${table}${q}`,{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:q?'resolution=merge-duplicates,return=minimal':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(`${table}: HTTP ${r.status}: ${(await r.text()).slice(0,200)}`);}
+async function addHyp(btn){const ids=[...EF_SZ].filter(c=>CUR.members.some(m=>m.chrt===c));
+  const action=(document.getElementById('ea').value||'').trim(),dl=document.getElementById('ed').value,start=localISO(new Date());
+  if(!ids.length){alert('Отметьте хотя бы один размер');return;}if(!action){alert('Заполните текст гипотезы');return;}
+  const tg={};for(const c of ids){const v=Number(String(document.getElementById('pt_'+c).value).replace(',','.'));if(String(document.getElementById('pt_'+c).value).trim()===''||!isFinite(v)||v<0){alert('Укажите цель (шт/день) для каждого отмеченного размера');return;}tg[c]=v;}
+  const late=lastWeekdaysBefore(start,3).filter(d=>d>D.lastOrd);
+  if(late.length&&!confirm(`Заказы за ${late.map(ddmm).join(', ')} ещё не загружены ночной загрузкой — база будет занижена. Всё равно поставить?`))return;
+  const tM=monthOfWeekISO(dl),email=(window.BA_AUTH&&BA_AUTH.email())||null,msg=[];btn.disabled=true;
+  try{for(const c of ids){const off=BYCHRT.get(c).offer;
+      // одна активная гипотеза по заказам на размер с контролем в этом месяце (как addProto plan.html)
+      const open=await getAll(`wb_protocol?chrt_id=eq.${c}&parent_id=is.null&fact_ctx=is.null&deadline=not.is.null&select=id,deadline&order=id`);
+      const act=open.find(x=>monthOfWeekISO(x.deadline)===tM);if(act){msg.push(`${off}: уже есть активная гипотеза (контроль ${ddmm(act.deadline)}) — пропущен`);continue;}
+      const b=await ordersBaseWindow(c,start);
+      if(Math.abs(tg[c]-b.avg)<0.01){msg.push(`${off}: цель равна базе ${f1(b.avg)} — пропущен`);continue;}
+      await post('wb_protocol',[{chrt_id:c,month:MONTH,action,deadline:dl,metric:'orders',target_orders:tg[c],user_email:email,
+        baseline_ctx:JSON.stringify({orders:b.avg,orders_from:b.from,orders_to:b.to,orders_days:b.days,source:'wb_orders feed, без отмен'})}]);
+      // дата работы = день контроля (как upsertPPM plan.html): строки других месяцев с датой работы — убрать
+      const r=await fetch(SUPABASE_URL+`/rest/v1/wb_plan_meta?chrt_id=eq.${c}&work_date=not.is.null&month=neq.${tM}`,{method:'DELETE',headers:HD});if(!r.ok)msg.push(`${off}: дата работы — HTTP ${r.status}`);
+      await post('wb_plan_meta',[{chrt_id:c,month:tM,work_date:dl,updated_at:new Date().toISOString()}],'?on_conflict=chrt_id,month');
+      msg.push(`${off}: поставлена (база ${f1(b.avg)} → цель ${f1(tg[c])} шт/день)`);}
+  }catch(e){msg.push('Ошибка: '+e.message);}finally{btn.disabled=false;}
+  alert(msg.join('\n'));EH_SEL=start;await loadHyp();}
+async function addChild(chrt,parentId,btn){const el=document.getElementById('pca_'+parentId),action=(el?el.value:'').trim();
+  if(!action){alert('Введите текст дополнения');return;}btn.disabled=true;
+  try{await post('wb_protocol',[{chrt_id:chrt,month:MONTH,action,parent_id:parentId,user_email:(window.BA_AUTH&&BA_AUTH.email())||null}]);}
+  catch(e){alert('Ошибка сохранения: '+e.message);btn.disabled=false;return;}
+  await loadHyp();}
+if(BA_AUTH.has(SUPABASE_URL))go();
+else if(EMBED){document.getElementById('login').classList.add('hide');document.getElementById('app').classList.remove('hide');document.getElementById('pulseBox').innerHTML='<div class="psub">Нет входа — откройте wb-pulse.html и войдите (вход общий с главной).</div>';}
+</script>
+</body>
+</html>

@@ -2,7 +2,8 @@
 // Заказы — «Лента заказов» API (с 11.11.2026; sql/2026-11-11_wb_orders_feed.sql), остатки — warehouse_remains, поставки — supplies.
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
 // финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend;
-// маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily; лимиты ДРР (шаг 7) — sql/2026-11-13_wb_drr_limits.sql: wb_drr_limits.
+// маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily; лимиты ДРР (шаг 7) — sql/2026-11-13_wb_drr_limits.sql: wb_drr_limits;
+// фиксация факта SMART-гипотез WB (шаг 8) — sql/2026-11-13_wb_protocol.sql: wb_protocol.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -353,5 +354,39 @@ else try {
   await upsert('wb_drr_limits', 'chrt_id,day', rows);
   note(`лимиты ДРР: ${rows.length} размеров (недель калибровки ${weeks.filter(w => w.ok).length})${noCost ? `, без себестоимости ${noCost}` : ''}`);
 } catch (e) { console.log(`⚠️ лимиты ДРР: ${e.message}`); note(`⚠️ лимиты ДРР: ${e.message.slice(0, 200)}`); }
+
+// 8) Фиксация факта SMART-гипотез WB (13.11.2026; страница wb-pulse.html, sql/2026-11-13_wb_protocol.sql) → wb_protocol.fact_ctx.
+//    Перенос fixHypotheses (шаг 7 ozon_daily_load.mjs) на данные WB, только метрика «заказы»: после дня контроля (сегодня > deadline) —
+//    среднее заказов в день по будним дням с дня после постановки (по Москве) по день контроля; заказы — «Лента заказов» без отмен
+//    (wb_orders, source = feed), как база при постановке. Уже зафиксированные не пересчитываются. Только при загрузке за вчера.
+if (!SNAPSHOT) console.log('\nгипотезы WB: день ≠ вчера — пропущено');
+else try {
+  const t0 = await fetch(`${SB}/rest/v1/wb_protocol?select=id&limit=1`, { headers: SR });
+  if (!t0.ok) throw new Error(`нет таблицы wb_protocol (HTTP ${t0.status}) — запустить sql/2026-11-13_wb_protocol.sql в базе ИП`);
+  const TODAY = shift(D, 1), mskDay = ts => new Date(Date.parse(ts) + 3 * 36e5).toISOString().slice(0, 10);
+  const isWE = d => { const w = new Date(d + 'T00:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+  const open = await readAll('wb_protocol', 'parent_id=is.null&deadline=not.is.null&fact_ctx=is.null&select=id,chrt_id,deadline,metric,baseline_ctx,created_at', 'id');
+  const hyp = { всего: open.length, зафиксировано: 0, 'ждут дня контроля': 0, 'нет данных': 0, ошибки: 0 };
+  for (const it of open) {
+    try {
+      if ((it.metric || 'orders') !== 'orders' || !it.baseline_ctx) { hyp['нет данных']++; continue; }
+      if (TODAY <= it.deadline) { hyp['ждут дня контроля']++; continue; }
+      const from = shift(mskDay(it.created_at), 1), to = it.deadline;
+      const ord = await readAll('wb_orders', `source=eq.feed&is_cancel=eq.false&chrt_id=eq.${it.chrt_id}&order_day=gte.${from}&order_day=lte.${to}&select=srid,order_day`, 'srid');
+      const m = new Map(); ord.forEach(o => m.set(o.order_day, (m.get(o.order_day) || 0) + 1));
+      let sum = 0, cnt = 0; for (let d = from; d <= to; d = shift(d, 1)) if (!isWE(d)) { sum += m.get(d) || 0; cnt++; }
+      if (!cnt) { hyp['нет данных']++; continue; }
+      const payload = { fact_ctx: JSON.stringify({ orders: Math.round(sum / cnt * 100) / 100, orders_from: from, orders_to: to, fix_date: TODAY }), fact_dev: 1, fact_date: TODAY };
+      if (WRITE) {
+        const r = await fetch(`${SB}/rest/v1/wb_protocol?id=eq.${it.id}`, { method: 'PATCH', headers: { ...SR, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(payload) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      }
+      hyp.зафиксировано++;
+    } catch (e) { hyp.ошибки++; console.log('  гипотеза WB: ошибка', e.message.slice(0, 120)); }
+  }
+  console.log('гипотезы WB без факта:', JSON.stringify(hyp));
+  if (!WRITE) DONE.push(`wb_protocol: было бы зафиксировано гипотез ${hyp.зафиксировано}`); else DONE.push(`wb_protocol: зафиксировано гипотез ${hyp.зафиксировано}`);
+  note(`Гипотезы WB: зафиксировано ${hyp.зафиксировано}, ждут дня контроля ${hyp['ждут дня контроля']}${hyp.ошибки ? `; ⚠️ ошибки ${hyp.ошибки}` : ''}`);
+} catch (e) { console.log(`⚠️ гипотезы WB: ${e.message}`); note(`⚠️ гипотезы WB: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
