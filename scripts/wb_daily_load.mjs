@@ -1,6 +1,7 @@
 // Ночная загрузка WB (только ИП) — шаг 1 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Склады WB»).
 // Заказы — «Лента заказов» API (с 11.11.2026; sql/2026-11-11_wb_orders_feed.sql), остатки — warehouse_remains, поставки — supplies.
-// Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods.
+// Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
+// финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -157,5 +158,43 @@ const gk = new Map(); goodRows.forEach(g => { const k = `${g.supply_id}|${g.barc
 await upsert('wb_supplies', 'supply_id', supRows);
 await upsert('wb_supply_goods', 'supply_id,barcode', [...gk.values()]);
 note(`поставки: ${supRows.length}, не принятых (статус < 5): ${supRows.filter(x => (x.status_id ?? 0) < 5).length}`);
+
+// 4) Финансовый отчёт — детализация ежедневных отчётов о реализации (13.11.2026; sql/2026-11-13_wb_charges.sql) → wb_charges.
+//    finance-api POST /api/finance/v1/sales-reports/detailed, period=daily; 1 запрос в минуту, страница до 100 000 строк, дальше — по rrdId.
+//    Отчёт за день WB формирует на следующий день — каждую ночь берём отчёты за 7 дней до D (досчитанные дни перезапишутся той же строкой);
+//    разовая догрузка — FIN_FROM (ручной запуск, fin_from). Ошибка шага или нет таблицы — предупреждение, остальные шаги уже записаны.
+const FIN_FROM = /^\d{4}-\d{2}-\d{2}$/.test(process.env.FIN_FROM || '') ? process.env.FIN_FROM : shift(D, -7);
+try {
+  const t = await fetch(`${SB}/rest/v1/wb_charges?select=rrd_id&limit=1`, { headers: SR });
+  if (!t.ok) throw new Error(`нет таблицы wb_charges (HTTP ${t.status}) — запустить sql/2026-11-13_wb_charges.sql в базе ИП`);
+  const fin = []; let rrd = 0;
+  for (let i = 0; i < 100; i++) {
+    if (i) await sleep(61000);
+    const r = await call('POST', 'https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed', { dateFrom: FIN_FROM, dateTo: D, limit: 100000, rrdId: rrd, period: 'daily' });
+    if (r.status === 204) break;
+    const p = need(r, 'sales-reports/detailed') || [];
+    if (!p.length) break;
+    fin.push(...p); rrd = p[p.length - 1].rrdId;
+    if (p.length < 100000) break;
+  }
+  const dt = v => (v ? String(v).slice(0, 10) : null);
+  const rows = fin.map(x => ({
+    rrd_id: x.rrdId, report_id: x.reportId ?? null, report_type: x.reportType ?? null, date_from: dt(x.dateFrom), date_to: dt(x.dateTo),
+    rr_date: dt(x.rrDate), sale_dt: dt(x.saleDt), order_dt: dt(x.orderDt), oper_name: x.sellerOperName || null, doc_type: x.docTypeName || null,
+    bonus_type: x.bonusTypeName || null, nm_id: x.nmId || null, barcode: x.sku || null, chrt_id: x.nmId ? chrtOf(x.sku, x.nmId, x.techSize) : null,
+    vendor_code: x.vendorCode || null, tech_size: x.techSize || null, srid: x.srid || null, quantity: num(x.quantity), delivery_amount: num(x.deliveryAmount),
+    return_amount: num(x.returnAmount), retail_price: num(x.retailPrice), retail_amount: num(x.retailAmount), retail_price_with_disc: num(x.retailPriceWithDisc),
+    for_pay: num(x.forPay), sales_commission: num(x.ppvzSalesCommission), vw: num(x.vw), vw_nds: num(x.vwNds), ppvz_reward: num(x.ppvzReward),
+    acquiring_fee: num(x.acquiringFee), delivery_service: num(x.deliveryService), rebill_logistic_cost: num(x.rebillLogisticCost),
+    paid_storage: num(x.paidStorage), paid_acceptance: num(x.paidAcceptance), penalty: num(x.penalty), deduction: num(x.deduction),
+    additional_payment: num(x.additionalPayment), cashback_amount: num(x.cashbackAmount), cashback_discount: num(x.cashbackDiscount),
+    office_name: x.officeName || null, country: x.country || null, is_b2b: x.isB2b ?? null,
+    raw: Object.fromEntries(Object.entries(x).filter(([k, v]) => v !== null && v !== '' && v !== 0 && v !== '0' && v !== false && k !== 'kiz')) }));  // raw — без пустых полей и КИЗ (место)
+  const days = uniq(rows.map(r => r.rr_date).filter(Boolean)).sort();
+  const noChrt = rows.filter(r => r.nm_id && !r.chrt_id).length;
+  console.log(`финансовый отчёт ${FIN_FROM}…${D}: строк ${rows.length}, отчётов ${uniq(rows.map(r => r.report_id)).length}, дни операций ${days[0] || '—'} … ${days[days.length - 1] || '—'}, без размера ${noChrt}`);
+  await upsert('wb_charges', 'rrd_id', rows);
+  note(`финансовый отчёт: строк ${rows.length}, последний день ${days[days.length - 1] || '—'}${noChrt ? `, без размера ${noChrt}` : ''}`);
+} catch (e) { console.log(`⚠️ финансовый отчёт: ${e.message}`); note(`⚠️ финансовый отчёт: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
