@@ -1,0 +1,35 @@
+name: wb-finance-probe
+# Проба финансового отчёта WB («Отчёт о реализации», reportDetailByPeriod): поля, типы операций, даты.
+# Только чтение из WB, в базу не пишет; в лог — без рублей (репозиторий публичный), суммы по операциям — в Telegram.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'С ГГГГ-ММ-ДД'
+        required: false
+        default: '2026-10-27'
+      to:
+        description: 'По ГГГГ-ММ-ДД'
+        required: false
+        default: '2026-11-09'
+      periods:
+        description: 'Отчёты: weekly, daily или оба через запятую'
+        required: false
+        default: 'weekly,daily'
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: WB finance report probe
+        run: node scripts/wb_finance_probe.mjs
+        env:
+          FROM: ${{ github.event.inputs.from }}
+          TO: ${{ github.event.inputs.to }}
+          PERIODS: ${{ github.event.inputs.periods }}
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
