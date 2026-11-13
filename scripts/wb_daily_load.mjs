@@ -1,7 +1,7 @@
 // Ночная загрузка WB (только ИП) — шаг 1 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Склады WB»).
 // Заказы — «Лента заказов» API (с 11.11.2026; sql/2026-11-11_wb_orders_feed.sql), остатки — warehouse_remains, поставки — supplies.
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
-// финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges.
+// финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -196,5 +196,43 @@ try {
   await upsert('wb_charges', 'rrd_id', rows);
   note(`финансовый отчёт: строк ${rows.length}, последний день ${days[days.length - 1] || '—'}${noChrt ? `, без размера ${noChrt}` : ''}`);
 } catch (e) { console.log(`⚠️ финансовый отчёт: ${e.message}`); note(`⚠️ финансовый отчёт: ${e.message.slice(0, 200)}`); }
+
+// 5) Реклама — расход по кампании, карточке (nm_id) и дню (13.11.2026; sql/2026-11-13_wb_ad_spend.sql) → wb_ad_spend.
+//    /adv/v1/upd — кампании с фактическими затратами за окно (до 31 дня), /adv/v3/fullstats — по дням и карточкам (до 50 кампаний, 3 запроса
+//    в минуту), площадки (сайт, приложения) складываются. Каждую ночь — 7 дней до D, дни окна заменяются целиком; догрузка — ADS_FROM.
+//    Ошибка шага или нет таблицы — предупреждение.
+const ADS_FROM = /^\d{4}-\d{2}-\d{2}$/.test(process.env.ADS_FROM || '') ? process.env.ADS_FROM : shift(D, -7);
+try {
+  const t = await fetch(`${SB}/rest/v1/wb_ad_spend?select=day&limit=1`, { headers: SR });
+  if (!t.ok) throw new Error(`нет таблицы wb_ad_spend (HTTP ${t.status}) — запустить sql/2026-11-13_wb_ad_spend.sql в базе ИП`);
+  const ad = new Map(); let nCamp = 0, updSum = 0;
+  for (let a = ADS_FROM; a <= D; a = shift(a, 31)) {
+    const b = shift(a, 30) < D ? shift(a, 30) : D;
+    const upd = need(await call('GET', `https://advert-api.wildberries.ru/adv/v1/upd?from=${a}&to=${b}`), 'adv/v1/upd') || [];
+    updSum += upd.reduce((s, u) => s + (Number(u.updSum) || 0), 0);
+    const ids = uniq(upd.map(u => u.advertId)); nCamp += ids.length;
+    for (let i = 0; i < ids.length; i += 50) {
+      await sleep(21000);
+      const st = need(await call('GET', `https://advert-api.wildberries.ru/adv/v3/fullstats?ids=${ids.slice(i, i + 50).join(',')}&beginDate=${a}&endDate=${b}`), 'adv/v3/fullstats') || [];
+      for (const c of st) for (const d of (c.days || [])) for (const ap of (d.apps || [])) for (const n of (ap.nms || [])) {
+        const day = String(d.date).slice(0, 10); if (day < a || day > b) continue;
+        const k = `${c.advertId}|${n.nmId}|${day}`;
+        const o = ad.get(k) || { advert_id: c.advertId, nm_id: n.nmId, day, amount: 0, views: 0, clicks: 0, atbs: 0, orders: 0, sum_price: 0 };
+        o.amount += Number(n.sum) || 0; o.views += Number(n.views) || 0; o.clicks += Number(n.clicks) || 0; o.atbs += Number(n.atbs) || 0;
+        o.orders += Number(n.orders) || 0; o.sum_price += Number(n.sum_price) || 0; ad.set(k, o);
+      }
+    }
+  }
+  const rows = [...ad.values()].map(o => ({ ...o, amount: Math.round(o.amount * 100) / 100, sum_price: Math.round(o.sum_price * 100) / 100 }));
+  const adSum = rows.reduce((s, r) => s + r.amount, 0);
+  const share = updSum ? (adSum / updSum * 100).toFixed(1) + '%' : '—';
+  console.log(`реклама ${ADS_FROM}…${D}: кампаний с затратами ${nCamp}, строк ${rows.length}, карточек ${uniq(rows.map(r => r.nm_id)).length}; Σ по карточкам / фактические затраты: ${share}`);
+  if (WRITE) {
+    const r = await fetch(`${SB}/rest/v1/wb_ad_spend?day=gte.${ADS_FROM}&day=lte.${D}`, { method: 'DELETE', headers: SR });
+    if (!r.ok) throw new Error(`supabase wb_ad_spend delete -> HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  }
+  await upsert('wb_ad_spend', 'advert_id,nm_id,day', rows);
+  note(`реклама: строк ${rows.length}, по карточкам ${share} фактических затрат`);
+} catch (e) { console.log(`⚠️ реклама: ${e.message}`); note(`⚠️ реклама: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));

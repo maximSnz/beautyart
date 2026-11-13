@@ -1,6 +1,6 @@
 name: wb-daily-load
 # Ночная загрузка WB (ИП): заказы («Лента заказов» API), остатки по складам, поставки → wb_orders, wb_stock_history, wb_supplies,
-# wb_supply_goods, финансовый отчёт (отчёты о реализации) → wb_charges — после wb-products-sync. Запись в базу — только если переменная репозитория WB_LOAD_WRITE = 1
+# wb_supply_goods, финансовый отчёт (отчёты о реализации) → wb_charges, реклама по карточкам → wb_ad_spend — после wb-products-sync. Запись в базу — только если переменная репозитория WB_LOAD_WRITE = 1
 # (Settings → Variables) или при ручном запуске с write=1; иначе режим проверки — в базу ничего не пишется.
 # Итоги — в журнал бота администратора (admin_load_log, «WB»); ошибка — сообщение в Telegram.
 on:
@@ -26,6 +26,10 @@ on:
         description: 'Финансовый отчёт с ГГГГ-ММ-ДД (пусто — 7 дней до дня загрузки; разовая догрузка истории)'
         required: false
         default: ''
+      ads_from:
+        description: 'Реклама с ГГГГ-ММ-ДД (пусто — 7 дней до дня загрузки; разовая догрузка истории)'
+        required: false
+        default: ''
 concurrency: wb-daily-load
 jobs:
   load:
@@ -43,6 +47,7 @@ jobs:
           WRITE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.write || vars.WB_LOAD_WRITE || '0' }}
           FEED_DAYS: ${{ github.event.inputs.feed_days }}
           FIN_FROM: ${{ github.event.inputs.fin_from }}
+          ADS_FROM: ${{ github.event.inputs.ads_from }}
           WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
