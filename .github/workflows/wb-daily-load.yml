@@ -1,6 +1,6 @@
 name: wb-daily-load
 # Ночная загрузка WB (ИП): заказы («Лента заказов» API), остатки по складам, поставки → wb_orders, wb_stock_history, wb_supplies,
-# wb_supply_goods, финансовый отчёт (отчёты о реализации) → wb_charges, реклама по карточкам → wb_ad_spend — после wb-products-sync. Запись в базу — только если переменная репозитория WB_LOAD_WRITE = 1
+# wb_supply_goods, финансовый отчёт (отчёты о реализации) → wb_charges, реклама по карточкам → wb_ad_spend, маржа по размеру и дню → wb_cf_daily — после wb-products-sync. Запись в базу — только если переменная репозитория WB_LOAD_WRITE = 1
 # (Settings → Variables) или при ручном запуске с write=1; иначе режим проверки — в базу ничего не пишется.
 # Итоги — в журнал бота администратора (admin_load_log, «WB»); ошибка — сообщение в Telegram.
 on:

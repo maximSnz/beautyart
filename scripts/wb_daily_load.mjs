@@ -1,7 +1,8 @@
 // Ночная загрузка WB (только ИП) — шаг 1 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Склады WB»).
 // Заказы — «Лента заказов» API (с 11.11.2026; sql/2026-11-11_wb_orders_feed.sql), остатки — warehouse_remains, поставки — supplies.
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
-// финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend.
+// финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend;
+// маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -234,5 +235,71 @@ try {
   await upsert('wb_ad_spend', 'advert_id,nm_id,day', rows);
   note(`реклама: строк ${rows.length}, по карточкам ${share} фактических затрат`);
 } catch (e) { console.log(`⚠️ реклама: ${e.message}`); note(`⚠️ реклама: ${e.message.slice(0, 200)}`); }
+
+// 6) Маржа WB по размеру и дню операции (13.11.2026, формула утверждена владельцем; sql/2026-11-13_wb_cf_daily.sql) → wb_cf_daily.
+//    to_pay = к перечислению (продажи − возвраты) − доставка − приёмка − штрафы − удержания по товару + доплаты − баллы за отзывы
+//    (= «Итого к оплате» кабинета по строкам с товаром; сверка 26.10–01.11 до копейки); mar = to_pay − возмещение издержек − себестоимость
+//    на дату × шт (только «Продажа» / «Возврат») − налог 3% продажи − реклама. Реклама карточки за день делится на размеры по выручке заказов
+//    размера в этот день (wb_orders, без отмен); нет заказов — по продажам отчёта; нет и их — поровну. Строки без товара (хранение,
+//    «WB Продвижение», «Джем») в маржу товара не входят. Окно — 14 дней до D (или с начала догрузки), дни окна заменяются.
+const TAX = 0.03;
+const CF_FROM = [FIN_FROM, ADS_FROM, shift(D, -14)].sort()[0];
+async function readAll(table, q, order) {
+  const out = [];
+  for (let off = 0; ; off += 1000) {
+    const r = await fetch(`${SB}/rest/v1/${table}?${q}&order=${order}&limit=1000&offset=${off}`, { headers: SR });
+    if (!r.ok) throw new Error(`supabase ${table} -> HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const p = await r.json(); out.push(...p); if (p.length < 1000) break;
+  }
+  return out;
+}
+try {
+  const t = await fetch(`${SB}/rest/v1/wb_cf_daily?select=day&limit=1`, { headers: SR });
+  if (!t.ok) throw new Error(`нет таблицы wb_cf_daily (HTTP ${t.status}) — запустить sql/2026-11-13_wb_cf_daily.sql в базе ИП`);
+  const n = v => Number(v) || 0;
+  const ch = await readAll('wb_charges', `select=rrd_id,rr_date,oper_name,doc_type,chrt_id,nm_id,quantity,retail_amount,for_pay,delivery_service,paid_acceptance,penalty,deduction,additional_payment,rebill_logistic_cost,cashback_amount&rr_date=gte.${CF_FROM}&rr_date=lte.${D}`, 'rrd_id');
+  const ad = await readAll('wb_ad_spend', `select=advert_id,nm_id,day,amount&day=gte.${CF_FROM}&day=lte.${D}`, 'advert_id,nm_id,day');
+  const ord = await readAll('wb_orders', `select=srid,order_day,chrt_id,nm_id,price_with_disc,is_cancel&source=eq.feed&order_day=gte.${CF_FROM}&order_day=lte.${D}`, 'srid');
+  const pr = await readAll('wb_product_prices', 'select=id,chrt_id,cost,created_at', 'id');
+  const COST = {}; pr.forEach(x => (COST[x.chrt_id] = COST[x.chrt_id] || []).push(x));
+  // себестоимость на дату: последняя запись не позже дня; до первой записи — первая (база товаров WB заполнена 23.10.2026)
+  const costAt = (c, d) => { const l = COST[c]; if (!l) return null; let v = l[0].cost; for (const x of l) if (String(x.created_at).slice(0, 10) <= d) v = x.cost; return n(v); };
+  const SIZES = {}; prod.forEach(x => (SIZES[x.nm_id] = SIZES[x.nm_id] || []).push(x.chrt_id));
+  const CF = new Map(), cf = (c, d, nm) => { const k = `${c}|${d}`; if (!CF.has(k)) CF.set(k, { chrt_id: Number(c), day: d, nm_id: nm ?? BY_CHRT.get(Number(c))?.nm_id ?? null, qty: 0, retail: 0, to_pay: 0, rebill: 0, cogs: 0, tax: 0, ads: 0, mar: 0, no_cost_qty: 0 }); return CF.get(k); };
+  let nonItem = 0;
+  for (const r of ch) {
+    const sg = r.doc_type === 'Возврат' ? -1 : 1;
+    const pay = sg * n(r.for_pay) - n(r.delivery_service) - n(r.paid_acceptance) - n(r.penalty) - n(r.deduction) + n(r.additional_payment) - n(r.cashback_amount);
+    if (!r.chrt_id) { nonItem++; continue; }
+    const o = cf(r.chrt_id, r.rr_date, r.nm_id);
+    o.to_pay += pay; o.rebill += n(r.rebill_logistic_cost); o.retail += sg * n(r.retail_amount);
+    if (r.oper_name === 'Продажа' || r.oper_name === 'Возврат') {
+      const q = sg * n(r.quantity), c = costAt(r.chrt_id, r.rr_date);
+      o.qty += q; if (c == null) o.no_cost_qty += Math.abs(q); else o.cogs += q * c;
+    }
+  }
+  const REV = {}; ord.forEach(x => { if (x.is_cancel) return; const k = `${x.order_day}|${x.nm_id}`; (REV[k] = REV[k] || {})[x.chrt_id] = (REV[k][x.chrt_id] || 0) + n(x.price_with_disc); });
+  const SALE = {}; ch.forEach(r => { if (r.oper_name !== 'Продажа' || !r.chrt_id) return; const k = `${r.rr_date}|${r.nm_id}`; (SALE[k] = SALE[k] || {})[r.chrt_id] = (SALE[k][r.chrt_id] || 0) + n(r.retail_amount); });
+  const how = { orders: 0, sales: 0, equal: 0, lost: 0 };
+  for (const a of ad) {
+    const k = `${a.day}|${a.nm_id}`; let w = REV[k], src = 'orders';
+    if (!w || !Object.values(w).some(v => v > 0)) { w = SALE[k]; src = 'sales'; }
+    if (!w || !Object.values(w).some(v => v > 0)) { const sz = SIZES[a.nm_id]; if (!sz) { how.lost++; continue; } w = Object.fromEntries(sz.map(c => [c, 1])); src = 'equal'; }
+    how[src]++;
+    const tot = Object.values(w).reduce((x, y) => x + Math.max(0, y), 0);
+    Object.entries(w).forEach(([c, v]) => { if (v > 0) cf(c, a.day, a.nm_id).ads += n(a.amount) * v / tot; });
+  }
+  const r2 = v => Math.round(v * 100) / 100;
+  const rows = [...CF.values()].map(o => { o.tax = TAX * o.retail; o.mar = o.to_pay - o.rebill - o.cogs - o.tax - o.ads;
+    ['retail', 'to_pay', 'rebill', 'cogs', 'tax', 'ads', 'mar'].forEach(f => o[f] = r2(o[f])); return o; });
+  const noCost = rows.reduce((s, o) => s + o.no_cost_qty, 0), qty = rows.reduce((s, o) => s + Math.max(0, o.qty), 0);
+  console.log(`маржа ${CF_FROM}…${D}: строк ${rows.length}, размеров ${uniq(rows.map(o => o.chrt_id)).length}, строк отчёта без товара ${nonItem}; реклама делится по заказам ${how.orders}, по продажам ${how.sales}, поровну ${how.equal}, без размеров ${how.lost}`);
+  if (WRITE) {
+    const r = await fetch(`${SB}/rest/v1/wb_cf_daily?day=gte.${CF_FROM}&day=lte.${D}`, { method: 'DELETE', headers: SR });
+    if (!r.ok) throw new Error(`supabase wb_cf_daily delete -> HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  }
+  await upsert('wb_cf_daily', 'chrt_id,day', rows);
+  note(`маржа: ${CF_FROM}…${D}, строк ${rows.length}${noCost ? `; без себестоимости ${noCost} шт (${qty ? Math.round(noCost / qty * 100) : 0}%)` : ''}${how.lost ? `; реклама без размеров: ${how.lost} строк` : ''}`);
+} catch (e) { console.log(`⚠️ маржа: ${e.message}`); note(`⚠️ маржа: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
