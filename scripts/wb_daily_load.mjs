@@ -260,7 +260,7 @@ try {
   const ch = await readAll('wb_charges', `select=rrd_id,rr_date,oper_name,doc_type,chrt_id,nm_id,quantity,retail_amount,for_pay,delivery_service,paid_acceptance,penalty,deduction,additional_payment,rebill_logistic_cost,cashback_amount&rr_date=gte.${CF_FROM}&rr_date=lte.${D}`, 'rrd_id');
   const ad = await readAll('wb_ad_spend', `select=advert_id,nm_id,day,amount&day=gte.${CF_FROM}&day=lte.${D}`, 'advert_id,nm_id,day');
   const ord = await readAll('wb_orders', `select=srid,order_day,chrt_id,nm_id,price_with_disc,is_cancel&source=eq.feed&order_day=gte.${CF_FROM}&order_day=lte.${D}`, 'srid');
-  const pr = await readAll('wb_product_prices', 'select=id,chrt_id,cost,created_at', 'id');
+  const pr = await readAll('wb_product_prices', 'select=id,chrt_id,cost,created_at', 'created_at,id');   // по дате: себестоимость бывает задним числом (файл цен)
   const COST = {}; pr.forEach(x => (COST[x.chrt_id] = COST[x.chrt_id] || []).push(x));
   // себестоимость на дату: последняя запись не позже дня; до первой записи — первая (база товаров WB заполнена 23.10.2026)
   const costAt = (c, d) => { const l = COST[c]; if (!l) return null; let v = l[0].cost; for (const x of l) if (String(x.created_at).slice(0, 10) <= d) v = x.cost; return n(v); };
