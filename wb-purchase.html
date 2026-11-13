@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beauty Art — Заявка на закупку WB</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
+ .login{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ .wrap{max-width:1200px;margin:0 auto 40px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ h2{font-family:'Forum';color:#1C0D2E}
+ input,select{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ table{width:100%;border-collapse:collapse;font-size:.88em}
+ th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
+ th{color:#666}
+ .hide{display:none}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
+ .err{color:#E33D78;font-size:.9em;margin:8px 0}
+ .cost{font-weight:700;color:#1C0D2E}
+ .acts{white-space:nowrap}
+ .acts button{margin-right:4px}
+ .histrow td{background:#f8f9fb}
+ .hist{font-size:.85em;color:#544273}
+ .cur{color:#22c55e;font-weight:700}
+ .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+ .toolbar input{flex:1;min-width:200px}
+ .legend{margin-left:auto;color:#94a3b8;font-size:.8em;white-space:nowrap}
+ details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 14px}
+ details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;user-select:none}
+ details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ details.arc .inner{padding:10px 14px}
+ tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
+ .editable{cursor:pointer;white-space:nowrap}
+ .editable::after{content:" ✎";opacity:.3;font-size:.8em}
+ .editable:hover{color:#E33D78}
+ .editable:hover::after{opacity:1}
+
+ /* === ШАПКА (на градиенте) === */
+ .header {
+   max-width: 1200px; margin: 20px auto 20px;
+   display: flex; align-items: center; gap: 20px;
+   padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
+   border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
+   box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
+   position: relative; z-index: 200;
+ }
+ .logo-link { display: inline-block; flex: 0 0 auto; }
+ .logo {
+   width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+   transition: transform .3s ease; display: block;
+ }
+ .logo-link:hover .logo { transform: scale(1.1); }
+ .company-name {
+   font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
+   text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
+ }
+ .header-nav { margin-left: auto; display: flex; gap: 10px; }
+ .nav-item { position: relative; }
+ .nav-btn {
+   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+   border-radius: 10px; color: #fff; padding: 10px 16px;
+   font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
+   display: inline-flex; align-items: center; gap: 8px; transition: all .3s;
+   text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+ }
+ .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+ .nav-btn .caret { font-size: .72em; transition: transform .2s; }
+ .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
+ .nav-menu {
+   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+   background: rgba(255,255,255,0.18);
+   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
+   padding: 8px; display: none; z-index: 300;
+   box-shadow: 0 10px 30px rgba(28,13,46,.25);
+ }
+ .nav-item.open .nav-menu { display: block; }
+ .nav-menu a {
+   display: block; padding: 10px 14px; border-radius: 8px; color: #fff;
+   text-decoration: none; font-family: 'Forum', serif; font-size: .95em;
+   transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25);
+ }
+ .nav-menu a:hover { background: rgba(255,255,255,0.22); }
+
+ @media (max-width:640px){
+   body{padding:8px}
+   .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
+   h2{font-size:1.15em}
+   .toolbar{flex-direction:column;align-items:stretch}
+   button{padding:10px 14px;font-size:1em}
+   table{font-size:.78em}
+   th,td{padding:5px 6px}
+   .meta{font-size:.78em}
+   .header { flex-wrap: wrap; }
+   .header-nav { margin-left: 0; width: 100%; }
+ }
+
+ /* === Заявка на закупку === */
+ .wbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+ .wbar .wlbl{font-size:1.25em;color:#1C0D2E;min-width:170px;text-align:center}
+ .btn2{background:#fff;color:#544273;border:2px solid rgba(84,66,115,.2)}
+ .btn2:hover{border-color:#E33D78;color:#E33D78}
+ .btn2.on{border-color:#E33D78;color:#E33D78}
+ .steps{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
+ .step{flex:1;min-width:150px;padding:8px 10px;border-radius:10px;background:#f8f9fb;border:2px solid rgba(84,66,115,.1);color:#94a3b8;font-size:.9em}
+ .step.on{border-color:#E33D78;color:#1C0D2E;background:linear-gradient(90deg,rgba(120,166,199,.15),rgba(227,61,120,.12))}
+ .step.done{color:#22c55e}
+ .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 14px}
+ .card{background:#f8f9fb;border:2px solid rgba(84,66,115,.1);border-radius:12px;padding:10px 12px}
+ .card .l{color:#94a3b8;font-size:.82em}
+ .card .v{font-size:1.5em;color:#1C0D2E}
+ .sec{margin:18px 0 6px;color:#544273;font-size:1.15em}
+ td.n,th.n{text-align:right;white-space:nowrap}
+ .num{width:62px;text-align:right;padding:4px 6px}
+ tr.prow{cursor:pointer}
+ tr.prow:hover td{background:rgba(120,166,199,.08)}
+ tr.sub td{background:#f8f9fb;font-size:.92em}
+ .ok{color:#22c55e}.bad{color:#E33D78}.warn{color:#d97706}.mute{color:#94a3b8}
+ .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+ .pal .card .v{font-size:1.15em}
+ .lt input{width:46px;text-align:right;padding:3px 5px}
+ details.box{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:10px 0}
+ details.box summary{cursor:pointer;padding:10px 14px;color:#544273;user-select:none}
+ details.box .inner{padding:6px 14px 12px;overflow-x:auto}
+ .scroll{overflow-x:auto}
+ .note{font-size:.82em;color:#94a3b8;margin:4px 0}
+ .lock{font-size:.85em;color:#94a3b8;margin-left:6px}
+ .wrap{max-width:min(1700px,100%);box-sizing:border-box}
+ table.pt{font-size:.8em;table-layout:fixed;width:100%}
+ /* шапки всех таблиц заявки — один стиль, текст по центру (27.10.2026) */
+ table.pt th,table.pt th.n{white-space:normal;line-height:1.15;vertical-align:middle;text-align:center}
+ table.pt th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em;text-align:center}
+ table.pt th.sub{background:rgba(120,166,199,.1)}
+ table.pt th.whead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em;text-align:center}
+ table.pt th.wsub{background:rgba(120,166,199,.1)}
+ table.pt th.sep,table.pt td.sep{border-left:1px dashed rgba(84,66,115,.3)}
+ table.pt td{overflow-wrap:anywhere}
+ table.pt .num{width:100%;max-width:64px;box-sizing:border-box}
+ table.pt input:not(.num){width:100%;box-sizing:border-box}
+ table.pt tr.mgroup td{background:linear-gradient(90deg,rgba(125,54,115,.18),transparent);color:#7D3673;padding-top:10px;border-bottom:2px solid rgba(125,54,115,.25);cursor:pointer;user-select:none}
+ table.pt tr.mgroup .tg{display:inline-block;width:18px;text-align:center;border:1px solid rgba(125,54,115,.4);border-radius:5px;margin-right:6px;font-size:.85em}
+ table.pt table.ct{font-size:1em;width:100%;table-layout:fixed}
+ .pname{font-size:.85em;color:#94a3b8;line-height:1.2;margin-top:2px}
+ /* поля чисел: без стрелок внутри, кнопки «−» / «+» по бокам (27.10.2026) */
+ input.num::-webkit-outer-spin-button,input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+ input.num{-moz-appearance:textfield;appearance:textfield}
+ .stp{display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
+ .stp button{width:20px;height:24px;padding:0;border-radius:6px;background:#fff;color:#544273;border:1px solid rgba(84,66,115,.3);font-size:14px;line-height:1;cursor:pointer;flex:none}
+ .stp button:hover{border-color:#E33D78;color:#E33D78}
+ table.pt .stp .num,.stp .num{width:46px;min-width:38px;max-width:52px}
+ td.miss{background:rgba(227,61,120,.35)}
+ #tn tr.mgroup td{background:rgba(125,54,115,.1)}
+ .card.dl{cursor:pointer} .card.dl:hover{border-color:#E33D78}
+ @media (max-width:900px){ table.pt{min-width:860px} }
+ @media (max-width:640px){ .wbar .wlbl{min-width:0;font-size:1.05em} .step{min-width:120px} }
+</style><style>
+ /* === Единая шапка и ширина рабочего пространства (эталон шапки — beautyart-home, ширины — purchase.html) === */
+ body{padding:16px}
+ .header{max-width:1700px;margin:0 auto 16px;padding:14px 26px;gap:20px;border:1px solid rgba(255,255,255,.3);border-radius:16px;background:rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(28,13,46,.2);box-sizing:border-box}
+ .logo{width:52px}
+ .company-name{font-size:1.8em;letter-spacing:2px}
+ .wrap,.container,.protected-content{max-width:1700px;box-sizing:border-box}
+ @media (max-width:640px){ body{padding:8px} }
+ /* вход — как в plan.html */
+ .login-box{max-width:400px;margin:100px auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(28,13,46,.3);border:2px solid rgba(84,66,115,.2);text-align:center;box-sizing:border-box}
+ .login-logo{width:80px;height:auto;margin-bottom:15px}
+ .login-title{font-family:'Forum',serif;font-size:1.8em;color:#1C0D2E;margin-bottom:10px}
+ .login-subtitle{color:#666;font-size:.95em;margin-bottom:25px;font-family:'Forum',serif}
+ .password-input{width:100%;padding:14px 16px;border:2px solid rgba(84,66,115,.2);border-radius:10px;font-size:1em;font-family:'Forum',serif;margin-bottom:15px;box-sizing:border-box}
+ .password-input:focus{outline:none;border-color:#E33D78}
+ .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#78A6C7,#E33D78);color:#fff;border:none;border-radius:10px;font-size:1.05em;font-family:'Forum',serif;cursor:pointer;transition:all .3s}
+ .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(227,61,120,.4)}
+ .error-message{display:none;color:#E33D78;font-size:.9em;margin-top:15px;font-family:'Forum',serif}
+</style>
+</head>
+<body>
+<div class="login-box" id="login">
+    <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="login-logo">
+    <div class="login-title">Закрытый раздел</div>
+    <div class="login-subtitle">Введите почту и пароль для доступа</div>
+    <input type="email" id="email" class="password-input" placeholder="Почта" autocomplete="username" onkeypress="if(event.key==='Enter')go()">
+    <input type="password" id="pwd" class="password-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')go()">
+    <button class="login-btn" onclick="go()">Войти</button>
+    <div class="error-message" id="errorMessage">Неверный пароль. Попробуйте ещё раз.</div>
+</div>
+<div class="hide" id="app">
+  <div class="header">
+    <a href="https://maximsnz.github.io/beautyart-home/index.html" class="logo-link" title="На главную">
+      <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+    </a>
+    <div class="company-name">Beauty Art</div>
+  </div>
+  <div class="wrap">
+    <h2>🚚 Заявка на закупку WB · ИП</h2>
+    <div class="meta" id="meta">загрузка…</div>
+    <div class="err" id="err"></div>
+    <div class="wbar">
+      <button class="btn2" onclick="shiftWeek(-7)" title="Предыдущая неделя">◀</button>
+      <div class="wlbl" id="wlbl"></div>
+      <button class="btn2" onclick="shiftWeek(7)" title="Следующая неделя">▶</button>
+      <span class="mute" id="wnote"></span>
+      <span style="flex:1"></span>
+      <span id="actions"></span>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="toolbar"><input id="q" placeholder="Поиск по артикулу / названию / артикулу WB" oninput="render()"></div>
+    <div class="cards" id="cards"></div>
+    <details class="box" id="ltBox">
+      <summary>⏱ Сроки недели <span class="lock" id="ltLock"></span></summary>
+      <div class="inner" id="lt"></div>
+    </details>
+    <div class="sec" id="h1">Заявка менеджера</div>
+    <div class="note">Расчёт = (спрос × (покрытие + запас) − на складах WB − в поставках) ÷ штук в коробе, вверх до целого короба, − заявки прошлых недель. Всё по WB в целом (вместе с заграницей); спрос — заказы за 28 дней вместе с отменами.</div>
+    <div class="scroll"><table id="t1" class="pt"></table></div>
+    <div class="sec">Закупщик: на ФФ и согласование с поставщиком</div>
+    <div class="scroll"><table id="t2" class="pt"></table></div>
+    <div class="cards" id="sup"></div>
+    <div class="sec" id="h3">Распределение по СЦ</div>
+    <div class="note" id="n3"></div>
+    <div class="scroll"><table id="t3" class="pt"></table></div>
+    <div class="sec">Паллеты по СЦ</div>
+    <div class="note">Норма — средняя загрузка 0,8–1,15 на паллету. До распределения — по подсказке долей спроса.</div>
+    <div class="pal" id="pal"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="../beautyart-home/auth.js?v=20261021"></script>
+<script>
+// Заявка на закупку WB (ИП) — шаг 4 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Заявка WB»).
+// Как заявка Ozon (purchase.html), но строка — размер WB (chrt_id), расчёт по WB в целом; после согласования обеспеченное
+// (ФФ + согласовано) делится по СЦ (решение владельца 13.11.2026) — по умолчанию по долям спроса округов за 28 дн (wb_okrug_sc).
+const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+const DEMAND_DAYS=28;
+const SUP_TRANSIT=new Set([2,3,4,6]);
+const PSEUDO=/^В пути/;
+const STAGES=[['draft','Заявка менеджера · пн'],['at_buyer','Закупщик: ФФ и согласование · до чт'],['distribution','Распределение по СЦ'],['closed','Закрыта']];
+const STAGE_BTN={draft:'Отправить закупщику',at_buyer:'Согласовано',distribution:'Подтвердить распределение'};
+const LT_F=['force_majeure_days','approval_days','supplier_to_ff_days','ff_assembly_days','ff_to_wb_days','acceptance_days'];
+const LT_H=['Форс-мажор','Согласование','Поставщик → ФФ','Сборка на ФФ','ФФ → СЦ WB','Приёмка'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
+const pad=n=>String(n).padStart(2,'0');
+const localISO=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseISO=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const addD=(s,n)=>{const d=parseISO(s);d.setDate(d.getDate()+n);return localISO(d);};
+const keyOfMonday=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return localISO(x);};
+const ddmm=s=>{const d=parseISO(s);return `${pad(d.getDate())}.${pad(d.getMonth()+1)}`;};
+const mskDay=n=>new Date(Date.now()+3*36e5+n*864e5).toISOString().slice(0,10);
+const art=r=>(r.vendor_code||'')+(r.tech_size&&r.tech_size!=='0'?' · '+r.tech_size:'');
+const S=(a,f)=>a.reduce((x,r)=>x+(f(r)||0),0);
+async function getAll(path){
+  let out=[],off=0;
+  for(;;){
+    const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok) throw new Error(path.split('?')[0].replace('/rest/v1/','')+' HTTP '+r.status);
+    const j=await r.json(); out=out.concat(j); if(j.length<1000) break; off+=1000;
+  }
+  return out;
+}
+async function upsert(table,rows,conflict){
+  for(let i=0;i<rows.length;i+=500){
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${conflict}`,{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+500))});
+    if(!r.ok) throw new Error(`${table} HTTP ${r.status}: ${await r.text()}`);
+  }
+}
+async function patchWeek(body){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/wb_purchase_weeks?week=eq.${WEEK}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({...body,updated_at:new Date().toISOString()})});
+  if(!r.ok) throw new Error('wb_purchase_weeks HTTP '+r.status);
+}
+
+// ===== состояние =====
+let PROD=[],NOBOX=[],LIVE={},SNAP=null,BASE_LT=null,SCS=[],OKSC={},WEEKS={};
+let WEEK=addD(keyOfMonday(new Date()),7),OPEN=null,OPEN1=new Set(),OPEN2=new Set(),K1=[],K2=[];
+let WLT=null,LT_SRC='',LINES=new Map(),PREV=new Map(),SUP={},DIST={},MODEL=[],DEBT={};
+
+async function go(){
+  if(!await BA_AUTH.login(SUPABASE_URL,HD))return;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  try{ await loadBase(); await loadWeek(); }catch(e){ document.getElementById('err').textContent='Ошибка загрузки: '+e.message; }
+}
+// живые данные — как страница «Остатки WB» (wb-stock.html): склады последнего снимка, поставки в пути, заказы 28 дн до вчера
+async function loadBase(){
+  const last=await getAll('/rest/v1/wb_stock_history?select=report_date&order=report_date.desc&limit=1');
+  SNAP=last[0]?.report_date||null;
+  const from=mskDay(-DEMAND_DAYS), to=mskDay(-1);
+  const [pr,st,od,sp,sg,lt,ok,wk]=await Promise.all([
+    getAll('/rest/v1/wb_products?select=chrt_id,nm_id,vendor_code,tech_size,title,supplier,box_qty,boxes_per_pallet,archived,wb_archived,wb_trash&order=chrt_id'),
+    SNAP?getAll(`/rest/v1/wb_stock_history?select=barcode,warehouse_name,chrt_id,qty&report_date=eq.${SNAP}&order=barcode,warehouse_name`):[],
+    getAll(`/rest/v1/wb_orders?select=srid,chrt_id,okrug&source=eq.feed&order_day=gte.${from}&order_day=lte.${to}&order=srid`),
+    getAll('/rest/v1/wb_supplies?select=supply_id,status_id&order=supply_id'),
+    getAll('/rest/v1/wb_supply_goods?select=supply_id,barcode,chrt_id,quantity,accepted_quantity&order=supply_id,barcode'),
+    getAll('/rest/v1/wb_lead_times?select=*&region=eq.Россия'),
+    getAll('/rest/v1/wb_okrug_sc?select=okrug,sc&order=okrug'),
+    getAll('/rest/v1/wb_purchase_weeks?select=*&order=week')
+  ]);
+  const act=pr.filter(p=>!p.archived&&!p.wb_archived&&!p.wb_trash);
+  PROD=act.map(p=>({...p,nobox:!(p.box_qty>0)})); NOBOX=PROD.filter(p=>p.nobox);
+  LIVE={}; const L=id=>LIVE[id]=LIVE[id]||{stock:0,transit:0,orders:0,ok:{}};
+  st.forEach(x=>{ if(x.chrt_id==null||PSEUDO.test(x.warehouse_name))return; L(x.chrt_id).stock+=x.qty; });
+  od.forEach(x=>{ if(x.chrt_id==null)return; const o=L(x.chrt_id); o.orders++; const k=x.okrug||'не указан'; o.ok[k]=(o.ok[k]||0)+1; });
+  const live=new Set(sp.filter(x=>SUP_TRANSIT.has(x.status_id)).map(x=>x.supply_id));
+  sg.forEach(g=>{ if(!live.has(g.supply_id)||g.chrt_id==null)return; L(g.chrt_id).transit+=Math.max(0,(g.quantity||0)-(g.accepted_quantity||0)); });
+  BASE_LT=lt[0]||null; OKSC={}; ok.forEach(x=>OKSC[x.okrug]=x.sc); SCS=[...new Set(ok.map(x=>x.sc))].sort((a,b)=>a.localeCompare(b,'ru'));
+  WEEKS={}; wk.forEach(w=>WEEKS[w.week]=w);
+}
+const ST=()=>WEEKS[WEEK]?.status||null;
+async function loadWeek(){
+  document.getElementById('err').textContent='';
+  const w=WEEKS[WEEK];
+  // сроки недели: свои, иначе — последней предыдущей недели, иначе — справочник wb_lead_times
+  const prevW=Object.keys(WEEKS).filter(x=>x<WEEK).sort().pop();
+  if(w){ WLT={...w}; LT_SRC='week'; } else if(prevW){ WLT={...WEEKS[prevW]}; LT_SRC='copy:'+prevW; } else { WLT={...(BASE_LT||{})}; LT_SRC='seed'; }
+  const nPrev=Math.max(1,WLT.prev_weeks||2), prevWeeks=[...Array(nPrev)].map((_,i)=>addD(WEEK,-7*(i+1)));
+  const [ln,pv,pd,sp,fx,ds]=await Promise.all([
+    w?getAll(`/rest/v1/wb_purchase_lines?select=*&week=eq.${WEEK}&order=chrt_id`):[],
+    getAll(`/rest/v1/wb_purchase_lines?select=week,chrt_id,requested_boxes&week=in.(${prevWeeks.join(',')})&order=week,chrt_id`),
+    getAll(`/rest/v1/wb_purchase_dist?select=week,chrt_id,sc,boxes&week=in.(${prevWeeks.join(',')})&order=week,chrt_id,sc`),
+    w?getAll(`/rest/v1/wb_purchase_supply?select=*&week=eq.${WEEK}&order=chrt_id`):[],
+    getAll(`/rest/v1/wb_purchase_supply?select=week,chrt_id,agreed_boxes,fact_boxes&week=lt.${WEEK}&fact_boxes=not.is.null&order=week,chrt_id`),
+    w?getAll(`/rest/v1/wb_purchase_dist?select=chrt_id,sc,boxes&week=eq.${WEEK}&order=chrt_id,sc`):[]
+  ]);
+  LINES=new Map(); ln.forEach(l=>LINES.set(l.chrt_id,l));
+  // прошлые заявки: распределено (сумма по СЦ), иначе заявлено — как у Ozon
+  const pdist={}; pd.forEach(d=>{ const k=d.week+'|'+d.chrt_id; pdist[k]=(pdist[k]||0)+(d.boxes||0); });
+  PREV=new Map(); pv.forEach(l=>{ const k=l.week+'|'+l.chrt_id; PREV.set(l.chrt_id,(PREV.get(l.chrt_id)||0)+(k in pdist?pdist[k]:(l.requested_boxes||0))); });
+  Object.entries(pdist).forEach(([k,v])=>{ const [wk,id]=k.split('|'); if(!pv.some(l=>l.week===wk&&String(l.chrt_id)===id)) PREV.set(Number(id),(PREV.get(Number(id))||0)+v); });
+  SUP={}; sp.forEach(s=>SUP[s.chrt_id]=s);
+  DEBT={}; fx.forEach(s=>{ DEBT[s.chrt_id]=(DEBT[s.chrt_id]||0)+(s.agreed_boxes||0)-s.fact_boxes; });
+  DIST={}; ds.forEach(d=>{ (DIST[d.chrt_id]=DIST[d.chrt_id]||{})[d.sc]=d.boxes; });
+  OPEN=null; build(); render();
+}
+
+// ===== расчёт =====
+const cov=c=>LT_F.reduce((s,f)=>s+(Number(c?.[f])||0),0);
+// доли СЦ по спросу округов за 28 дн (справочник wb_okrug_sc); округа без СЦ (страны СНГ) делятся по тем же долям; нет заказов — всё в первый по спросу СЦ юрлица
+let SC_TOTAL=null;
+function scShares(id){
+  const ok=LIVE[id]?.ok||{}, s={}; Object.entries(ok).forEach(([k,v])=>{ const sc=OKSC[k]; if(sc) s[sc]=(s[sc]||0)+v; });
+  const t=Object.values(s).reduce((a,b)=>a+b,0);
+  if(!t){ if(!SC_TOTAL){ SC_TOTAL={}; Object.keys(LIVE).forEach(i=>Object.entries(LIVE[i].ok).forEach(([k,v])=>{const sc=OKSC[k]; if(sc) SC_TOTAL[sc]=(SC_TOTAL[sc]||0)+v;})); }
+    const best=Object.entries(SC_TOTAL).sort((a,b)=>b[1]-a[1])[0]?.[0]||SCS[0]; return best?{[best]:1}:{}; }
+  Object.keys(s).forEach(k=>s[k]/=t); return s;
+}
+// целые короба по долям: остаток округления — по большей дробной части
+function splitBoxes(tot,shares){
+  const e=Object.entries(shares).filter(([,v])=>v>0); const out={}; if(!tot||!e.length) return out;
+  let used=0; const parts=e.map(([k,v])=>{const x=tot*v,f=Math.floor(x);used+=f;return {k,f,rem:x-f,v};});
+  parts.sort((a,b)=>b.rem-a.rem||b.v-a.v); for(let i=0;i<tot-used&&i<parts.length;i++) parts[i].f++;
+  parts.forEach(p=>{ if(p.f) out[p.k]=p.f; }); return out;
+}
+function build(){
+  const st=ST(), live=!st||st==='draft';
+  MODEL=PROD.map(p=>{
+    const lv=LIVE[p.chrt_id]||{stock:0,transit:0,orders:0,ok:{}}, line=LINES.get(p.chrt_id);
+    const src=live||!line?{ads:lv.orders/DEMAND_DAYS,stock:lv.stock,transit:lv.transit}:{ads:Number(line.ads)||0,stock:line.stock||0,transit:line.transit||0};
+    let prev=PREV.get(p.chrt_id)||0; if(!live&&line) prev=line.prev_boxes??prev;
+    let calc=null;
+    // коробы — вверх (как у Ozon, решение 21.10.2026)
+    if(!p.nobox&&WLT) calc=Math.max(0,Math.ceil((src.ads*(cov(WLT)+(Number(WLT.target_days)||0))-(src.stock+src.transit))/p.box_qty-1e-9)-prev);
+    if(!live) calc=line?line.calc_boxes:0;
+    const sc0=line?.calc_boxes==null?null:Number(line.calc_boxes);
+    const manual=!!line&&line.requested_boxes!=null&&!(sc0!=null&&line.requested_boxes===sc0);
+    const req=live?(manual?line.requested_boxes:(calc||0)):(line?.requested_boxes??0);
+    const keep=!!(src.ads>0||src.stock>0||src.transit>0||prev>0||req>0||line);
+    const s=SUP[p.chrt_id]||{};
+    return {...p,ads:src.ads,stock:src.stock,transit:src.transit,prev,calc,req,manual:live&&manual,keep,ff:s.ff_boxes||0,ag:s.agreed_boxes??null,fact:s.fact_boxes??null,debt:DEBT[p.chrt_id]||0,comment:s.comment||'',dist:DIST[p.chrt_id]||null};
+  });
+}
+const buyOf=p=>Math.max(p.req-p.ff,0);
+const secOf=p=>p.ff+(p.ag||0);               // обеспечено = на ФФ + согласовано
+const distSum=p=>p.dist?Object.values(p.dist).reduce((a,b)=>a+(b||0),0):0;
+const supOf=p=>p.supplier||'—';
+const vis=()=>{const q=document.getElementById('q').value.toLowerCase();return MODEL.filter(p=>[p.vendor_code,p.title,String(p.nm_id)].some(x=>String(x||'').toLowerCase().includes(q))).sort((a,b)=>b.req-a.req||(b.calc||0)-(a.calc||0)||String(a.vendor_code).localeCompare(String(b.vendor_code)));};
+function groupsOf(v,key){ const by=new Map(); v.forEach(p=>{const s=supOf(p); if(!by.has(s))by.set(s,[]); by.get(s).push(p);}); return [...by.entries()].sort((a,b)=>S(b[1],key)-S(a[1],key)||a[0].localeCompare(b[0],'ru')); }
+function toggleG(t,i){ const set=t===1?OPEN1:OPEN2, k=(t===1?K1:K2)[i]; set.has(k)?set.delete(k):set.add(k); t===1?renderT1():renderT2(); }
+
+// ===== отрисовка =====
+function render(){
+  const st=ST();
+  document.getElementById('wlbl').textContent=`${ddmm(WEEK)}–${ddmm(addD(WEEK,6))}`;
+  const thisMon=keyOfMonday(new Date());
+  document.getElementById('wnote').textContent=WEEK===addD(thisMon,7)?'заявка этой недели':WEEK===thisMon?'на согласовании':'';
+  const stIdx=st?STAGES.findIndex(s=>s[0]===st):-1;
+  document.getElementById('steps').innerHTML=STAGES.map((s,i)=>`<div class="step ${i===stIdx?'on':i<stIdx?'done':''}">${i<stIdx?'✓ ':''}${s[1]}</div>`).join('');
+  const a=document.getElementById('actions');
+  if(!st) a.innerHTML=`<button onclick="createWeek()">Создать заявку на ${ddmm(WEEK)}</button>`;
+  else a.innerHTML=(STAGE_BTN[st]?`<button onclick="nextStage()">${STAGE_BTN[st]}</button> `:'<span class="ok">Неделя закрыта</span> ')+(stIdx>0?`<button class="btn2" onclick="prevStage()">↩ Вернуть на шаг</button>`:'');
+  document.getElementById('meta').innerHTML=`Остатки WB — снимок за ${SNAP?ddmm(SNAP):'—'}; спрос — заказы ${ddmm(mskDay(-DEMAND_DAYS))}–${ddmm(mskDay(-1))} (${DEMAND_DAYS} дн)`
+    +(st&&st!=='draft'?' • показан снимок на момент отправки':'')+` • размеров в расчёте: ${PROD.length-NOBOX.length}`
+    +(NOBOX.length?` • <span class="warn">без «в коробе»: ${NOBOX.length}</span> (заполните в «Базе товаров WB»)`:'')
+    +(BASE_LT?'':' • <span class="bad">нет сроков WB (sql/2026-11-12_wb_lead_times.sql)</span>');
+  renderLT(); renderCards(); renderT1(); renderT2(); renderT3(); renderPal();
+}
+function renderCards(){
+  const v=vis(), b=S(v,buyOf), ag=S(v,p=>p.ag), has=v.some(p=>p.ag!=null);
+  document.getElementById('cards').innerHTML=[['Расчёт, кор.',nf.format(S(v,p=>p.calc))],['Заявлено, кор.',nf.format(S(v,p=>p.req))],['На ФФ, кор.',nf.format(S(v,p=>p.ff))],['К закупке, кор.',nf.format(b)],['Согласовано',has&&b?Math.round(ag/b*100)+'%':'—']]
+    .map(([l,x])=>`<div class="card"><div class="l">${l}</div><div class="v">${x}</div></div>`).join('');
+}
+function renderLT(){
+  const st=ST(), ed=st==='draft';
+  document.getElementById('ltLock').textContent=ed?'— можно менять, пока заявка в черновике':!st?'— заявка не создана: при создании скопируются сроки '+(LT_SRC.startsWith('copy')?'недели '+ddmm(LT_SRC.slice(5)):'из справочника WB'):'— только просмотр';
+  if(!WLT){ document.getElementById('lt').innerHTML='<span class="bad">Сроки WB не заданы</span>'; return; }
+  const inp=f=>ed?`<input class="num" type="number" min="0" step="1" value="${WLT[f]??0}" onchange="setLT('${f}',this.value)">`:(WLT[f]??0);
+  document.getElementById('lt').innerHTML=`<table class="lt"><tr>${LT_H.map(x=>`<th class="n">${x}</th>`).join('')}<th class="n">Покрытие</th><th class="n">Запас</th><th class="n">Вычесть заявок</th></tr><tr>${LT_F.map(f=>`<td class="n">${inp(f)}</td>`).join('')}<td class="n"><b>${cov(WLT)}</b></td><td class="n">${inp('target_days')}</td><td class="n">${inp('prev_weeks')}</td></tr></table>`;
+}
+function renderT1(){
+  const st=ST(), v=vis(), ed=st==='draft', q=document.getElementById('q').value.trim(), dash='<span class="mute">—</span>';
+  let h=`<colgroup><col style="width:26%"><col span="9"></colgroup><thead><tr><th rowspan="2" class="sub">Размер</th><th colspan="4" class="mhead sep">WB сейчас</th><th colspan="3" class="mhead sep">Заявка</th><th colspan="2" class="mhead sep">Упаковка</th></tr>
+    <tr><th class="sub sep n">Спрос, шт/дн</th><th class="sub n">На складах WB, шт</th><th class="sub n">В поставках, шт</th><th class="sub n" title="Заявки прошлых недель (распределено, иначе заявлено), в штуках">Прошлые заявки, шт</th><th class="sub sep n">Расчёт, кор.</th><th class="sub n">Заявлено, кор.</th><th class="sub n">Заявлено, шт</th><th class="sub sep n">В коробе, шт</th><th class="sub n">На паллете, кор.</th></tr></thead><tbody>`;
+  if(!v.length) h+=`<tr><td colspan="10" class="mute">Нет товаров</td></tr>`;
+  const G=groupsOf(v,p=>p.req); K1=G.map(g=>g[0]);
+  G.forEach(([sup,g],gi)=>{
+    const open=OPEN1.has(sup)||!!q;
+    h+=`<tr class="mgroup" onclick="toggleG(1,${gi})"><td colspan="10"><span class="tg">${open?'▾':'▸'}</span>${esc(sup)} — ${g.length} разм. · расчёт ${nf.format(S(g,p=>p.calc))} кор. · заявлено ${nf.format(S(g,p=>p.req))} кор. · ${nf.format(S(g,p=>p.req*(p.box_qty||0)))} шт</td></tr>`;
+    if(!open) return;
+    for(const p of g){
+      const bq=p.box_qty||0;
+      h+=`<tr class="prow${p.keep?'':' mute'}"><td><b>${esc(art(p))}</b><div class="pname">${esc(p.title)} · ${p.nm_id}</div></td>
+        <td class="n sep">${nf.format(p.ads)}</td><td class="n">${nf.format(p.stock)}</td><td class="n">${p.transit?nf.format(p.transit):dash}</td><td class="n" title="${p.prev} кор. × ${bq} шт">${nf.format(p.prev*bq)}</td>
+        <td class="n sep">${p.nobox?'<span class="bad" title="Нет «в коробе» — расчёт не идёт">—</span>':nf.format(p.calc)}</td>
+        <td class="n">${ed&&!p.nobox?`<input class="num" type="number" min="0" step="1" value="${p.req}" title="${p.manual?'Изменено вручную; очистите поле, чтобы вернуть к расчёту':'Идёт за расчётом'}" onchange="setReq(${p.chrt_id},this.value)">${p.manual?'<div class="mute" style="font-size:.75em">✎ вручную</div>':''}`:`<b>${p.req}</b>`}</td>
+        <td class="n mute">${nf.format(p.req*bq)}</td>
+        <td class="n sep${p.box_qty>0?'':' miss'}" title="${p.box_qty>0?'':'Не заполнено — заполните в «Базе товаров WB»'}">${p.box_qty>0?p.box_qty:''}</td><td class="n${p.boxes_per_pallet>0?'':' miss'}" title="${p.boxes_per_pallet>0?'':'Не заполнено — заполните в «Базе товаров WB»'}">${p.boxes_per_pallet>0?p.boxes_per_pallet:''}</td></tr>`;
+    }
+  });
+  document.getElementById('t1').innerHTML=h+'</tbody>';
+}
+const factOf=p=>p.fact??p.ag;
+const shipOf=p=>(p.ag??buyOf(p))+p.debt;
+const sgn=x=>x>0?'+'+x:String(x);
+let SUP_LIST=[];
+function renderT2(){
+  const st=ST(), v=vis().filter(p=>p.req>0||p.ff||p.ag!=null||p.debt), ed=st==='at_buyer', edF=st==='closed', q=document.getElementById('q').value.trim();
+  let h=`<colgroup><col style="width:22%"><col span="9"><col style="width:13%"></colgroup><thead><tr><th rowspan="2" class="sub">Размер</th><th class="mhead sep">Заявка</th><th colspan="5" class="whead sep">Закупщик</th><th colspan="3" class="whead sep">Поставка</th><th rowspan="2" class="wsub sep">Комментарий</th></tr>
+    <tr><th class="sub sep n">Заявлено, кор.</th><th class="wsub sep n">На ФФ, кор.</th><th class="wsub n">К закупке, кор.</th><th class="wsub n">К закупке, шт</th><th class="wsub n">Согласовано, кор.</th><th class="wsub n">%</th>
+    <th class="wsub sep n" title="Накопительно по прошлым неделям: согласовано − факт. «+» — поставщик должен довезти, «−» — мы должны">Долг поставщика, кор.</th><th class="wsub n" title="Согласовано (пока нет — к закупке) + долг поставщика">Привезти, кор.</th><th class="wsub n" title="По умолчанию = согласовано; правится на шаге «Закрыта»">Факт, кор.</th></tr></thead><tbody>`;
+  if(!v.length) h+=`<tr><td colspan="11" class="mute">Нет заявленных товаров</td></tr>`;
+  const G=groupsOf(v,buyOf); K2=G.map(g=>g[0]);
+  G.forEach(([sup,g],gi)=>{
+    const open=OPEN2.has(sup)||!!q, gb=S(g,buyOf), ga=S(g,x=>x.ag), gd=S(g,x=>x.debt);
+    h+=`<tr class="mgroup" onclick="toggleG(2,${gi})"><td colspan="11"><span class="tg">${open?'▾':'▸'}</span>${esc(sup)} — ${g.length} разм. · к закупке ${gb} кор. · ${nf.format(S(g,p=>buyOf(p)*(p.box_qty||0)))} шт${g.some(x=>x.ag!=null)&&gb?` · согласовано ${ga} кор. (${Math.round(ga/gb*100)}%)`:''}${gd?` · долг поставщика ${sgn(gd)} кор. · привезти ${S(g,shipOf)} кор.`:''}</td></tr>`;
+    if(!open) return;
+    for(const p of g.sort((a,b)=>buyOf(b)-buyOf(a)||String(a.vendor_code).localeCompare(String(b.vendor_code)))){
+      const b=buyOf(p), f=factOf(p);
+      h+=`<tr><td><b>${esc(art(p))}</b><div class="pname">${esc(p.title)}</div></td><td class="n sep">${p.req}</td>
+        <td class="n sep">${ed?`<input class="num" type="number" min="0" step="1" value="${p.ff}" onchange="setSup(${p.chrt_id},'ff_boxes',this.value)">`:p.ff}</td>
+        <td class="n"><b>${b}</b></td><td class="n mute">${nf.format(b*(p.box_qty||0))}</td>
+        <td class="n">${ed?`<input class="num" type="number" min="0" step="1" value="${p.ag??''}" placeholder="—" onchange="setSup(${p.chrt_id},'agreed_boxes',this.value)">`:(p.ag??'—')}</td>
+        <td class="n">${p.ag!=null&&b?Math.round(p.ag/b*100)+'%':'—'}</td>
+        <td class="n sep ${p.debt>0?'warn':p.debt<0?'bad':'mute'}">${p.debt?sgn(p.debt):'—'}</td><td class="n"><b>${shipOf(p)}</b></td>
+        <td class="n">${edF&&p.ag!=null?`<input class="num" type="number" min="0" step="1" value="${f}" onchange="setFact(${p.chrt_id},this.value)">${p.fact!=null?'<div class="mute" style="font-size:.75em">✎ факт</div>':''}`:(st==='closed'?(f??'—'):'<span class="mute">—</span>')}</td>
+        <td class="sep">${ed?`<input value="${esc(p.comment)}" onchange="setSup(${p.chrt_id},'comment',this.value)">`:esc(p.comment)}</td></tr>`;
+    }
+  });
+  document.getElementById('t2').innerHTML=h+'</tbody>';
+  const by={}; v.forEach(p=>{const s=supOf(p),b=buyOf(p),o=by[s]||(by[s]={k:0,u:0,d:0,sh:0});o.k+=b;o.u+=b*(p.box_qty||0);o.d+=p.debt;o.sh+=shipOf(p);});
+  SUP_LIST=Object.entries(by).sort((a,b)=>b[1].k-a[1].k);
+  document.getElementById('sup').innerHTML=SUP_LIST.map(([s,o],i)=>`<div class="card dl" title="Скачать Excel" onclick="exportSup(${i})"><div class="l">${esc(s)} · к закупке ⬇</div><div class="v">${nf.format(o.k)} кор.</div><div class="l">${nf.format(o.u)} шт${o.d?` · долг ${sgn(o.d)} кор. · привезти ${o.sh} кор.`:''}</div></div>`).join('');
+}
+// распределение по СЦ: до «Согласовано» — подсказка по долям спроса от заявленного; после — сохранённое, Илья правит на шаге «Распределение»
+function distOf(p){ const st=ST(); if((st==='distribution'||st==='closed')&&p.dist) return p.dist; return splitBoxes(st==='distribution'||st==='closed'?secOf(p):p.req,scShares(p.chrt_id)); }
+function renderT3(){
+  const st=ST(), dist=st==='distribution'||st==='closed', ed=st==='distribution', v=vis().filter(p=>(dist?secOf(p):p.req)>0);
+  document.getElementById('h3').textContent=dist?'Распределение обеспеченного по СЦ':'Подсказка деления по СЦ';
+  document.getElementById('n3').textContent=dist?'Обеспечено = на ФФ + согласовано. По умолчанию — по долям спроса округов за 28 дней (справочник «округ → СЦ»); поправьте, сумма должна быть равна обеспеченному.':'Пока заявка не согласована — подсказка от заявленного по долям спроса округов покупателей за 28 дней. Делить по СЦ — после согласования.';
+  let h=`<thead><tr><th class="sub">Размер</th><th class="sub n">${dist?'Обеспечено':'Заявлено'}, кор.</th>${SCS.map(s=>`<th class="sub n">${esc(s)}</th>`).join('')}<th class="sub n">Σ по СЦ</th></tr></thead><tbody>`;
+  if(!v.length) h+=`<tr><td colspan="${SCS.length+3}" class="mute">Нет коробов для распределения</td></tr>`;
+  for(const p of v){
+    const tot=dist?secOf(p):p.req, d=distOf(p), sum=Object.values(d).reduce((a,b)=>a+(b||0),0), sh=scShares(p.chrt_id);
+    h+=`<tr><td><b>${esc(art(p))}</b><div class="pname">${esc(p.title)}</div></td><td class="n">${tot}</td>${SCS.map(s=>`<td class="n" title="доля спроса ${nf.format((sh[s]||0)*100)}%">${ed?`<input class="num" type="number" min="0" step="1" value="${d[s]||0}" onchange="setDist(${p.chrt_id},'${esc(s)}',this.value)">`:(d[s]||0)}</td>`).join('')}<td class="n ${sum!==tot?'bad':''}" title="${sum!==tot?'Сумма по СЦ не равна '+(dist?'обеспеченному':'заявленному'):''}">${sum}</td></tr>`;
+  }
+  const tots={}; v.forEach(p=>{const d=distOf(p); SCS.forEach(s=>tots[s]=(tots[s]||0)+(d[s]||0));});
+  if(v.length) h+=`<tr class="mgroup"><td>Итого</td><td class="n">${S(v,p=>dist?secOf(p):p.req)}</td>${SCS.map(s=>`<td class="n">${tots[s]||0}</td>`).join('')}<td class="n">${Object.values(tots).reduce((a,b)=>a+b,0)}</td></tr>`;
+  document.getElementById('t3').innerHTML=h+'</tbody>';
+}
+function palStatus(x){
+  if(x<=0) return ['—','mute'];
+  if(x<0.8) return ['менее одной паллеты','warn'];
+  const lo=Math.ceil(x/1.15-1e-6), hi=Math.floor(x/0.8+1e-6);
+  if(lo<=hi) return [`${lo} шт · по ${(x/lo).toFixed(2)}`,'ok'];
+  const n=Math.floor(x), m=Math.ceil(x);
+  return [`убрать ${(x-1.15*n).toFixed(2)} пал. или добавить ${(0.8*m-x).toFixed(2)} пал.`,'bad'];
+}
+function renderPal(){
+  const by={}, miss={};
+  MODEL.forEach(p=>{ const d=distOf(p); Object.entries(d).forEach(([s,k])=>{ if(!k) return; if(p.boxes_per_pallet>0) by[s]=(by[s]||0)+k/p.boxes_per_pallet; else miss[s]=(miss[s]||0)+1; }); });
+  const cs=[...new Set([...Object.keys(by),...Object.keys(miss)])].sort((a,b)=>(by[b]||0)-(by[a]||0));
+  document.getElementById('pal').innerHTML=cs.map(c=>{const x=by[c]||0,[t,cl]=palStatus(x);return `<div class="card"><div class="l">${esc(c)}</div><div class="v">${x.toFixed(2)} пал.</div><div class="${cl}" style="font-size:.85em">${t}</div>${miss[c]?`<div class="warn" style="font-size:.8em">без «на паллете»: ${miss[c]} разм.</div>`:''}</div>`;}).join('')||'<div class="mute">Нет коробов</div>';
+}
+function exportSup(i){
+  const [sup]=SUP_LIST[i]||[]; if(sup==null) return;
+  if(!window.XLSX){ document.getElementById('err').textContent='Не загрузилась библиотека Excel — обновите страницу'; return; }
+  const ps=vis().filter(p=>supOf(p)===sup&&(buyOf(p)>0||p.ag!=null||p.debt)).sort((a,b)=>String(a.vendor_code).localeCompare(String(b.vendor_code)));
+  const rows=ps.map(p=>{const sh=shipOf(p);return [p.vendor_code,p.tech_size||'',p.title||'',p.box_qty||null,buyOf(p),p.ag,p.debt||0,sh,sh*(p.box_qty||0)];});
+  const ws=XLSX.utils.aoa_to_sheet([['Артикул','Размер','Наименование','В коробе, шт','К закупке, кор.','Согласовано, кор.','Долг поставщика, кор.','Привезти, кор.','Привезти, шт'],...rows]);
+  ws['!cols']=[{wch:24},{wch:8},{wch:48},{wch:12},{wch:14},{wch:16},{wch:18},{wch:14},{wch:13}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Заявка WB');
+  XLSX.writeFile(wb,`Заявка_WB_ИП_${WEEK}_${sup.trim().replace(/[\\/:*?"<>|]+/g,'_')}.xlsx`);
+}
+
+// ===== действия =====
+function shiftWeek(n){WEEK=addD(WEEK,n);loadWeek().catch(e=>document.getElementById('err').textContent='Ошибка: '+e.message);}
+function fail(e){document.getElementById('err').textContent='Не сохранилось: '+e.message;}
+const toInt=v=>{const n=Math.round(Number(String(v).replace(',','.')));return Number.isFinite(n)&&n>=0?n:0;};
+const lineRow=(p,extra)=>({week:WEEK,chrt_id:p.chrt_id,ads:p.ads,stock:p.stock,transit:p.transit,prev_boxes:p.prev,box_qty:p.box_qty,calc_boxes:p.calc,requested_boxes:p.req,updated_at:new Date().toISOString(),...extra});
+async function setReq(id,v){
+  if(ST()!=='draft') return;
+  const p=MODEL.find(x=>x.chrt_id===id);
+  p.req=String(v).trim()===''?(p.calc||0):toInt(v); p.manual=p.req!==(p.calc||0); p.keep=true;
+  try{ await upsert('wb_purchase_lines',[lineRow(p)],'week,chrt_id'); LINES.set(id,{...LINES.get(id),calc_boxes:p.calc,requested_boxes:p.req}); }catch(e){fail(e);}
+  renderCards(); renderT2(); renderT3(); renderPal(); renderT1();
+}
+async function setSup(id,f,v){
+  if(ST()!=='at_buyer') return;
+  const p=MODEL.find(x=>x.chrt_id===id);
+  if(f==='comment') p.comment=v; else if(f==='ff_boxes') p.ff=toInt(v); else p.ag=String(v).trim()===''?null:toInt(v);
+  try{ await upsert('wb_purchase_supply',[{week:WEEK,chrt_id:id,ff_boxes:p.ff,agreed_boxes:p.ag,comment:p.comment||null,updated_at:new Date().toISOString()}],'week,chrt_id'); }catch(e){fail(e);}
+  renderCards(); renderT2(); renderT3(); renderPal();
+}
+async function setFact(id,v){
+  if(ST()!=='closed') return;
+  const p=MODEL.find(x=>x.chrt_id===id);
+  const n=String(v).trim()===''?null:toInt(v); p.fact=n===p.ag?null:n;
+  try{ await upsert('wb_purchase_supply',[{week:WEEK,chrt_id:id,fact_boxes:p.fact,updated_at:new Date().toISOString()}],'week,chrt_id'); }catch(e){fail(e);}
+  renderT2();
+}
+async function setDist(id,sc,v){
+  if(ST()!=='distribution') return;
+  const p=MODEL.find(x=>x.chrt_id===id); p.dist={...(p.dist||distOf(p))}; p.dist[sc]=toInt(v);
+  try{ await upsert('wb_purchase_dist',SCS.map(s=>({week:WEEK,chrt_id:id,sc:s,boxes:p.dist[s]||0,updated_at:new Date().toISOString()})),'week,chrt_id,sc'); }catch(e){fail(e);}
+  renderT3(); renderPal();
+}
+async function setLT(f,v){
+  if(ST()!=='draft') return;
+  WLT[f]=toInt(v);
+  try{ await patchWeek({[f]:WLT[f]}); WEEKS[WEEK]={...WEEKS[WEEK],[f]:WLT[f]}; }catch(e){fail(e);}
+  build(); render();
+}
+async function createWeek(){
+  if(!WLT){ fail(new Error('нет сроков WB')); return; }
+  if(!confirm(`Создать заявку WB на неделю ${ddmm(WEEK)}–${ddmm(addD(WEEK,6))}? Сроки скопируются ${LT_SRC.startsWith('copy')?'с недели '+ddmm(LT_SRC.slice(5)):'из справочника WB'}.`)) return;
+  try{
+    await upsert('wb_purchase_weeks',[{week:WEEK,status:'draft',...Object.fromEntries([...LT_F,'target_days','prev_weeks'].map(f=>[f,Number(WLT[f])||0]))}],'week');
+    await loadBase(); await loadWeek();
+  }catch(e){fail(e);}
+}
+async function nextStage(){
+  const st=ST(), err=document.getElementById('err'); err.textContent='';
+  try{
+    if(st==='draft'){
+      if(!confirm('Отправить заявку закупщику? После этого «Заявлено» и сроки недели менять нельзя.')) return;
+      const now=new Date().toISOString();
+      await upsert('wb_purchase_lines',MODEL.filter(p=>p.keep).map(p=>lineRow(p,{updated_at:now})),'week,chrt_id');
+      await patchWeek({status:'at_buyer',submitted_at:now});
+    }else if(st==='at_buyer'){
+      const miss=MODEL.filter(p=>buyOf(p)>0&&p.ag==null);
+      if(miss.length){ err.textContent=`Заполните «Согласовано» по всем товарам к закупке (не заполнено: ${miss.length}, напр. ${miss.slice(0,3).map(art).join(', ')})`; return; }
+      if(!confirm('Отметить заявку согласованной? Обеспеченное (ФФ + согласовано) разложится по СЦ по долям спроса — дальше его можно поправить.')) return;
+      const now=new Date().toISOString(), rows=[];
+      MODEL.forEach(p=>{ const tot=secOf(p); if(!tot) return; const d=splitBoxes(tot,scShares(p.chrt_id)); SCS.forEach(s=>rows.push({week:WEEK,chrt_id:p.chrt_id,sc:s,boxes:d[s]||0,updated_at:now})); });
+      await upsert('wb_purchase_dist',rows,'week,chrt_id,sc');
+      await patchWeek({status:'distribution',agreed_at:now});
+    }else if(st==='distribution'){
+      const bad=MODEL.filter(p=>secOf(p)>0&&distSum(p)!==secOf(p));
+      if(bad.length){ err.textContent=`Сумма по СЦ не равна обеспеченному: ${bad.length} разм., напр. ${bad.slice(0,3).map(art).join(', ')}`; return; }
+      if(!confirm('Подтвердить распределение и закрыть неделю?')) return;
+      await patchWeek({status:'closed',confirmed_at:new Date().toISOString()});
+    }
+    await loadBase(); await loadWeek();
+  }catch(e){fail(e);}
+}
+async function prevStage(){
+  const i=STAGES.findIndex(s=>s[0]===ST()); if(i<=0) return;
+  if(!confirm(`Вернуть неделю на шаг «${STAGES[i-1][1]}»?`)) return;
+  try{ await patchWeek({status:STAGES[i-1][0]}); await loadBase(); await loadWeek(); }catch(e){fail(e);}
+}
+function stepNum(b,d){ const i=b.parentNode.querySelector('input'); if(!i||i.disabled) return; const x=Math.max(0,(Number(i.value)||0)+d); i.value=x; i.dispatchEvent(new Event('change',{bubbles:true})); }
+function wrapNums(root){ root.querySelectorAll('input.num:not([data-stp])').forEach(i=>{ i.dataset.stp=1; const s=document.createElement('span'); s.className='stp'; s.onclick=e=>e.stopPropagation(); i.replaceWith(s); s.innerHTML='<button type="button" title="−1" onclick="stepNum(this,-1)">−</button>'; s.appendChild(i); s.insertAdjacentHTML('beforeend','<button type="button" title="+1" onclick="stepNum(this,1)">+</button>'); }); }
+new MutationObserver(()=>wrapNums(document.getElementById('app'))).observe(document.getElementById('app'),{childList:true,subtree:true});
+if(BA_AUTH.has(SUPABASE_URL))go();
+</script></body></html>
