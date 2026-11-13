@@ -2,7 +2,7 @@
 // Заказы — «Лента заказов» API (с 11.11.2026; sql/2026-11-11_wb_orders_feed.sql), остатки — warehouse_remains, поставки — supplies.
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
 // финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend;
-// маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily.
+// маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily; лимиты ДРР (шаг 7) — sql/2026-11-13_wb_drr_limits.sql: wb_drr_limits.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -301,5 +301,57 @@ try {
   await upsert('wb_cf_daily', 'chrt_id,day', rows);
   note(`маржа: ${CF_FROM}…${D}, строк ${rows.length}${noCost ? `; без себестоимости ${noCost} шт (${qty ? Math.round(noCost / qty * 100) : 0}%)` : ''}${how.lost ? `; реклама без размеров: ${how.lost} строк` : ''}`);
 } catch (e) { console.log(`⚠️ маржа: ${e.message}`); note(`⚠️ маржа: ${e.message.slice(0, 200)}`); }
+
+// 7) Лимиты ДРР WB от цены по размеру (13.11.2026, формула утверждена владельцем; sql/2026-11-13_wb_drr_limits.sql) → wb_drr_limits.
+//    Аналог шага 8 ozon_daily_load.mjs (pulseCal / unitPct): модель на заказ — P цена заказа; b = продажа ÷ выручка заказов (все заказы ленты,
+//    с отменами — ДРР вчера считается до отмен); r = к перечислению ÷ продажа (одна ставка: ступени комиссии по цене у WB нет); t = 3%;
+//    u = (себестоимость на дату заказа × выкупленные шт + доставка + возмещение издержек + приёмка + штрафы + удержания − доплаты + баллы
+//    за отзывы) ÷ заказы, шт. Медиана 4 недель заказов, закончившихся 14 дней назад (выкупы WB дольше Ozon: на 8-й день ~25% заказов не
+//    завершены, на 14-й ~3%); неделя — только целиком в полной «Ленте заказов» (с 12.10.2026). pre(P) = r − t − u ÷ (P × b);
+//    безубыточный ДРР = max(0, (pre − 5) × b), плановый = max(0, (pre − wb_sales_plan.margin_pct) × b); цена — средняя за 7 дней.
+//    Только при загрузке за вчера. Нет таблицы или ошибка — предупреждение.
+const FEED_FULL_FROM = '2026-10-12';
+if (!SNAPSHOT) console.log('\nлимиты ДРР: день ≠ вчера — пропущено');
+else try {
+  const t0 = await fetch(`${SB}/rest/v1/wb_drr_limits?select=day&limit=1`, { headers: SR });
+  if (!t0.ok) throw new Error(`нет таблицы wb_drr_limits (HTTP ${t0.status}) — запустить sql/2026-11-13_wb_drr_limits.sql в базе ИП`);
+  const n = v => Number(v) || 0, r4 = v => v == null ? null : Math.round(v * 1e4) / 1e4, r2 = v => Math.round(v * 100) / 100;
+  const med = a => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  const TODAY = shift(D, 1), calTo = shift(TODAY, -14), calFrom = shift(calTo, -27), p7From = shift(TODAY, -7);
+  const ord = await readAll('wb_orders', `select=srid,order_day,chrt_id,price_with_disc&source=eq.feed&order_day=gte.${calFrom}&order_day=lte.${D}`, 'srid');
+  const ch = await readAll('wb_charges', `select=rrd_id,order_dt,oper_name,doc_type,chrt_id,quantity,retail_amount,for_pay,delivery_service,rebill_logistic_cost,paid_acceptance,penalty,deduction,additional_payment,cashback_amount&chrt_id=not.is.null&order_dt=gte.${calFrom}&order_dt=lte.${calTo}`, 'rrd_id');
+  const pr = await readAll('wb_product_prices', 'select=id,chrt_id,cost,created_at', 'created_at,id');
+  const COST = {}; pr.forEach(x => (COST[x.chrt_id] = COST[x.chrt_id] || []).push(x));
+  const costAt = (c, d) => { const l = COST[c]; if (!l) return null; let v = l[0].cost; for (const x of l) if (String(x.created_at).slice(0, 10) <= d) v = x.cost; return n(v); };
+  const plan = await readAll('wb_sales_plan', `select=chrt_id,plan_qty,margin_pct&month=eq.${TODAY.slice(0, 7)}`, 'chrt_id');
+  const PLAN = new Map(plan.filter(x => n(x.plan_qty) > 0 && x.margin_pct != null).map(x => [Number(x.chrt_id), n(x.margin_pct)]));
+  // недели калибровки (от calFrom по 7 дней); неделя с днями до полной ленты — не в калибровке
+  const weeks = [0, 1, 2, 3].map(i => ({ f: shift(calFrom, i * 7), t: shift(calFrom, i * 7 + 6) })).map((w, i) => ({ ...w, i, ok: w.f >= FEED_FULL_FROM }));
+  const wkOf = d => { const i = Math.floor((Date.parse(d + 'T00:00:00Z') - Date.parse(calFrom + 'T00:00:00Z')) / (7 * 864e5)); return i >= 0 && i < 4 ? i : -1; };
+  const S = new Map(), sz = c => { if (!S.has(c)) S.set(c, { w: weeks.map(() => ({ oq: 0, orev: 0, ret: 0, fp: 0, U: 0 })), q7: 0, r7: 0 }); return S.get(c); };
+  for (const o of ord) { if (!o.chrt_id) continue; const x = sz(Number(o.chrt_id)), d = o.order_day;
+    if (d >= p7From && d <= D) { x.q7++; x.r7 += n(o.price_with_disc); }
+    const i = wkOf(d); if (i >= 0 && d <= calTo) { x.w[i].oq++; x.w[i].orev += n(o.price_with_disc); } }
+  for (const r of ch) { const c = Number(r.chrt_id), d = String(r.order_dt).slice(0, 10), i = wkOf(d); if (i < 0) continue;
+    const w = sz(c).w[i], sg = r.doc_type === 'Возврат' ? -1 : 1;
+    if (r.oper_name === 'Продажа' || r.oper_name === 'Возврат') { w.ret += sg * n(r.retail_amount); w.U += sg * n(r.quantity) * (costAt(c, d) || 0); }
+    w.fp += sg * n(r.for_pay);
+    w.U += n(r.delivery_service) + n(r.rebill_logistic_cost) + n(r.paid_acceptance) + n(r.penalty) + n(r.deduction) - n(r.additional_payment) + n(r.cashback_amount); }
+  const rows = []; let noCal = 0, noCost = 0;
+  for (const [c, x] of S) {
+    const W = weeks.filter(w => w.ok).map(w => x.w[w.i]).filter(w => w.oq > 0 && w.orev > 0 && w.ret > 0).map(w => ({ b: w.ret / w.orev, r: w.fp / w.ret, u: w.U / w.oq, oq: w.oq, orev: w.orev }));
+    if (!W.length) { noCal++; continue; }
+    if (!COST[c]) noCost++;
+    const C = { b: med(W.map(w => w.b)), r: med(W.map(w => w.r)), u: med(W.map(w => w.u)), t: TAX };
+    const p0 = W.reduce((s, w) => s + w.orev, 0) / W.reduce((s, w) => s + w.oq, 0), P = x.q7 > 0 ? x.r7 / x.q7 : p0;
+    const pre = (C.r - C.t - C.u / (P * C.b)) * 100, planPct = PLAN.has(c) ? PLAN.get(c) : null;
+    rows.push({ chrt_id: c, day: TODAY, nm_id: BY_CHRT.get(c)?.nm_id ?? null, price: r2(P), pre_pct: r4(pre), plan_pct: planPct,
+      drr_plan: planPct == null ? null : r4(Math.max(0, (pre - planPct) * C.b)), drr_be: r4(Math.max(0, (pre - 5) * C.b)),
+      b: r4(C.b), r: r4(C.r), t: C.t, u: r4(C.u), weeks: W.length, cal_from: weeks.find(w => w.ok)?.f ?? null, cal_to: calTo });
+  }
+  console.log(`лимиты ДРР: заказы ${calFrom}…${calTo}, недель в калибровке ${weeks.filter(w => w.ok).length}; размеров ${rows.length}, без данных калибровки ${noCal}, без себестоимости ${noCost}`);
+  await upsert('wb_drr_limits', 'chrt_id,day', rows);
+  note(`лимиты ДРР: ${rows.length} размеров (недель калибровки ${weeks.filter(w => w.ok).length})${noCost ? `, без себестоимости ${noCost}` : ''}`);
+} catch (e) { console.log(`⚠️ лимиты ДРР: ${e.message}`); note(`⚠️ лимиты ДРР: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
