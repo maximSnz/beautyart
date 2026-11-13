@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beauty Art — Потребность на месяц WB</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Forum',-apple-system,sans-serif;background:linear-gradient(135deg,#78A6C7,#E33D78,#7D3673);min-height:100vh;padding:20px;margin:0}
+ .login{max-width:1200px;margin:40px auto;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ .wrap{max-width:1200px;margin:0 auto 40px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(28,13,46,.3)}
+ h2{font-family:'Forum';color:#1C0D2E}
+ input,select{padding:6px 8px;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-family:'Forum';font-size:.9em}
+ button{padding:6px 10px;border:none;border-radius:8px;background:linear-gradient(90deg,#78A6C7,#E33D78);color:#fff;font-family:'Forum';cursor:pointer}
+ table{width:100%;border-collapse:collapse;font-size:.88em}
+ th,td{padding:6px 8px;border-bottom:1px dashed #cbd5e1;text-align:left;vertical-align:middle}
+ th{color:#666}
+ .hide{display:none}
+ .meta{color:#94a3b8;font-size:.85em;margin:6px 0}
+ .err{color:#E33D78;font-size:.9em;margin:8px 0}
+ .cost{font-weight:700;color:#1C0D2E}
+ .acts{white-space:nowrap}
+ .acts button{margin-right:4px}
+ .histrow td{background:#f8f9fb}
+ .hist{font-size:.85em;color:#544273}
+ .cur{color:#22c55e;font-weight:700}
+ .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+ .toolbar input{flex:1;min-width:200px}
+ .legend{margin-left:auto;color:#94a3b8;font-size:.8em;white-space:nowrap}
+ details.arc{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:0 0 14px}
+ details.arc summary{cursor:pointer;padding:10px 14px;font-family:'Forum';color:#544273;user-select:none}
+ details.arc[open] summary{border-bottom:2px solid rgba(84,66,115,.1)}
+ details.arc .inner{padding:10px 14px}
+ tr.group td{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-weight:700;color:#544273;padding-top:16px;border-bottom:2px solid rgba(84,66,115,.2)}
+ .editable{cursor:pointer;white-space:nowrap}
+ .editable::after{content:" ✎";opacity:.3;font-size:.8em}
+ .editable:hover{color:#E33D78}
+ .editable:hover::after{opacity:1}
+
+ /* === ШАПКА (на градиенте) === */
+ .header {
+   max-width: 1200px; margin: 20px auto 20px;
+   display: flex; align-items: center; gap: 20px;
+   padding: 25px 30px; background: rgba(255, 255, 255, 0.15);
+   border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
+   box-shadow: 0 8px 32px rgba(28, 13, 46, 0.2);
+   position: relative; z-index: 200;
+ }
+ .logo-link { display: inline-block; flex: 0 0 auto; }
+ .logo {
+   width: 80px; height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+   transition: transform .3s ease; display: block;
+ }
+ .logo-link:hover .logo { transform: scale(1.1); }
+ .company-name {
+   font-family: 'Forum', serif; font-size: 2.5em; font-weight: 400; color: white;
+   text-shadow: 0 2px 8px rgba(28, 13, 46, 0.4); letter-spacing: 2px;
+ }
+ .header-nav { margin-left: auto; display: flex; gap: 10px; }
+ .nav-item { position: relative; }
+ .nav-btn {
+   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+   border-radius: 10px; color: #fff; padding: 10px 16px;
+   font-family: 'Forum', serif; font-size: 1em; cursor: pointer;
+   display: inline-flex; align-items: center; gap: 8px; transition: all .3s;
+   text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+ }
+ .nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+ .nav-btn .caret { font-size: .72em; transition: transform .2s; }
+ .nav-item.open .nav-btn .caret { transform: rotate(180deg); }
+ .nav-menu {
+   position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+   background: rgba(255,255,255,0.18);
+   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+   border: 1px solid rgba(255,255,255,0.35); border-radius: 12px;
+   padding: 8px; display: none; z-index: 300;
+   box-shadow: 0 10px 30px rgba(28,13,46,.25);
+ }
+ .nav-item.open .nav-menu { display: block; }
+ .nav-menu a {
+   display: block; padding: 10px 14px; border-radius: 8px; color: #fff;
+   text-decoration: none; font-family: 'Forum', serif; font-size: .95em;
+   transition: background .2s; text-shadow: 0 1px 3px rgba(0,0,0,.25);
+ }
+ .nav-menu a:hover { background: rgba(255,255,255,0.22); }
+
+ @media (max-width:640px){
+   body{padding:8px}
+   .login,.wrap{padding:16px;margin:16px auto;border-radius:12px}
+   h2{font-size:1.15em}
+   .toolbar{flex-direction:column;align-items:stretch}
+   button{padding:10px 14px;font-size:1em}
+   table{font-size:.78em}
+   th,td{padding:5px 6px}
+   .meta{font-size:.78em}
+   .header { flex-wrap: wrap; }
+   .header-nav { margin-left: 0; width: 100%; }
+ }
+
+ /* === Заявка на закупку === */
+ .wbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+ .wbar .wlbl{font-size:1.25em;color:#1C0D2E;min-width:170px;text-align:center}
+ .btn2{background:#fff;color:#544273;border:2px solid rgba(84,66,115,.2)}
+ .btn2:hover{border-color:#E33D78;color:#E33D78}
+ .btn2.on{border-color:#E33D78;color:#E33D78}
+ .steps{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
+ .step{flex:1;min-width:150px;padding:8px 10px;border-radius:10px;background:#f8f9fb;border:2px solid rgba(84,66,115,.1);color:#94a3b8;font-size:.9em}
+ .step.on{border-color:#E33D78;color:#1C0D2E;background:linear-gradient(90deg,rgba(120,166,199,.15),rgba(227,61,120,.12))}
+ .step.done{color:#22c55e}
+ .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 14px}
+ .card{background:#f8f9fb;border:2px solid rgba(84,66,115,.1);border-radius:12px;padding:10px 12px}
+ .card .l{color:#94a3b8;font-size:.82em}
+ .card .v{font-size:1.5em;color:#1C0D2E}
+ .sec{margin:18px 0 6px;color:#544273;font-size:1.15em}
+ td.n,th.n{text-align:right;white-space:nowrap}
+ .num{width:62px;text-align:right;padding:4px 6px}
+ tr.prow{cursor:pointer}
+ tr.prow:hover td{background:rgba(120,166,199,.08)}
+ tr.sub td{background:#f8f9fb;font-size:.92em}
+ .ok{color:#22c55e}.bad{color:#E33D78}.warn{color:#d97706}.mute{color:#94a3b8}
+ .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+ .pal .card .v{font-size:1.15em}
+ .lt input{width:46px;text-align:right;padding:3px 5px}
+ details.box{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:10px 0}
+ details.box summary{cursor:pointer;padding:10px 14px;color:#544273;user-select:none}
+ details.box .inner{padding:6px 14px 12px;overflow-x:auto}
+ .scroll{overflow-x:auto}
+ .note{font-size:.82em;color:#94a3b8;margin:4px 0}
+ .lock{font-size:.85em;color:#94a3b8;margin-left:6px}
+ .wrap{max-width:min(1700px,100%);box-sizing:border-box}
+ #t1{font-size:.8em;table-layout:fixed;width:100%}
+ /* шапка — как в заявке: один стиль, текст по центру (27.10.2026) */
+ #t1 th,#t1 th.n{white-space:normal;line-height:1.15;vertical-align:middle;text-align:center}
+ #t1 th.mhead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em;text-align:center}
+ #t1 th.sub{background:rgba(120,166,199,.1)}
+ #t1 th.whead{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);color:#544273;font-size:.95em;text-align:center}
+ #t1 th.wsub{background:rgba(120,166,199,.1)}
+ #t1 th.sep,#t1 td.sep{border-left:1px dashed rgba(84,66,115,.3)}
+ #t1 td{overflow-wrap:anywhere}
+ #t1 .num{width:100%;max-width:64px;box-sizing:border-box}
+ #t1 input:not(.num){width:100%;box-sizing:border-box}
+ #t1 tr.mgroup td{background:linear-gradient(90deg,rgba(125,54,115,.18),transparent);color:#7D3673;padding-top:10px;border-bottom:2px solid rgba(125,54,115,.25);cursor:pointer;user-select:none}
+ #t1 tr.mgroup .tg{display:inline-block;width:18px;text-align:center;border:1px solid rgba(125,54,115,.4);border-radius:5px;margin-right:6px;font-size:.85em}
+ .pname{font-size:.85em;color:#94a3b8;line-height:1.2;margin-top:2px}
+ .card.hl{background:linear-gradient(135deg,#78A6C7,#E33D78);border-color:transparent}
+ .card.hl .l,.card.hl .v{color:#fff}
+ #sup .card{cursor:pointer;transition:border-color .2s}
+ #sup .card:hover{border-color:#E33D78}
+ /* поля чисел: без стрелок внутри, кнопки «−» / «+» по бокам (27.10.2026) */
+ input.num::-webkit-outer-spin-button,input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+ input.num{-moz-appearance:textfield;appearance:textfield}
+ .stp{display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
+ .stp button{width:20px;height:24px;padding:0;border-radius:6px;background:#fff;color:#544273;border:1px solid rgba(84,66,115,.3);font-size:14px;line-height:1;cursor:pointer;flex:none}
+ .stp button:hover{border-color:#E33D78;color:#E33D78}
+ #t1 .stp .num,.stp .num{width:46px;min-width:38px;max-width:52px}
+ td.miss{background:rgba(227,61,120,.35)}
+ @media (max-width:900px){ #t1{min-width:860px} }
+ @media (max-width:640px){ .wbar .wlbl{min-width:0;font-size:1.05em} .step{min-width:120px} }
+</style><style>
+ /* === Единая шапка и ширина рабочего пространства (эталон шапки — beautyart-home, ширины — purchase.html) === */
+ body{padding:16px}
+ .header{max-width:1700px;margin:0 auto 16px;padding:14px 26px;gap:20px;border:1px solid rgba(255,255,255,.3);border-radius:16px;background:rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(28,13,46,.2);box-sizing:border-box}
+ .logo{width:52px}
+ .company-name{font-size:1.8em;letter-spacing:2px}
+ .wrap,.container,.protected-content{max-width:1700px;box-sizing:border-box}
+ @media (max-width:640px){ body{padding:8px} }
+ /* вход — как в plan.html */
+ .login-box{max-width:400px;margin:100px auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(28,13,46,.3);border:2px solid rgba(84,66,115,.2);text-align:center;box-sizing:border-box}
+ .login-logo{width:80px;height:auto;margin-bottom:15px}
+ .login-title{font-family:'Forum',serif;font-size:1.8em;color:#1C0D2E;margin-bottom:10px}
+ .login-subtitle{color:#666;font-size:.95em;margin-bottom:25px;font-family:'Forum',serif}
+ .password-input{width:100%;padding:14px 16px;border:2px solid rgba(84,66,115,.2);border-radius:10px;font-size:1em;font-family:'Forum',serif;margin-bottom:15px;box-sizing:border-box}
+ .password-input:focus{outline:none;border-color:#E33D78}
+ .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#78A6C7,#E33D78);color:#fff;border:none;border-radius:10px;font-size:1.05em;font-family:'Forum',serif;cursor:pointer;transition:all .3s}
+ .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(227,61,120,.4)}
+ .error-message{display:none;color:#E33D78;font-size:.9em;margin-top:15px;font-family:'Forum',serif}
+</style>
+</head>
+<body>
+<div class="login-box" id="login">
+    <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="login-logo">
+    <div class="login-title">Закрытый раздел</div>
+    <div class="login-subtitle">Введите почту и пароль для доступа</div>
+    <input type="email" id="email" class="password-input" placeholder="Почта" autocomplete="username" onkeypress="if(event.key==='Enter')go()">
+    <input type="password" id="pwd" class="password-input" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')go()">
+    <button class="login-btn" onclick="go()">Войти</button>
+    <div class="error-message" id="errorMessage">Неверный пароль. Попробуйте ещё раз.</div>
+</div>
+<div class="hide" id="app">
+  <div class="header">
+    <a href="https://maximsnz.github.io/beautyart-home/index.html" class="logo-link" title="На главную">
+      <img src="https://i.ibb.co/ZzbPQmQt/IMG-8031.png" alt="Beauty Art Logo" class="logo">
+    </a>
+    <div class="company-name">Beauty Art</div>
+  </div>
+  <div class="wrap">
+    <h2>📦 Потребность на месяц WB · <span id="ent"></span></h2>
+    <div class="meta" id="meta">загрузка…</div>
+    <div class="err" id="err"></div>
+
+    <div class="wbar">
+      <button class="btn2" onclick="shiftMonth(-1)" title="Предыдущий месяц">◀</button>
+      <div class="wlbl" id="mlbl"></div>
+      <button class="btn2" onclick="shiftMonth(1)" title="Следующий месяц">▶</button>
+      <span style="flex:1"></span>
+      <span id="actions"></span>
+    </div>
+    <div class="steps" id="steps"></div>
+
+    <div class="toolbar">
+      <input id="q" placeholder="Поиск по артикулу / названию" oninput="render()">
+    </div>
+    <div class="cards" id="cards"></div>
+
+    <details class="box" id="setBox">
+      <summary>⚙️ Параметры расчёта <span class="lock" id="setLock"></span></summary>
+      <div class="inner" id="settings"></div>
+    </details>
+
+
+    <div class="note">Потребность = план месяца + план в день × дни оборачиваемости − (на складах WB + в поставках) − две последние недельные заявки WB + продажи до конца текущего месяца. Всё в штуках, затем ÷ штук в коробе. Строка — размер WB, расчёт по WB в целом (как заявка WB); план — на картах Шухарта WB.</div>
+    <div class="scroll"><table id="t1"></table></div>
+    <div class="sec">По поставщикам</div>
+    <div class="note">Нажмите на поставщика, чтобы скачать Excel: артикул, наименование, штуки, короба. Количество — согласованное, а пока его нет — заказ.</div>
+    <div class="cards" id="sup"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="need_calc.js?v=20261027c"></script>
+<script src="../beautyart-home/auth.js?v=20261021"></script>
+<script>
+function toggleNav(btn) {
+  const item = btn.closest('.nav-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nav-item')) {
+    document.querySelectorAll('.nav-item.open').forEach(i => i.classList.remove('open'));
+  }
+});
+
+// Потребность месяца WB (13.11.2026; этап 1, WB, шаг 5): копия need.html Ozon, формула — need_calc.js без изменений; строка — размер WB (chrt_id;
+// в модели — product_id), расчёт по WB в целом. Спрос и остатки — как wb-purchase.html / wb-stock.html: спрос = заказы «Ленты заказов» за 28 дн
+// (с отменами и заграницей) ÷ 28; остаток = склады WB (последний снимок, без «В пути…») + в поставках (не принято); заявки «в пути» — две последние
+// недели WB (распределено по СЦ, иначе заявлено); план — wb_sales_plan (карты Шухарта WB). Таблицы — sql/2026-11-13_wb_need.sql.
+const ENTITY='ИП';
+const DEMAND_DAYS=28, SUP_TRANSIT=new Set([2,3,4,6]), PSEUDO=/^В пути/;
+const mskDay=n=>new Date(Date.now()+3*36e5+n*864e5).toISOString().slice(0,10);
+const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
+const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
+const HD={apikey:ANON,Authorization:'Bearer '+ANON};
+function matrixOf(offer){ return 'm1'; }   // WB ведёт только Илья
+const MGR={m1:'Илья',m2:'Ольга'};
+const STAGES=[['draft','Расчёт и заказ менеджеров'],['at_buyer','Закупщик: согласование с поставщиками'],['closed','Согласована']];
+const STAGE_BTN={draft:'Отправить закупщику',at_buyer:'Согласовано'};
+const DEFAULT_TURNOVER=NEED_DEFAULT_TURNOVER; // need_calc.js
+const MONTHS=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
+const nf2=new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+const rub=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
+const pad=n=>String(n).padStart(2,'0');
+const localISO=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const ymOf=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+const addMonth=(ym,n)=>{const[y,m]=ym.split('-').map(Number);return ymOf(new Date(y,m-1+n,1));};
+const daysIn=ym=>{const[y,m]=ym.split('-').map(Number);return new Date(y,m,0).getDate();};
+const mLabel=ym=>{const[y,m]=ym.split('-').map(Number);return `${MONTHS[m-1]} ${y}`;};
+const ddmm=s=>`${s.slice(8,10)}.${s.slice(5,7)}`;
+
+async function getAll(path){
+  let out=[],off=0;
+  for(;;){
+    const r=await fetch(SUPABASE_URL+path+(path.includes('?')?'&':'?')+`limit=1000&offset=${off}`,{headers:HD});
+    if(!r.ok) throw new Error(path.split('?')[0].replace('/rest/v1/','')+' HTTP '+r.status);
+    const j=await r.json(); out=out.concat(j); if(j.length<1000) break; off+=1000;
+  }
+  return out;
+}
+async function upsert(table,rows,conflict){
+  for(let i=0;i<rows.length;i+=500){
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${conflict}`,{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+500))});
+    if(!r.ok) throw new Error(`${table} HTTP ${r.status}: ${await r.text()}`);
+  }
+}
+async function patchMonth(body){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/wb_purchase_need_months?month=eq.${MONTH}`,{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({...body,updated_at:new Date().toISOString()})});
+  if(!r.ok) throw new Error('wb_purchase_need_months HTTP '+r.status);
+}
+
+// ===== состояние =====
+let PROD=[],NOBOX=[],DEM={},DEM_AT='',COST={},MONTHS_DB={},REQ_WEEKS=[],REQ={},BLOCKED=new Set();
+let MONTH=addMonth(ymOf(new Date()),1),F='all',PLAN={},NEEDS={},TURN=DEFAULT_TURNOVER,TURN_SRC='',MODEL=[],OPEN_SUP=new Set();
+
+async function go(){
+  if(!await BA_AUTH.login(SUPABASE_URL,HD))return;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  init();
+}
+async function init(){
+  document.getElementById('ent').textContent=ENTITY;
+  try{ await loadBase(); await loadMonth(); }catch(e){ document.getElementById('err').textContent='Ошибка загрузки: '+e.message; }
+}
+async function loadBase(){
+  const last=await getAll('/rest/v1/wb_stock_history?select=report_date&order=report_date.desc&limit=1');
+  const snap=last[0]?.report_date||null, from=mskDay(-DEMAND_DAYS), to=mskDay(-1);
+  const [pr,st,od,sp,sg,cs,ms,wk]=await Promise.all([
+    getAll('/rest/v1/wb_products?select=chrt_id,nm_id,vendor_code,tech_size,title,supplier,box_qty,archived,wb_archived,wb_trash&order=chrt_id'),
+    snap?getAll(`/rest/v1/wb_stock_history?select=barcode,warehouse_name,chrt_id,qty&report_date=eq.${snap}&order=barcode,warehouse_name`):[],
+    getAll(`/rest/v1/wb_orders?select=srid,chrt_id&source=eq.feed&order_day=gte.${from}&order_day=lte.${to}&order=srid`),
+    getAll('/rest/v1/wb_supplies?select=supply_id,status_id&order=supply_id'),
+    getAll('/rest/v1/wb_supply_goods?select=supply_id,barcode,chrt_id,quantity,accepted_quantity&order=supply_id,barcode'),
+    getAll('/rest/v1/wb_product_prices?select=id,chrt_id,cost,created_at&order=created_at.desc,id.desc'),
+    getAll('/rest/v1/wb_purchase_need_months?select=*&order=month'),
+    getAll('/rest/v1/wb_purchase_weeks?select=week,status&order=week.desc')
+  ]);
+  BLOCKED=new Set();   // у WB запретов по кластерам нет — расчёт по WB в целом
+  // корзина WB (wb_trash) — остатки распродаём, в потребность не идёт (как заявка WB)
+  const act=pr.filter(p=>!p.archived&&!p.wb_archived&&!p.wb_trash);
+  const offerOf=p=>{const sz=String(p.tech_size||'').trim();return String(p.vendor_code||p.chrt_id)+(sz&&sz!=='0'?' · '+sz:'');};
+  PROD=act.map(p=>({product_id:p.chrt_id,offer_id:offerOf(p),name:p.title||'',supplier:p.supplier,box_qty:p.box_qty,m:'m1'}));
+  NOBOX=PROD.filter(p=>!(p.box_qty>0));
+  DEM={}; const D=id=>DEM[id]=DEM[id]||{ads:0,stock:0};
+  st.forEach(x=>{ if(x.chrt_id==null||PSEUDO.test(x.warehouse_name))return; D(x.chrt_id).stock+=x.qty; });
+  od.forEach(x=>{ if(x.chrt_id!=null) D(x.chrt_id).ads+=1/DEMAND_DAYS; });
+  const live=new Set(sp.filter(x=>SUP_TRANSIT.has(x.status_id)).map(x=>x.supply_id));
+  sg.forEach(g=>{ if(!live.has(g.supply_id)||g.chrt_id==null)return; D(g.chrt_id).stock+=Math.max(0,(g.quantity||0)-(g.accepted_quantity||0)); });
+  // дата данных — день снимка остатков + 1 (снимок за вчера снимается ночью сегодня): продажи до конца месяца — от сегодняшнего дня
+  DEM_AT=snap?new Date(new Date(snap+'T00:00').getTime()+864e5).toISOString():'';
+  COST={}; cs.forEach(c=>{ if(!(c.chrt_id in COST)) COST[c.chrt_id]=Number(c.cost); });
+  MONTHS_DB={}; ms.forEach(m=>MONTHS_DB[m.month]=m);
+  // «в пути» — две последние недельные заявки WB в любом статусе: распределено по СЦ, иначе заявлено (как wb-purchase.html)
+  REQ_WEEKS=wk.slice(0,2).map(w=>w.week);
+  REQ={};
+  if(REQ_WEEKS.length){
+    const [ln,ds]=await Promise.all([getAll(`/rest/v1/wb_purchase_lines?select=week,chrt_id,requested_boxes&week=in.(${REQ_WEEKS.join(',')})&order=week,chrt_id`),
+      getAll(`/rest/v1/wb_purchase_dist?select=week,chrt_id,sc,boxes&week=in.(${REQ_WEEKS.join(',')})&order=week,chrt_id,sc`)]);
+    const dist={}; ds.forEach(d=>{ const k=d.week+'|'+d.chrt_id; dist[k]=(dist[k]||0)+(d.boxes||0); });
+    const seen=new Set();
+    ln.forEach(l=>{ const k=l.week+'|'+l.chrt_id; seen.add(k); REQ[l.chrt_id]=(REQ[l.chrt_id]||0)+(k in dist?dist[k]:(l.requested_boxes||0)); });
+    Object.entries(dist).forEach(([k,v])=>{ if(seen.has(k))return; const id=Number(k.split('|')[1]); REQ[id]=(REQ[id]||0)+v; });
+  }
+}
+const ST=()=>MONTHS_DB[MONTH]?.status||null;
+async function loadMonth(){
+  document.getElementById('err').textContent='';
+  const [pl,nd]=await Promise.all([
+    getAll(`/rest/v1/wb_sales_plan?select=chrt_id,plan_qty&month=eq.${MONTH}&order=chrt_id`),
+    getAll(`/rest/v1/wb_purchase_needs?select=*&month=eq.${MONTH}&order=chrt_id`)
+  ]);
+  PLAN={}; pl.forEach(p=>{ if(p.plan_qty>0) PLAN[p.chrt_id]=Number(p.plan_qty); });
+  NEEDS={}; nd.forEach(n=>NEEDS[n.chrt_id]=n);
+  ({turn:TURN,src:TURN_SRC}=needTurnover(MONTHS_DB,MONTH));
+  build(); render();
+}
+
+// ===== расчёт ===== (формула — need_calc.js, общая с purchase.html)
+function daysToEom(){ return needDaysToEom(DEM_AT,MONTH); }
+function build(){
+  MODEL=needBuild({prod:PROD,dem:DEM,demAt:DEM_AT,plan:PLAN,needs:NEEDS,turn:TURN,req:REQ,cost:COST,month:MONTH,live:!ST()||ST()==='draft'});
+}
+const S=(a,f)=>a.reduce((x,r)=>x+(Number(f(r))||0),0);
+const boxCost=p=>p.cost==null?null:p.cost*p.box_qty;
+// количество для денег и выгрузки: согласованное закупщиком, а пока его нет — заказ менеджера
+const qtyOf=p=>p.ag??p.need;
+const sumOf=p=>boxCost(p)==null?0:qtyOf(p)*boxCost(p);
+const vis=()=>{const q=document.getElementById('q').value.toLowerCase();return MODEL.filter(p=>(F==='all'||p.m===F)&&((p.offer_id||'').toLowerCase().includes(q)||(p.name||'').toLowerCase().includes(q)));};
+
+// ===== отрисовка =====
+function setF(f){F=f;render();}
+function render(){
+  const st=ST(), stIdx=st?STAGES.findIndex(s=>s[0]===st):-1;
+  document.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('on',b.dataset.f===F));
+  document.getElementById('mlbl').textContent=mLabel(MONTH);
+  document.getElementById('steps').innerHTML=STAGES.map((s,i)=>`<div class="step ${i===stIdx?'on':i<stIdx?'done':''}">${i<stIdx?'✓ ':''}${s[1]}</div>`).join('');
+  const a=document.getElementById('actions');
+  if(!st) a.innerHTML=`<button onclick="createMonth()">Создать потребность на ${mLabel(MONTH)}</button>`;
+  else a.innerHTML=(STAGE_BTN[st]?`<button onclick="nextStage()">${STAGE_BTN[st]}</button> `:'<span class="ok">Потребность согласована</span> ')+(stIdx>0?`<button class="btn2" onclick="prevStage()">↩ Вернуть на шаг</button>`:'');
+  const dAt=DEM_AT?new Date(DEM_AT):null, live=!st||st==='draft';
+  const noPlan=PROD.filter(p=>PLAN[p.product_id]==null).length;
+  document.getElementById('meta').innerHTML=(live?`Остатки и спрос WB: данные на ${dAt?dAt.toLocaleDateString('ru-RU'):'нет данных'} • план продаж на ${mLabel(MONTH)}: ${Object.keys(PLAN).length} товаров`+(noPlan&&Object.keys(PLAN).length?` (без плана: ${noPlan})`:''):'Показан снимок на момент отправки закупщику')
+    +(NOBOX.length?` • <span class="warn">без «в коробе»: ${NOBOX.length}</span>`:'')
+    +(live&&!Object.keys(PLAN).length?' • <span class="bad">нет плана продаж WB на этот месяц — поставьте на картах Шухарта WB</span>':'');
+  renderSettings(); renderCards(); renderT1(); renderSup();
+}
+function renderSettings(){
+  const st=ST(), ed=!st||st==='draft';
+  document.getElementById('setLock').textContent=st==='draft'?'— можно менять, пока потребность в черновике':!st?'— можно менять; при изменении потребность на месяц создастся':'— только просмотр';
+  document.getElementById('settings').innerHTML=`<table class="lt">
+    <tr><td>Дни оборачиваемости на конец месяца</td><td class="n">${ed?`<input class="num" type="number" min="0" step="1" value="${TURN}" onchange="setTurn(this.value)">`:TURN}</td>
+      <td class="mute">${!st?(TURN_SRC.startsWith('copy')?'при создании скопируется из '+mLabel(TURN_SRC.slice(5)):'по умолчанию'):''}</td></tr>
+    <tr><td>Дней в месяце</td><td class="n">${daysIn(MONTH)}</td><td class="mute">план в день = план ÷ дней месяца</td></tr>
+    ${BLOCKED.size?`<tr><td>Не учитываются (заказ запрещён)</td><td class="n">${BLOCKED.size} кл.</td><td class="mute">${[...BLOCKED].sort().map(esc).join(', ')} — спрос, остатки и заявки</td></tr>`:''}
+    <tr><td>Продажи считаются до конца текущего месяца</td><td class="n">${daysToEom()} дн.</td><td class="mute">от даты данных WB</td></tr>
+    <tr><td>Недельные заявки «в пути»</td><td class="n">${REQ_WEEKS.length?REQ_WEEKS.map(ddmm).join(', '):'нет'}</td><td class="mute">две последние недели заявки WB, в любом статусе (распределено по СЦ, иначе заявлено)</td></tr>
+  </table>`;
+}
+function renderCards(){
+  const v=vis(), need=S(v,p=>p.need), has=v.some(p=>p.ag!=null);
+  const calcR=S(v,p=>boxCost(p)==null||p.calc==null?0:p.calc*boxCost(p)), needR=S(v,p=>boxCost(p)==null?0:p.need*boxCost(p));
+  const agP=v.filter(p=>p.ag!=null), ag=S(agP,p=>p.ag), agR=S(agP,p=>boxCost(p)==null?0:p.ag*boxCost(p)), needAg=S(agP,p=>p.need);
+  const eff=has&&needAg?Math.round(ag/needAg*100)+'%':'—';
+  document.getElementById('cards').innerHTML=[
+    ['Расчёт, кор. / ₽',`${nf.format(S(v,p=>p.calc))} / ${rub.format(calcR)}`],
+    ['Заказ, кор. / ₽',`${nf.format(need)} / ${rub.format(needR)}`],
+    ['Согласовано, кор. / ₽',has?`${nf.format(ag)} / ${rub.format(agR)}`:'—'],
+    ['Эффективность согласования',eff,'hl',has?`согласовано ${nf.format(ag)} из ${nf.format(needAg)} кор. заказа`:'появится, когда закупщик внесёт согласованное']
+  ].map(([l,x,c,t])=>`<div class="card ${c||''}"${t?` title="${t}"`:''}><div class="l">${l}</div><div class="v">${x}</div></div>`).join('');
+}
+function toggleSup(i){const s=SUP_KEYS[i];OPEN_SUP.has(s)?OPEN_SUP.delete(s):OPEN_SUP.add(s);renderT1();}
+let SUP_KEYS=[];
+function renderT1(){
+  const st=ST(), edN=st==='draft', edA=st==='at_buyer', q=document.getElementById('q').value.trim();
+  const v=vis().sort((a,b)=>(a.supplier||'—').localeCompare(b.supplier||'—','ru')||(b.calc||0)-(a.calc||0)||a.offer_id.localeCompare(b.offer_id));
+  const fmt=x=>x==null?'<span class="mute">—</span>':nf.format(x);
+  let h=`<colgroup><col style="width:18%"><col span="6" style="width:6%"><col span="3" style="width:6%"><col style="width:6%"><col style="width:8.5%"><col style="width:7.5%"></colgroup>
+    <thead><tr><th rowspan="2" class="sub">Товар</th><th colspan="6" class="mhead sep">Расчёт потребности</th><th colspan="3" class="mhead sep">Потребность</th><th colspan="2" class="whead sep">Закупщик</th><th rowspan="2" class="sub sep n" title="Согласованное × штук в коробе × себестоимость; пока согласованного нет — заказ">Сумма, ₽</th></tr>
+    <tr><th class="sub sep n">План месяца, шт</th><th class="sub n">Запас оборачи&shy;ваемости, шт</th><th class="sub n">На складах WB + в поставках, шт</th><th class="sub n">Заявки в пути, шт</th><th class="sub n">Продадим до конца месяца, шт</th><th class="sub n">В коробе, шт</th>
+      <th class="sub sep n">Расчёт, кор.</th><th class="sub n">Заказ, кор.</th><th class="sub n">Заказ, шт</th><th class="wsub sep n">Согласовано, кор.</th><th class="wsub">Комментарий</th></tr></thead><tbody>`;
+  if(!v.length) h+=`<tr><td colspan="13" class="mute">Нет товаров с планом на ${mLabel(MONTH)}</td></tr>`;
+  SUP_KEYS=[...new Set(v.map(p=>p.supplier||'—'))];
+  SUP_KEYS.forEach((sup,i)=>{
+    const g=v.filter(x=>(x.supplier||'—')===sup), gn=S(g,x=>x.need), ga=S(g,x=>x.ag), gr=S(g,sumOf), open=OPEN_SUP.has(sup)||!!q;
+    h+=`<tr class="mgroup" onclick="toggleSup(${i})"><td colspan="13"><span class="tg">${open?'▾':'▸'}</span>${esc(sup)} — ${g.length} тов. · расчёт ${nf.format(S(g,x=>x.calc))} кор. · заказ ${gn} кор. · ${rub.format(gr)} ₽${g.some(x=>x.ag!=null)?` · согласовано ${ga} кор.${gn?` (${Math.round(ga/gn*100)}%)`:''}`:''}</td></tr>`;
+    if(!open) return;
+    for(const p of g){
+      const bc=boxCost(p);
+      h+=`<tr><td><b>${esc(p.offer_id)}</b><div class="pname">${esc(p.name)}</div></td>
+        <td class="n sep">${p.plan==null?'<span class="mute">нет плана</span>':nf.format(p.plan)}</td><td class="n">${fmt(p.turnover)}</td><td class="n">${fmt(p.stock)}</td><td class="n">${fmt(p.reqQty)}</td>
+        <td class="n" title="${p.ads==null?'':nf.format(p.ads)+' шт/дн × '+p.dte+' дн.'}">${fmt(p.sell)}</td>
+        <td class="n${p.box_qty>0?'':' miss'}" title="${p.box_qty>0?'':'Не заполнено — заполните в «Базе товаров WB»'}">${p.box_qty>0?p.box_qty:''}</td>
+        <td class="n sep${p.nobox?' miss':''}">${p.nobox?'<span title="Не заполнено «в коробе» — заполните в «Базе товаров WB»">нет «в коробе»</span>':p.calc==null?'<span class="mute">—</span>':nf2.format(p.calc)}</td>
+        <td class="n">${edN&&!p.nobox?`<input class="num" type="number" min="0" step="1" value="${p.need}" title="${p.manual?'Изменено вручную; очистите поле, чтобы вернуть к расчёту':'Идёт за расчётом'}" onchange="setNeed(${p.product_id},this.value)">${p.manual?'<div class="mute" style="font-size:.75em">✎ вручную</div>':''}`:`<b>${p.need}</b>`}</td>
+        <td class="n mute" title="${p.box_qty||0} шт в коробе">${nf.format(p.need*(p.box_qty||0))}</td>
+        <td class="n sep">${edA?`<input class="num" type="number" min="0" step="1" value="${p.ag??''}" placeholder="—" onchange="setAg(${p.product_id},this.value)">`:(p.ag??'—')}</td>
+        <td>${edA?`<input value="${esc(p.comment)}" onchange="setComment(${p.product_id},this.value)">`:esc(p.comment)}</td>
+        <td class="n sep">${bc==null?'<span class="warn" title="нет себестоимости в «Базе товаров WB»">—</span>':rub.format(qtyOf(p)*bc)}</td></tr>`;
+    }
+  });
+  document.getElementById('t1').innerHTML=h+'</tbody>';
+}
+let SUP_LIST=[];
+function renderSup(){
+  const by={}, weeks=(()=>{const[y,m]=MONTH.split('-').map(Number);let n=0;for(let d=1;d<=daysIn(MONTH);d++){if(new Date(y,m-1,d).getDay()===4)n++;}return n;})();
+  // все товары юрлица (без фильтра менеджера и поиска) — поставщику уходит общий заказ
+  MODEL.forEach(p=>{const s=supOf(p),o=by[s]||(by[s]={k:0,r:0,u:0,ag:false});const q=qtyOf(p);o.k+=q;o.u+=q*p.box_qty;o.r+=sumOf(p);if(p.ag!=null)o.ag=true;});
+  SUP_LIST=Object.entries(by).filter(([,o])=>o.k>0).sort((a,b)=>b[1].r-a[1].r);
+  document.getElementById('sup').innerHTML=SUP_LIST.map(([s,o],i)=>`<div class="card" title="Скачать Excel" onclick="exportSup(${i})"><div class="l">${esc(s)} · ${o.ag?'согласовано':'заказ'} ⬇</div><div class="v">${rub.format(o.r)} ₽</div><div class="l">${nf.format(o.k)} кор. · ${nf.format(o.u)} шт · в неделю ≈ ${rub.format(o.r/weeks)} ₽ (${weeks} нед.)</div></div>`).join('')||'<div class="mute">Нет заказа</div>';
+}
+const supOf=p=>p.supplier||'—';
+function exportSup(i){
+  const [sup]=SUP_LIST[i]||[]; if(!sup) return;
+  if(!window.XLSX){ document.getElementById('err').textContent='Не загрузилась библиотека Excel — обновите страницу'; return; }
+  const rows=MODEL.filter(p=>supOf(p)===sup&&qtyOf(p)>0).sort((a,b)=>a.offer_id.localeCompare(b.offer_id)).map(p=>[p.offer_id,p.name||'',qtyOf(p)*p.box_qty,qtyOf(p)]);
+  const ws=XLSX.utils.aoa_to_sheet([['Артикул','Наименование','Штуки','Короба'],...rows]);
+  ws['!cols']=[{wch:28},{wch:60},{wch:10},{wch:10}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Заказ');
+  XLSX.writeFile(wb,`Потребность_WB_${ENTITY}_${MONTH}_${sup.trim().replace(/[\\/:*?"<>|]+/g,'_')}.xlsx`);
+}
+
+// ===== действия =====
+function shiftMonth(n){MONTH=addMonth(MONTH,n);loadMonth().catch(e=>document.getElementById('err').textContent='Ошибка: '+e.message);}
+function fail(e){document.getElementById('err').textContent='Не сохранилось: '+e.message;}
+const toInt=v=>{const n=Math.round(Number(String(v).replace(',','.')));return Number.isFinite(n)&&n>=0?n:0;};
+function needRow(p,extra){return {month:MONTH,chrt_id:p.product_id,need_boxes:p.need,box_qty:p.box_qty,plan_qty:p.plan,stock_qty:p.stock,requests_qty:p.reqQty,ads:p.ads,days_to_eom:p.dte,calc_boxes:p.calc,unit_cost:p.cost,updated_at:new Date().toISOString(),...extra};}
+async function setNeed(pid,v){
+  if(ST()!=='draft') return;
+  const p=MODEL.find(x=>x.product_id===pid), auto=p.calc==null?0:Math.ceil(p.calc-1e-9);
+  // пустое поле — вернуть к расчёту
+  p.need=String(v).trim()===''?auto:toInt(v); p.manual=p.need!==auto;
+  try{ await upsert('wb_purchase_needs',[needRow(p)],'month,chrt_id'); NEEDS[pid]={...(NEEDS[pid]||{}),need_boxes:p.need,calc_boxes:p.calc}; }catch(e){fail(e);}
+  renderCards(); renderT1(); renderSup();
+}
+async function setAg(pid,v){
+  if(ST()!=='at_buyer') return;
+  const p=MODEL.find(x=>x.product_id===pid); p.ag=String(v).trim()===''?null:toInt(v);
+  try{ await upsert('wb_purchase_needs',[{month:MONTH,chrt_id:pid,agreed_boxes:p.ag,updated_at:new Date().toISOString()}],'month,chrt_id'); }catch(e){fail(e);}
+  renderCards(); renderT1();
+}
+async function setComment(pid,v){
+  if(ST()!=='at_buyer') return;
+  const p=MODEL.find(x=>x.product_id===pid); p.comment=v;
+  try{ await upsert('wb_purchase_needs',[{month:MONTH,chrt_id:pid,comment:v||null,updated_at:new Date().toISOString()}],'month,chrt_id'); }catch(e){fail(e);}
+}
+async function setTurn(v){
+  const st=ST(); if(st&&st!=='draft') return;
+  TURN=toInt(v);
+  try{
+    if(!st){ await upsert('wb_purchase_need_months',[{month:MONTH,status:'draft',turnover_days:TURN}],'month'); MONTHS_DB[MONTH]={month:MONTH,status:'draft',turnover_days:TURN}; }
+    else { await patchMonth({turnover_days:TURN}); MONTHS_DB[MONTH].turnover_days=TURN; }
+  }catch(e){fail(e);}
+  build(); render();
+}
+async function createMonth(){
+  if(!confirm(`Создать потребность на ${mLabel(MONTH)}? Дни оборачиваемости: ${TURN}.`)) return;
+  try{ await upsert('wb_purchase_need_months',[{month:MONTH,status:'draft',turnover_days:TURN}],'month'); await loadBase(); await loadMonth(); }catch(e){fail(e);}
+}
+async function nextStage(){
+  const st=ST(), err=document.getElementById('err'); err.textContent='';
+  try{
+    if(st==='draft'){
+      if(!confirm('Отправить потребность закупщику? После этого «Заказ» и параметры расчёта менять нельзя.')) return;
+      const now=new Date().toISOString();
+      await upsert('wb_purchase_needs',MODEL.filter(p=>!p.nobox).map(p=>needRow(p,{updated_at:now})),'month,chrt_id');
+      await patchMonth({status:'at_buyer',submitted_at:now});
+    }else if(st==='at_buyer'){
+      const miss=MODEL.filter(p=>p.need>0&&p.ag==null);
+      if(miss.length){ err.textContent=`Заполните «Согласовано» по всем товарам с заказом (не заполнено: ${miss.length}, напр. ${miss.slice(0,3).map(p=>p.offer_id).join(', ')})`; return; }
+      if(!confirm('Отметить потребность согласованной?')) return;
+      await patchMonth({status:'closed',agreed_at:new Date().toISOString()});
+    }
+    await loadBase(); await loadMonth();
+  }catch(e){fail(e);}
+}
+async function prevStage(){
+  const i=STAGES.findIndex(s=>s[0]===ST()); if(i<=0) return;
+  if(!confirm(`Вернуть потребность на шаг «${STAGES[i-1][1]}»?`)) return;
+  try{ await patchMonth({status:STAGES[i-1][0]}); await loadBase(); await loadMonth(); }catch(e){fail(e);}
+}
+// кнопки «−» / «+» у каждого поля числа: меняют на 1 и сохраняют, как ручной ввод (событие change)
+function stepNum(b,d){ const i=b.parentNode.querySelector('input'); if(!i||i.disabled) return; const x=Math.max(0,(Number(i.value)||0)+d); i.value=x; i.dispatchEvent(new Event('change',{bubbles:true})); }
+function wrapNums(root){ root.querySelectorAll('input.num:not([data-stp])').forEach(i=>{ i.dataset.stp=1; const s=document.createElement('span'); s.className='stp'; s.onclick=e=>e.stopPropagation(); i.replaceWith(s); s.innerHTML='<button type="button" title="−1" onclick="stepNum(this,-1)">−</button>'; s.appendChild(i); s.insertAdjacentHTML('beforeend','<button type="button" title="+1" onclick="stepNum(this,1)">+</button>'); }); }
+new MutationObserver(()=>wrapNums(document.getElementById('app'))).observe(document.getElementById('app'),{childList:true,subtree:true});
+if(BA_AUTH.has(SUPABASE_URL))go();
+</script></body></html>
