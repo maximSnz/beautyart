@@ -258,7 +258,7 @@ try {
   const t = await fetch(`${SB}/rest/v1/wb_cf_daily?select=day&limit=1`, { headers: SR });
   if (!t.ok) throw new Error(`нет таблицы wb_cf_daily (HTTP ${t.status}) — запустить sql/2026-11-13_wb_cf_daily.sql в базе ИП`);
   const n = v => Number(v) || 0;
-  const ch = await readAll('wb_charges', `select=rrd_id,rr_date,oper_name,doc_type,chrt_id,nm_id,quantity,retail_amount,for_pay,delivery_service,paid_acceptance,penalty,deduction,additional_payment,rebill_logistic_cost,cashback_amount&rr_date=gte.${CF_FROM}&rr_date=lte.${D}`, 'rrd_id');
+  const ch = await readAll('wb_charges', `select=rrd_id,rr_date,oper_name,doc_type,chrt_id,nm_id,quantity,retail_amount,for_pay,delivery_service,paid_acceptance,penalty,deduction,additional_payment,rebill_logistic_cost,cashback_amount&rr_date=gte.${CF_FROM}&rr_date=lte.${D}`, 'rr_date,rrd_id');   // сортировка по дате и ключу: по одному rrd_id база не укладывалась в лимит времени (15–16.11.2026)
   const ad = await readAll('wb_ad_spend', `select=advert_id,nm_id,day,amount&day=gte.${CF_FROM}&day=lte.${D}`, 'advert_id,nm_id,day');
   const ord = await readAll('wb_orders', `select=srid,order_day,chrt_id,nm_id,price_with_disc,is_cancel&source=eq.feed&order_day=gte.${CF_FROM}&order_day=lte.${D}`, 'srid');
   const pr = await readAll('wb_product_prices', 'select=id,chrt_id,cost,created_at', 'created_at,id');   // по дате: себестоимость бывает задним числом (файл цен)
