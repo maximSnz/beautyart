@@ -3,7 +3,7 @@
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
 // финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend;
 // маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily; лимиты ДРР (шаг 7) — sql/2026-11-13_wb_drr_limits.sql: wb_drr_limits;
-// фиксация факта SMART-гипотез WB (шаг 8) — sql/2026-11-13_wb_protocol.sql: wb_protocol.
+// фиксация факта SMART-гипотез WB (шаг 8) — sql/2026-11-13_wb_protocol.sql: wb_protocol; план «Протокола работ» WB (шаг 9) — sql/2026-11-13_wb_protocol_plan.sql: wb_protocol_plan.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -388,5 +388,30 @@ else try {
   if (!WRITE) DONE.push(`wb_protocol: было бы зафиксировано гипотез ${hyp.зафиксировано}`); else DONE.push(`wb_protocol: зафиксировано гипотез ${hyp.зафиксировано}`);
   note(`Гипотезы WB: зафиксировано ${hyp.зафиксировано}, ждут дня контроля ${hyp['ждут дня контроля']}${hyp.ошибки ? `; ⚠️ ошибки ${hyp.ошибки}` : ''}`);
 } catch (e) { console.log(`⚠️ гипотезы WB: ${e.message}`); note(`⚠️ гипотезы WB: ${e.message.slice(0, 200)}`); }
+
+// 9) План «Протокола работ» WB на сегодня (13.11.2026, решения владельца: протокол WB — как Ozon; sql/2026-11-13_wb_protocol_plan.sql) → wb_protocol_plan.
+//    Расчёт — общий модуль scripts/protocol_calc.js (копия beautyart-home/protocol_calc.js — правится там, сюда копируется): PROTO.loadWB + work
+//    (минимум выручки WB ИП — 250 000 ₽ в будни, выходные × 0,7) + planRows; сравнение просадки — вчера к предыдущему дню того же типа;
+//    строки дня заменяются целиком. Только при загрузке за вчера (остатки «на сейчас»). Свои таблицы: шаг 9 ozon-daily-load стирает весь
+//    product_protocol_plan за день. Нет таблицы или ошибка — предупреждение.
+if (!SNAPSHOT) console.log('\nплан протокола WB: день ≠ вчера — пропущено');
+else try {
+  const t0 = await fetch(`${SB}/rest/v1/wb_protocol_plan?select=id&limit=1`, { headers: SR });
+  if (!t0.ok) throw new Error(`нет таблицы wb_protocol_plan (HTTP ${t0.status}) — запустить sql/2026-11-13_wb_protocol_plan.sql в базе ИП`);
+  await import('./protocol_calc.js');   // ставит globalThis.PROTO
+  const TODAY = shift(D, 1);
+  const all = async q => { const out = []; for (let off = 0; ; off += 1000) { const r = await fetch(`${SB}/rest/v1/${q}&limit=1000&offset=${off}`, { headers: SR });
+    if (!r.ok) throw new Error(`supabase ${q.split('?')[0]} -> HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`); const p = await r.json(); out.push(...p); if (p.length < 1000) break; } return out; };
+  const api = { all, one: async q => { const r = await fetch(`${SB}/rest/v1/${q}`, { headers: SR }); if (!r.ok) throw new Error(`supabase HTTP ${r.status} ${q.split('?')[0]}`); return r.json(); } };
+  const P = await PROTO.loadWB(api, { today: TODAY }), W = PROTO.work(P, 'wb'), rows = PROTO.planRows(P, W, 'night');
+  const cnt = k => W.list.filter(r => W.why(r).includes(k)).length;
+  console.log(`план протокола WB: позиций с планом ${P.rows.length}, в работе ${W.counts.all}, сравнение ${P.yKey} к ${P.pKey}; причины: просадка ${cnt('drop')}, добор ${cnt('gap')}, ДРР ${cnt('drr')}, гипотеза ${cnt('hyp')}, пополнение ${cnt('restock')}`);
+  if (WRITE) {
+    const del = await fetch(`${SB}/rest/v1/wb_protocol_plan?day=eq.${TODAY}`, { method: 'DELETE', headers: { ...SR, Prefer: 'return=minimal' } });
+    if (!del.ok) throw new Error(`удаление плана дня -> HTTP ${del.status}: ${(await del.text()).slice(0, 200)}`);
+  }
+  await upsert('wb_protocol_plan', 'day,pos_key', rows);
+  note(`План протокола WB: ${W.counts.all} позиций (сравнение ${P.yKey.slice(8)}.${P.yKey.slice(5, 7)} к ${P.pKey.slice(8)}.${P.pKey.slice(5, 7)})`);
+} catch (e) { console.log(`⚠️ план протокола WB: ${e.message}`); note(`⚠️ План протокола WB не зафиксирован: ${e.message.slice(0, 160)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
