@@ -71,6 +71,19 @@
  body.embed #hypBox{flex:1 1 auto}
  body.embed .ehwrap{max-height:none}
  html:has(body.embed){overflow:hidden}
+ /* юнит-экономика WB (16.11.2026): как «🧮 Юнит-экономика» plan.html; во встроенном режиме — справа от гипотез, только поля и матрица */
+ #unitBox{margin-top:12px}
+ #unitBox .ucols{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+ #unitBox .uinfo{flex:1 1 230px;min-width:230px;max-width:420px;font-size:.86em;line-height:1.6}
+ @keyframes unitPulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(227,61,120,.95)}50%{box-shadow:inset 0 0 0 3px rgba(227,61,120,.2)}}
+ td.unitavg{animation:unitPulse 1.4s ease-in-out infinite}
+ @keyframes unitPulse28{0%,100%{box-shadow:inset 0 0 0 2px rgba(47,111,163,.95)}50%{box-shadow:inset 0 0 0 3px rgba(47,111,163,.2)}}
+ td.unitavg28{animation:unitPulse28 1.4s ease-in-out infinite}
+ @media (prefers-reduced-motion:reduce){ td.unitavg{animation:none;box-shadow:inset 0 0 0 2px #E33D78} td.unitavg28{animation:none;box-shadow:inset 0 0 0 2px #2f6fa3} }
+ body.embed #lowRow{flex:1 1 auto;display:flex;gap:10px;min-height:0;margin-top:10px}
+ body.embed #lowRow>#hypBox{order:1;flex:1 1 55%;margin-top:0;min-width:0}
+ body.embed #lowRow>#unitBox{order:2;flex:1 1 45%;margin-top:0;min-width:0;overflow:auto}
+ body.embed #unitBox .ures,body.embed #unitBox .uinfo,body.embed #unitBox .unote{display:none}
 </style><style>
  /* === Единая шапка и ширина рабочего пространства (эталон шапки — beautyart-home) === */
  .header{max-width:1700px;margin:0 auto 16px;display:flex;align-items:center;padding:14px 26px;gap:20px;border:1px solid rgba(255,255,255,.3);border-radius:16px;background:rgba(255,255,255,.15);box-shadow:0 8px 32px rgba(28,13,46,.2);box-sizing:border-box;position:relative;z-index:200}
@@ -118,7 +131,10 @@
     </div>
     <div class="err" id="err"></div>
     <div id="pulseBox"><div class="psub">Выберите размер или группу перчаток.</div></div>
-    <div id="hypBox" class="psection hide"><div id="hypList"></div><div id="hypForm"></div></div>
+    <div id="lowRow">
+      <div id="unitBox" class="psection hide"></div>
+      <div id="hypBox" class="psection hide"><div id="hypList"></div><div id="hypForm"></div></div>
+    </div>
   </div>
 </div>
 <script src="../beautyart-home/auth.js?v=20261021"></script>
@@ -130,7 +146,8 @@
 // выручка ВСЕХ заказов дня (с отменами — как модель лимитов wb_drr_limits); лимиты — от цены дня по коэффициентам последнего дня wb_drr_limits;
 // маржа ₽ — wb_cf_daily.mar (по дате операции финансового отчёта); остатки — wb_stock_history без строк «В пути…».
 // SMART-гипотезы — wb_protocol (только по заказам), дата работы — wb_plan_meta (sql/2026-11-13_wb_protocol.sql); факт фиксирует ночная загрузка WB (шаг 8).
-// ?pulse=<артикул-размер или семейство> | ?chrt=<id>; &m=YYYY-MM; &embed=1 — только таблица и гипотезы (окно товара «Протокола работ» WB).
+// Юнит-экономика (16.11.2026) — калькулятор на модели лимитов (коэффициенты b, r, t, u последнего дня wb_drr_limits; purchasing.md, «Лимиты ДРР WB»).
+// ?pulse=<артикул-размер или семейство> | ?chrt=<id>; &m=YYYY-MM; &embed=1 — таблица, гипотезы и матрица юнит-экономики (окно товара «Протокола работ» WB).
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
@@ -206,7 +223,8 @@ async function show(){if(!CUR)return;
   const box=document.getElementById('pulseBox');box.innerHTML='<div class="psub">загрузка…</div>';
   document.getElementById('meta').textContent=CUR.isG?`${CUR.members.length} размеров: ${CUR.members.map(m=>shortOf(m.offer)).join(', ')}`:(CUR.members[0].title||'');
   try{D=await pulseData();box.innerHTML=pulseRender(D);}
-  catch(e){box.innerHTML=`<div class="err">Ошибка загрузки: ${esc(e.message)}</div>`;return;}
+  catch(e){box.innerHTML=`<div class="err">Ошибка загрузки: ${esc(e.message)}</div>`;document.getElementById('unitBox').classList.add('hide');return;}
+  unitInit();
   document.getElementById('hypBox').classList.remove('hide');
   await loadHyp();tellH();}
 
@@ -214,10 +232,10 @@ async function show(){if(!CUR)return;
 async function pulseData(){
   const [y,m]=MONTH.split('-').map(Number),first=localISO(new Date(y,m-1,1-10)),last=localISO(new Date(y,m,0)),mStart=MONTH+'-01';
   const today=localISO(new Date()),yest=addDaysISO(today,-1),ids=CUR.members.map(p=>p.chrt),inIds=`chrt_id=in.(${ids.join(',')})`;
-  const oFrom=[first,addDaysISO(today,-14)].sort()[0];   // заказы — и за 14 дней до сегодня (вес размеров в лимитах группы)
+  const oFrom=[first,addDaysISO(today,-29)].sort()[0];   // заказы и реклама — и за 4 недели до сегодня (вес размеров в лимитах группы, средние юнит-экономики)
   const [ord,cf,stk,lim,plan,lastO]=await Promise.all([
     getAll(`wb_orders?source=eq.feed&${inIds}&order_day=gte.${oFrom}&order_day=lte.${last}&select=srid,order_day,chrt_id,price_with_disc,is_cancel&order=srid`),
-    getAll(`wb_cf_daily?${inIds}&day=gte.${first}&day=lte.${last}&select=chrt_id,day,mar,ads,retail,no_cost_qty&order=chrt_id,day`),
+    getAll(`wb_cf_daily?${inIds}&day=gte.${oFrom}&day=lte.${last}&select=chrt_id,day,mar,ads,retail,no_cost_qty&order=chrt_id,day`),
     getAll(`wb_stock_history?${inIds}&report_date=gte.${first}&report_date=lte.${last}&select=report_date,barcode,warehouse_name,chrt_id,qty&order=report_date,barcode,warehouse_name`),
     getAll(`wb_drr_limits?${inIds}&day=gte.${addDaysISO(today,-14)}&select=*&order=day.desc,chrt_id`).catch(e=>{if(noTable(e))return [];throw e;}),
     getAll(`wb_sales_plan?month=eq.${MONTH}&${inIds}&select=chrt_id,plan_qty,price,margin_pct&order=chrt_id`),
@@ -301,6 +319,84 @@ function pulseRender(X){const {days,today}=X,isG=CUR.isG;
   h+=metric('stk','Остатки, шт','Остаток на складах WB на день снимка (без «В пути до получателей» и «В пути возвраты»).'+(isG?' Группа — сумма размеров.':''),rStock);
   return h+`</tbody></table><div class="psub" style="margin-top:6px">Заказы загружены по ${ddmm(X.lastOrd)}; маржа — по ${ddmm(X.lastCf)}. ДРР: под значением — лимиты при цене этого дня (плановый/безубыточный).${isG?' ▸ у названия строки — размеры группы.':''}</div></div>`;}
 function subToggle(id,el){const open=el.textContent==='▸';el.textContent=open?'▾':'▸';document.querySelectorAll('.ps_'+id).forEach(r=>r.style.display=open?'':'none');tellH();}
+
+// ===== 🧮 Юнит-экономика WB (16.11.2026; как «Юнит-экономика» plan.html, модель — шаг 7 wb-daily-load, purchasing.md «Лимиты ДРР WB») =====
+// на 1 заказ (все заказы, с отменами — как модель): цена P; продажа G = P × b (выкуп × скидка WB покупателю); удержания WB −G × (1 − r)
+// (комиссия, эквайринг, минус компенсация скидки WB); налог −G × t; себестоимость, логистика и прочее на заказ −u; реклама −P × ДРР;
+// маржа = G × (r − t) − u − P × ДРР; маржинальность = маржа ÷ G (от продажи, как wb_cf_daily). Ступени комиссии по цене у WB нет.
+// По умолчанию — последний полный день заказов (как последняя колонка таблицы); средние за 14 дней и 4 недели — пульсирующие ячейки матрицы.
+const fmt2=n=>Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+let UNIT=null, UNIT_SZ=null;
+const unitPct=(C,P,D)=>(C.r-C.t-C.u/(P*C.b)-(D||0)/100/C.b)*100;
+// цена, при которой маржинальность = m при ДРР D: P = u ÷ (b × (r − t − ДРР ÷ b − m)); null — недостижимо при таком ДРР
+const unitPriceFor=(C,m,D)=>{const den=C.b*(C.r-C.t-(D||0)/100/C.b-m/100);return den>0?C.u/den:null;};
+function unitModel(S,X){const L=S.lim;if(!L||!(Number(L.b)>0))return {ok:false,S};
+  const C={b:Number(L.b),r:Number(L.r),t:Number(L.t),u:Number(L.u)},y=X.lastOrd,w7=addDaysISO(y,-6),w14=addDaysISO(y,-13),w28=addDaysISO(y,-27);
+  let qa7=0,q14=0,r14=0,a14=0,q28=0,r28=0,a28=0,qn28=0;
+  for(let d=w28;d<=y;d=addDaysISO(d,1)){const q=S.qa[d]||0,r=S.reva[d]||0,a=S.ads[d]||0;q28+=q;r28+=r;a28+=a;qn28+=S.q[d]||0;if(d>=w14){q14+=q;r14+=r;a14+=a;}if(d>=w7)qa7+=q;}
+  let dy=y;while(dy>=w14&&!(S.qa[dy]>0))dy=addDaysISO(dy,-1);
+  const qy=S.qa[dy]||0,ry=S.reva[dy]||0;
+  return {ok:true,S,C,L,y,w14,w28,dayISO:qy>0?dy:null,py:qy>0?ry/qy:Number(L.price),dy:ry>0?(S.ads[dy]||0)/ry*100:0,
+    p14:q14>0?r14/q14:null,d14:r14>0?a14/r14*100:null,p28:q28>0?r28/q28:null,d28:r28>0?a28/r28*100:null,qa7,
+    kc:qn28>0?q28/qn28:1,   // заказов с отменами на 1 заказ без отмен (план — без отмен)
+    planPct:S.plan&&S.plan.pct!=null?S.plan.pct:(L.plan_pct==null?null:Number(L.plan_pct)),planPrice:S.plan?S.plan.price:null,planQty:S.plan?S.plan.qty:null};}
+function unitInit(){const box=document.getElementById('unitBox');if(!D)return;box.classList.remove('hide');
+  const ss=D.sizes;if(!UNIT_SZ||!ss.some(s=>s.chrt===UNIT_SZ)){const w=ss.filter(s=>s.lim).sort((a,b)=>b.q14-a.q14);UNIT_SZ=(w[0]||ss[0]).chrt;}
+  const S=ss.find(s=>s.chrt===UNIT_SZ),U=UNIT=unitModel(S,D);
+  const sel=CUR.isG?`<label style="font-size:.86em">Размер <select onchange="UNIT_SZ=Number(this.value);unitInit()">${ss.map(s=>`<option value="${s.chrt}"${s.chrt===UNIT_SZ?' selected':''}>${esc(shortOf(s.offer))} · ${fmt(s.q14)} шт за 14 дн</option>`).join('')}</select></label>`:'';
+  const head=`<div class="psectitle">🧮 Юнит-экономика${CUR.isG?' размера':''}</div>`;
+  if(!U.ok){box.innerHTML=head+sel+'<div class="psub">Модель не рассчитана: у размера нет коэффициентов в wb_drr_limits (мало заказов и выкупов за 4 недели калибровки или нет себестоимости).</div>';tellH();return;}
+  const P0=Math.round(U.py),D0=Math.round(U.dy*10)/10,C=U.C;
+  const inp=(id,v,st)=>`<input type="number" id="${id}" value="${v}" step="${st}" min="0" oninput="unitCalc()" style="width:90px">`;
+  box.innerHTML=head+`<div class="psub unote" style="margin:0 0 8px">Прогноз маржинальности размера при цене и ДРР. Остальное — по статистике заказов ${ddmm(U.L.cal_from)}–${ddmm(U.L.cal_to)} (медиана ${U.L.weeks} нед., выкупы по ним уже пришли); коэффициенты — ночная загрузка ${ddmm(U.L.day)}.</div>`
+    +`<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:.86em">${sel}`
+    +`<label>Цена заказа, ₽ ${inp('unitP',P0,1)}</label><label>ДРР, % ${inp('unitD',D0,0.5)}</label>`
+    +`<button onclick="unitSet(${P0},${D0})" title="Цена и ДРР последнего полного дня заказов — как последняя колонка таблицы (все заказы, с отменами)">${U.dayISO?ddmm(U.dayISO):'Вчера'} (${fmt(P0)} ₽, ${f1(D0)}%)</button>`
+    +(U.planPrice?`<button onclick="unitSet(${Math.round(U.planPrice)},null)">Цена плана (${fmt(U.planPrice)} ₽)</button>`:'')
+    +`</div><div class="ucols"><div class="ures" id="unitres"></div><div id="unitgrid"></div><div class="uinfo" id="unitinfo"></div></div>`
+    +`<div class="psub unote" style="margin-top:6px;color:#94a3b8">Цена и ДРР — по всем заказам, с отменами (как лимиты ДРР в таблице). Модель не знает, как цена и реклама меняют число заказов, — это проверяйте SMART-гипотезой. Маржинальность — от продажи (выкупы по цене WB), как маржа в таблице. Ниже ${NET_FLOOR}% — убыток для компании по чистой прибыли (красный).</div>`;
+  unitCalc();}
+function unitSet(P,Dv){const ip=document.getElementById('unitP'),id=document.getElementById('unitD');if(P!=null&&ip)ip.value=P;if(Dv!=null&&id)id.value=Dv;unitCalc();}
+function unitCalc(){const U=UNIT;if(!U||!U.ok)return;const C=U.C;
+  const P=Number(document.getElementById('unitP').value),Dv=Number(document.getElementById('unitD').value)||0;
+  const res=document.getElementById('unitres'),grid=document.getElementById('unitgrid'),info=document.getElementById('unitinfo');
+  if(!(P>0)){res.innerHTML='<div class="psub">Введите цену больше 0.</div>';grid.innerHTML='';info.innerHTML='';return;}
+  const m=U.planPct;
+  const bg=v=>v<NET_FLOOR?'background:rgba(227,61,120,0.30);':(m!=null&&v<m?'background:rgba(253,224,71,0.45);':'background:rgba(22,163,74,0.30);');
+  const G=P*C.b,cut=G*(1-C.r),tax=G*C.t,ads=P*Dv/100,mar=G*(C.r-C.t)-C.u-ads,pct=mar/G*100;
+  const row=(n,v,share,tip,b)=>`<tr${b?' style="font-weight:700"':''}><td style="text-align:left;white-space:normal;min-width:140px;max-width:190px" title="${esc(tip||'')}">${n}</td><td class="num">${v<0?'−':''}${fmt2(Math.abs(Math.round(v*100)/100))} ₽</td><td class="num" style="color:#64748b">${share==null?'':f1(share)+'%'}</td></tr>`;
+  res.innerHTML=`<table class="pulsetable" style="font-size:.86em"><thead><tr><th style="text-align:left">На 1 заказ</th><th>₽</th><th>% продажи</th></tr></thead><tbody>`
+    +row('Цена заказа',P,null,'Цена продавца со скидкой — по ней заказывают в «Ленте заказов»')
+    +row(`Продажа (${f1(C.b*100)}% цены заказа)`,G,100,'Сколько в среднем WB засчитывает продажей с одного заказа: часть заказов отменяют или не выкупают, на выкупленные — скидка WB покупателю')
+    +row(cut>=0?'Удержания WB (комиссия, эквайринг)':'Удержания WB с компенсацией скидки',-cut,-(1-C.r)*100,'Продажа − к перечислению: комиссия WB, эквайринг, минус компенсация скидки WB. Растут вместе с ценой; ступеней комиссии по цене у WB нет')
+    +row('Налог',-tax,-C.t*100,'3% продажи')
+    +row('Себестоимость, логистика и прочее',-C.u,-C.u/G*100,'На заказ: себестоимость выкупленных шт, доставка, возмещение издержек, приёмка, штрафы и удержания минус доплаты, баллы за отзывы — от цены не зависят')
+    +row(`Реклама (ДРР ${f1(Dv)}% от цены заказа)`,-ads,-ads/G*100,'Реклама на один заказ')
+    +row('Маржа на заказ',mar,pct,'',true)+'</tbody></table>';
+  let h=`<div style="padding:4px 10px;border-radius:8px;${bg(pct)}"><b>Маржинальность: ${f1(pct)}%</b>${m!=null?` (план ${f1(m)}%)`:''}</div>`;
+  const pre=unitPct(C,P,0),beD=(pre-NET_FLOOR)*C.b;
+  h+=pre<NET_FLOOR?`<div>При цене ${fmt(P)} ₽ размер убыточен по чистой прибыли даже без рекламы (до рекламы ${f1(pre)}% — ниже ${NET_FLOOR}%).</div>`
+    :(m!=null&&pre<m)?`<div>При цене ${fmt(P)} ₽ план маржинальности не выходит даже без рекламы (до рекламы ${f1(pre)}%); в ноль по чистой прибыли — реклама до <b>${f1(beD)}%</b>.</div>`
+    :`<div>При цене ${fmt(P)} ₽ реклама до <b>${f1(Math.max(0,(pre-(m!=null?m:NET_FLOOR))*C.b))}%</b>${m!=null?` — план маржинальности, до <b>${f1(beD)}%</b> — в ноль по чистой прибыли`:' — в ноль по чистой прибыли'}.</div>`;
+  if(m!=null){const pm=unitPriceFor(C,m,Dv);h+=pm==null?`<div>При ДРР ${f1(Dv)}% план маржинальности <b>не выходит ни при какой цене</b> — реклама больше, чем остаётся с продажи.</div>`:`<div>При ДРР ${f1(Dv)}% план маржинальности выходит при цене от <b>${fmt(Math.ceil(pm))} ₽</b>.</div>`;}
+  const p0=unitPriceFor(C,NET_FLOOR,Dv);h+=p0==null?`<div>При ДРР ${f1(Dv)}% в ноль по чистой прибыли (${NET_FLOOR}%) <b>не выйти ни при какой цене</b>.</div>`:`<div>При ДРР ${f1(Dv)}% в ноль по чистой прибыли (${NET_FLOOR}%) — при цене от <b>${fmt(Math.ceil(p0))} ₽</b>.</div>`;
+  if(U.planQty)h+=`<div title="${esc(`План — заказы без отмен; модель — на все заказы: × ${f1(U.kc)} (заказов с отменами на 1 без отмен за 4 недели). Модель не знает, как цена и реклама меняют спрос`)}">При плане ${fmt(U.planQty)} шт/мес: маржа ≈ <b>${fmt(U.planQty*U.kc*mar)} ₽</b> в месяц</div>`;
+  if(U.qa7>0)h+=`<div title="Если заказы (с отменами) останутся на уровне последних 7 дней">При текущих заказах (${f1(U.qa7/7)} шт/день с отменами): ≈ <b>${fmt(U.qa7/7*30*mar)} ₽</b> за 30 дней</div>`;
+  info.innerHTML=h;
+  // матрица «цена × ДРР»: шаг цены ~5% (1, 2, 5 × 10ᵏ); особые строки — цена плана, средние за 14 дней и 4 недели; щелчок — подставить
+  const st=(x=>{const k=Math.pow(10,Math.floor(Math.log10(x)));return [1,2,5,10].map(v=>v*k).reduce((a,v)=>Math.abs(v-x)<Math.abs(a-x)?v:a);})(Math.max(1,P*0.05));
+  const pp=U.planPrice?Math.round(U.planPrice):null,p14=U.p14!=null?Math.round(U.p14):null,d14=U.d14!=null?Math.round(U.d14*10)/10:null,p28=U.p28!=null?Math.round(U.p28):null,d28=U.d28!=null?Math.round(U.d28*10)/10:null;
+  const spec=[pp,p14,p28].filter(v=>v!=null);
+  const prices=[...new Set([-3,-2,-1,0,1,2,3].map(i=>Math.round(P+i*st)).filter(p=>p===Math.round(P)||spec.every(x=>Math.abs(p-x)>=st/2)).concat(spec))].filter(p=>p>0).sort((a,b)=>a-b);
+  const drrs=[...new Set([0,2,4,6,8,10,15,20,Math.round(Dv*10)/10].concat([d14,d28].filter(v=>v!=null)))].sort((a,b)=>a-b);
+  const t14=`Средняя за 14 дней (${ddmm(U.w14)}–${ddmm(U.y)}): цена ${fmt(U.p14)} ₽, ДРР ${f1(U.d14)}%`,t28=`Средняя за 4 недели (${ddmm(U.w28)}–${ddmm(U.y)}): цена ${fmt(U.p28)} ₽, ДРР ${f1(U.d28)}%`;
+  const leg=[p14!=null&&d14!=null?`<span style="color:#E33D78">■</span> ${t14}`:'',p28!=null&&d28!=null?`<span style="color:#2f6fa3">■</span> ${t28}`:''].filter(Boolean);
+  let g=`<table class="pulsetable" style="font-size:.82em">${leg.length?`<caption style="caption-side:bottom;text-align:left;color:#544273;padding-top:4px;white-space:normal">Пульсируют: ${leg.join('; ')}. Рамка — введённые цена и ДРР.</caption>`:''}<thead><tr><th title="Маржинальность, % при цене (строки) и ДРР (столбцы); щелчок — подставить">Цена \\ ДРР</th>${drrs.map(d=>`<th>${f1(d)}%</th>`).join('')}</tr></thead><tbody>`;
+  prices.forEach(p=>{g+=`<tr><td class="pulsemetric">${fmt(p)} ₽${p===pp?' (план)':''}${p===p14?' (14 дн)':''}${p===p28?' (4 нед)':''}</td>`;
+    drrs.forEach(d=>{const v=unitPct(C,p,d),cur=p===Math.round(P)&&d===Math.round(Dv*10)/10,a14=p===p14&&d===d14,a28=p===p28&&d===d28,tip=[a14?t14:'',a28?t28:''].filter(Boolean).join('\n');
+      g+=`<td class="num${a14?' unitavg':a28?' unitavg28':''}" style="${bg(v)}cursor:pointer;${cur?'outline:2px solid #544273;font-weight:700':''}"${tip?` title="${esc(tip)}"`:''} onclick="unitSet(${p},${d})">${f1(v)}</td>`;});
+    g+='</tr>';});
+  grid.innerHTML=g+'</tbody></table>';tellH();}
 
 // ===== SMART-гипотезы (как окно РНП plan.html: embedHyp / embedHypDraw / embedFormFor / embedAdd / renderItem / verdict) =====
 async function loadHyp(){const box=document.getElementById('hypList'),ids=CUR.members.map(p=>p.chrt);
