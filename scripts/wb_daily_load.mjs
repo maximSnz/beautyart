@@ -86,7 +86,11 @@ const orders = feed.map(x => { const p = BY_CHRT.get(x.chrtId); const st = Strin
     destination_city: x.destinationCity || null, price_with_disc: num(x.sellerPrice), status: st || null,
     is_cancel: /cancel|declin|reject|отказ|отмен/i.test(st), is_b2b: x.isB2b ?? null, is_mp: x.isMp ?? null }; });
 if (orders.some(x => !x.srid)) throw new Error('заказ без srid — запись остановлена');
-if (orders.length - uniq(orders.map(x => x.srid)).length) throw new Error('srid повторяется в ленте — запись остановлена');
+// 17.11.2026: лента при чтении страницами (~4 мин) отдала один srid дважды — заказ сменил статус между страницами.
+// Из повторов оставляем запись с последним изменением статуса (updatedAt); число повторов — в лог.
+const dupN = orders.length - uniq(orders.map(x => x.srid)).length;
+if (dupN) { const last = new Map(); orders.forEach(x => { const p = last.get(x.srid); if (!p || (x.last_change || '') >= (p.last_change || '')) last.set(x.srid, x); });
+  orders.splice(0, orders.length, ...last.values()); console.log(`   srid повторялся в ленте: ${dupN} — оставлена запись с последним статусом`); }
 await upsert('wb_orders', 'srid', orders);
 note(`заказы (лента): ${orders.length} строк, оформлено за ${D}: ${orders.filter(x => x.order_day === D).length}, отмен среди них: ${orders.filter(x => x.order_day === D && x.is_cancel).length}`);
 console.log(`   дни оформления: с ${orders.map(x => x.order_day).sort()[0]} по ${orders.map(x => x.order_day).sort().pop()}`);
