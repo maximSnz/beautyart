@@ -102,15 +102,43 @@
  .btn2{background:#fff;color:#544273;border:2px solid rgba(84,66,115,.2)}
  .btn2:hover{border-color:#E33D78;color:#E33D78}
  .btn2.on{border-color:#E33D78;color:#E33D78}
+ /* фильтр «Все / Илья / Ольга» (17.11.2026): анимация как у кнопок .wbtn у даты недели */
+ .toolbar .btn2{transition:transform .2s,border-color .2s,box-shadow .2s,color .2s}
+ .toolbar .btn2:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(227,61,120,.2)}
+ .toolbar .btn2:active{transform:translateY(0);box-shadow:none}
+ @media (prefers-reduced-motion:reduce){.toolbar .btn2{transition:none}.toolbar .btn2:hover{transform:none}}
  .steps{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
  .step{flex:1;min-width:150px;padding:8px 10px;border-radius:10px;background:#f8f9fb;border:2px solid rgba(84,66,115,.1);color:#94a3b8;font-size:.9em}
  .step.on{border-color:#E33D78;color:#1C0D2E;background:linear-gradient(90deg,rgba(120,166,199,.15),rgba(227,61,120,.12))}
  .step.done{color:#22c55e}
+ /* переход между стадиями — щелчком по стадии (17.11.2026, решение владельца; кнопок «Отправить…» / «Вернуть на шаг» нет):
+    следующая — вперёд, любая пройденная — назад; подсказка у стадии, анимация смены стадии */
+ .step{position:relative;transition:transform .2s,box-shadow .2s,border-color .2s,background-color .2s,color .2s}
+ /* кликабельная стадия — без пунктира и подписей (17.11.2026), анимация при наведении — как у кнопок .wbtn; действие — в подсказке */
+ .step.go,.step.back{cursor:pointer}
+ .step.go:hover,.step.back:hover{transform:translateY(-2px);border-color:#E33D78;box-shadow:0 6px 14px rgba(227,61,120,.2)}
+ .step.go:active,.step.back:active{transform:translateY(0);box-shadow:none}
+ .step.busy{pointer-events:none;background:linear-gradient(90deg,#f8f9fb 0%,rgba(227,61,120,.18) 50%,#f8f9fb 100%);background-size:200% 100%;animation:stepBusy 1s linear infinite}
+ .step.pop{animation:stepPop .7s cubic-bezier(.2,.8,.2,1)}
+ .step.done.pop{animation:stepDone .6s ease-out}
+ @keyframes stepBusy{from{background-position:200% 0}to{background-position:0 0}}
+ @keyframes stepPop{0%{transform:scale(.94);box-shadow:0 0 0 0 rgba(227,61,120,.55)}55%{transform:scale(1.03);box-shadow:0 0 0 10px rgba(227,61,120,0)}100%{transform:none;box-shadow:none}}
+ @keyframes stepDone{0%{color:#94a3b8;transform:scale(.97)}60%{color:#22c55e;transform:scale(1.02)}100%{transform:none}}
+ @media (prefers-reduced-motion:reduce){.step,.step.busy,.step.pop,.step.done.pop{animation:none;transition:none}}
  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 14px}
  .card{background:#f8f9fb;border:2px solid rgba(84,66,115,.1);border-radius:12px;padding:10px 12px}
  .card .l{color:#94a3b8;font-size:.82em}
  .card .v{font-size:1.5em;color:#1C0D2E}
  .sec{margin:18px 0 6px;color:#544273;font-size:1.15em}
+ .sechead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 6px}.sechead .sec{margin:0 6px 0 0}.sechead #q{flex:1;min-width:200px}
+ /* ⚙️ у «Заявки менеджера» (17.11.2026): менеджер и «Только отклонения» — во всплывающей панели; точка — фильтр включён */
+ .fwrap{position:relative}.wbtn.act{position:relative}.wbtn.act::after{content:'';position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#E33D78;border:2px solid #fff}
+ .wbtn:disabled{opacity:.4;cursor:default}.wbtn:disabled:hover{transform:none;box-shadow:none;border-color:rgba(84,66,115,.2);color:#544273}
+ .fpop{position:absolute;top:44px;left:0;z-index:50;background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(28,13,46,.22);padding:12px 14px;min-width:240px;opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .16s,transform .16s}
+ .fpop.on{opacity:1;transform:none;pointer-events:auto}.fpop .fl{font-size:.82em;color:#94a3b8;margin:2px 0 6px}.fpop .fl+*{margin-bottom:10px}.fseg{display:flex;gap:6px}
+ .fpop .btn2{transition:transform .2s,border-color .2s,box-shadow .2s,color .2s}.fpop .btn2:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(227,61,120,.2)}
+ @media (prefers-reduced-motion:reduce){.fpop,.fpop .btn2{transition:none}}
+ .btn2:disabled{opacity:.4;cursor:default}.btn2:disabled:hover{transform:none;box-shadow:none;border-color:rgba(84,66,115,.2);color:#544273}
  td.n,th.n{text-align:right;white-space:nowrap}
  .num{width:62px;text-align:right;padding:4px 6px}
  tr.prow{cursor:pointer}
@@ -119,13 +147,69 @@
  .ok{color:#22c55e}.bad{color:#E33D78}.warn{color:#d97706}.mute{color:#94a3b8}
  .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
  .pal .card .v{font-size:1.15em}
+ /* карта паллет (17.11.2026, решение владельца): кружки кластеров на карте России, число — паллеты, цвет — норма загрузки, подсказка — подробности */
+ .palmap{max-width:860px;margin:0 auto}
+ .rumap{width:100%;height:auto;display:block}
+ .rumap .ru{fill:#e9dff3;stroke:rgba(84,66,115,.55);stroke-width:.8;stroke-linejoin:round}
+ .rumap .pl{stroke:rgba(84,66,115,.45);stroke-width:1}.rumap .pd{fill:#544273}
+ .rumap .pm{cursor:pointer;transition:transform .2s;transform-box:fill-box;transform-origin:center}
+ .rumap .pm:hover{transform:scale(1.18)}
+ .rumap .pm circle{stroke:#fff;stroke-width:2;filter:drop-shadow(0 2px 4px rgba(28,13,46,.25))}
+ .rumap .pm text{fill:#fff;font-size:15px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+ .palmap .off{display:flex;flex-wrap:wrap;gap:6px;margin:6px 4px 2px;font-size:.85em;color:#94a3b8}
+ @media (prefers-reduced-motion:reduce){.rumap .pm{transition:none}.rumap .pm:hover{transform:none}}
  .lt input{width:46px;text-align:right;padding:3px 5px}
  details.box{border:2px solid rgba(84,66,115,.15);border-radius:10px;background:#f8f9fb;margin:10px 0}
  details.box summary{cursor:pointer;padding:10px 14px;color:#544273;user-select:none}
  details.box .inner{padding:6px 14px 12px;overflow-x:auto}
  .scroll{overflow-x:auto}
+ /* шапка таблицы заявки закреплена при прокрутке страницы (17.11.2026): обёртка без горизонтальной прокрутки (иначе sticky не работает), шапка — непрозрачная */
+ .t1wrap{overflow:visible}
+ #t1 thead{position:sticky;top:0;z-index:6;background:#fff;box-shadow:0 2px 0 rgba(84,66,115,.12)}
  .note{font-size:.82em;color:#94a3b8;margin:4px 0}
  .lock{font-size:.85em;color:#94a3b8;margin-left:6px}
+ /* окно «Настройки расчёта» (17.11.2026): вместо блока на странице — кнопка ⚙️ у даты недели */
+ /* кнопки у даты недели (17.11.2026): ◀ ▶ ⚙️ — одинаковые квадраты 36×36, одна анимация (приподнимается, розовая рамка); стрелки — SVG, симметричные */
+ .wbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;box-sizing:border-box;background:#fff;color:#544273;border:2px solid rgba(84,66,115,.2);border-radius:8px;font-size:1.05em;line-height:1;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s,color .2s}
+ .wbtn:hover{border-color:#E33D78;color:#E33D78;transform:translateY(-2px);box-shadow:0 6px 14px rgba(227,61,120,.2)}
+ .wbtn:active{transform:translateY(0);box-shadow:none}
+ .smodal{position:fixed;inset:0;z-index:1000;background:rgba(28,13,46,.42);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+ .smodal.on{opacity:1;pointer-events:auto}
+ .spanel{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(28,13,46,.35);width:min(1280px,100%);max-height:90vh;display:flex;flex-direction:column;transform:translateY(14px) scale(.98);transition:transform .22s}
+ .smodal.on .spanel{transform:none}
+ .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 22px 12px;border-bottom:1px solid rgba(84,66,115,.12)}
+ .stitle{font-size:1.35em;color:#1C0D2E}.ssub{font-size:.88em;color:#94a3b8;margin-top:3px}
+ .sx{background:none;border:0;font-size:1.3em;color:#94a3b8;cursor:pointer;padding:2px 6px;border-radius:8px}.sx:hover{color:#E33D78;background:#fdf2f7}
+ .sbody{padding:14px 22px 20px;overflow:auto}
+ .ssec{margin:6px 0 18px}.ssec h4{margin:0 0 8px;font-weight:normal;font-size:1.08em;color:#544273}.ssec .hint{font-size:.85em;color:#94a3b8;margin:-4px 0 10px}
+ .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+ .mcard{border:2px solid rgba(84,66,115,.15);border-radius:14px;padding:12px 14px;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s;background:#fff}
+ .mcard:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(84,66,115,.12)}
+ .mcard.on{border-color:#E33D78;background:#fdf2f7;box-shadow:0 0 0 3px rgba(227,61,120,.12)}
+ .mcard.dis{cursor:default;opacity:.65}.mcard.dis:hover{transform:none;box-shadow:none}
+ .mcard .mt{color:#1C0D2E;font-size:1.05em}.mcard .md{font-size:.85em;color:#64748b;margin:4px 0 8px;line-height:1.35}
+ .mcard .mv{display:flex;gap:16px}.mcard .mv b{font-size:1.25em;color:#1C0D2E;font-weight:normal}.mcard .mv span{font-size:.8em;color:#94a3b8;display:block}
+ .mdot{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #cbd5e1;vertical-align:-2px;margin-right:6px}.mcard.on .mdot{border:4px solid #E33D78}
+ table.lt2{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:1100px}table.lt2 th{font-weight:normal;font-size:.82em;color:#544273;padding:6px 8px;text-align:center;vertical-align:middle;line-height:1.15;background:rgba(120,166,199,.1);border-bottom:1px dashed #cbd5e1}
+ table.lt2 td{padding:5px 6px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:center}table.lt2 td:first-child{text-align:left}
+ table.lt2 tr:hover td{background:#faf7fc}table.lt2 th.grp{background:linear-gradient(90deg,rgba(120,166,199,.18),transparent);font-size:.95em}
+ table.lt2 .cov{display:inline-block;min-width:34px;padding:2px 8px;border-radius:999px;background:#ede9fe;color:#544273;text-align:center}
+ table.lt2 .stp .num{width:34px;min-width:30px;padding:3px 2px;text-align:center}table.lt2 .stp button{padding:2px 6px}table.lt2 td{padding:5px 3px}
+ .pager{display:flex;align-items:center;gap:6px;margin-top:10px}.pager button{min-width:32px;height:32px;padding:0 8px;border-radius:8px;background:#fff;color:#544273;border:2px solid rgba(84,66,115,.18);cursor:pointer;transition:border-color .2s,background-color .2s}
+ .pager button:hover:not(:disabled){border-color:#E33D78;color:#E33D78}.pager button.on{background:#E33D78;border-color:#E33D78;color:#fff}.pager button:disabled{opacity:.35;cursor:default}.pager span{margin-left:8px;font-size:.85em;color:#94a3b8}
+ table.lt2 tbody tr{height:38px}table.lt2 tr.pad td{border-bottom-color:transparent}table.lt2 tr.pad:hover td{background:none}
+ table.lt2 th .u{display:block;font-size:.85em;color:#94a3b8;margin-top:1px}
+ table.lt2 .vs{border-left:1px dashed rgba(84,66,115,.3)}
+ .xsearch{position:relative;margin-bottom:10px}.xsearch input{width:100%;box-sizing:border-box}
+ .xres{position:absolute;left:0;right:0;top:100%;z-index:5;background:#fff;border-radius:10px;box-shadow:0 10px 24px rgba(28,13,46,.18);overflow:hidden}
+ .xres .xi{padding:7px 12px;cursor:pointer;font-size:.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.xres .xi span{color:#94a3b8}.xres .xi:hover{background:#fdf2f7}.xres .xi.mute{cursor:default}
+ .boost{margin-top:12px}.bmode{display:flex;gap:6px;align-items:center;margin-bottom:8px}.bmode input{flex:1;min-width:200px}.bmode .btn2{transition:transform .2s,border-color .2s,box-shadow .2s,color .2s}.bmode .btn2:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(227,61,120,.2)}table.bt{border-collapse:collapse;width:100%;font-size:.9em;table-layout:fixed}table.bt tr:not(:first-child){height:44px}table.bt tr.pad td{border-bottom-color:transparent}table.bt td:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}table.bt th{font-weight:normal;color:#544273;background:rgba(120,166,199,.1);padding:6px 8px;text-align:center;border-bottom:1px dashed #cbd5e1}table.bt th:first-child,table.bt td:first-child{text-align:left}table.bt td{padding:4px 8px;border-bottom:1px dashed rgba(84,66,115,.12);text-align:center}
+ .bsl{display:inline-flex;align-items:center;gap:6px}.bsl input[type=range]{width:220px;accent-color:#E33D78}.bsl button{width:22px;height:24px;padding:0;border-radius:6px;background:#fff;color:#544273;border:1px solid rgba(84,66,115,.3);cursor:pointer}.bsl button:disabled,.bsl input:disabled{opacity:.4;cursor:default}.bsl b{font-weight:normal;min-width:44px;text-align:right;color:#1C0D2E}
+ .chips{display:flex;flex-wrap:wrap;gap:8px}
+ .chip{border:1.5px solid rgba(227,61,120,.35);background:#fdf2f7;color:#9d174d;border-radius:999px;padding:4px 10px;font-size:.9em}
+ .chip button{background:none;border:0;color:#E33D78;cursor:pointer;margin-left:4px;padding:0 2px;font-size:.95em}
+ .ban{background:none;border:1.5px solid rgba(84,66,115,.2);border-radius:8px;cursor:pointer;padding:2px 7px;color:#94a3b8;font-size:.85em}.ban:hover{border-color:#E33D78;color:#E33D78}
+ @media (prefers-reduced-motion:reduce){.wbtn,.smodal,.spanel,.mcard{transition:none}}
  .wrap{max-width:min(1700px,100%);box-sizing:border-box}
  table.pt{font-size:.8em;table-layout:fixed;width:100%}
  /* шапки всех таблиц заявки — один стиль, текст по центру (27.10.2026) */
@@ -136,6 +220,8 @@
  table.pt th.wsub{background:rgba(120,166,199,.1)}
  table.pt th.sep,table.pt td.sep{border-left:1px dashed rgba(84,66,115,.3)}
  table.pt td{overflow-wrap:anywhere}
+ /* числа в таблице заявки — по центру (17.11.2026, решение владельца), в т. ч. в раскрытии по кластерам и в полях ввода */
+ table.pt td.n,table.pt th.n,table.pt table.ct td.n,table.pt table.ct th.n{text-align:center}table.pt input.num{text-align:center}
  table.pt .num{width:100%;max-width:64px;box-sizing:border-box}
  table.pt input:not(.num){width:100%;box-sizing:border-box}
  table.pt tr.mgroup td{background:linear-gradient(90deg,rgba(125,54,115,.18),transparent);color:#7D3673;padding-top:10px;border-bottom:2px solid rgba(125,54,115,.25);cursor:pointer;user-select:none}
@@ -149,7 +235,18 @@
  .stp button{width:20px;height:24px;padding:0;border-radius:6px;background:#fff;color:#544273;border:1px solid rgba(84,66,115,.3);font-size:14px;line-height:1;cursor:pointer;flex:none}
  .stp button:hover{border-color:#E33D78;color:#E33D78}
  table.pt .stp .num,.stp .num{width:46px;min-width:38px;max-width:52px}
- td.miss{background:rgba(227,61,120,.35)}
+ td.miss,span.miss{background:rgba(227,61,120,.35)}
+ /* ячейки заявки (17.11.2026): подсветка при наведении и карточка-подсказка */
+ #t1 td.n{transition:background-color .18s,color .18s}
+ #t1 td.n.hl{background-color:rgba(227,61,120,.06);color:#E33D78}
+ .ptip{position:fixed;z-index:9999;min-width:220px;max-width:360px;background:rgba(28,13,46,.95);color:#fff;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.4;box-shadow:0 12px 32px rgba(28,13,46,.35);pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .16s,transform .16s;backdrop-filter:blur(6px)}
+ .ptip.on{opacity:1;transform:none}
+ .ptip .h{font-size:1.05em;margin-bottom:6px;color:#fde047}
+ .ptip table{border-collapse:collapse;width:100%}.ptip td{padding:2px 0;border:0;background:none;color:#e2e8f0}.ptip td.v{text-align:right;padding-left:16px;white-space:nowrap;color:#fff}
+ .ptip .g{color:#4ade80!important}.ptip .r{color:#f87171!important}.ptip .y{color:#fde047!important}.ptip .m{color:#94a3b8;margin-top:6px;font-size:.9em}
+ .ptip tr.rg td{color:#4ade80!important}.ptip tr.gap td{height:10px;padding:0}
+ .ptip tr.big td{padding-top:5px;border-top:1px solid rgba(255,255,255,.18);font-size:1.08em}
+ @media (prefers-reduced-motion:reduce){#t1 td.n,.ptip{transition:none}}
  #tn tr.mgroup td{background:rgba(125,54,115,.1)}
  .card.dl{cursor:pointer} .card.dl:hover{border-color:#E33D78}
  @media (max-width:900px){ table.pt{min-width:860px} }
@@ -193,40 +290,55 @@
   </div>
   <div class="wrap">
     <h2>🚚 Заявка на закупку WB · ИП</h2>
-    <div class="meta" id="meta">загрузка…</div>
+    <div class="meta" id="meta"></div>
     <div class="err" id="err"></div>
     <div class="wbar">
-      <button class="btn2" onclick="shiftWeek(-7)" title="Предыдущая неделя">◀</button>
+      <button class="wbtn" onclick="shiftWeek(-7)" title="Предыдущая неделя"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M8.5 1.5 3 6l5.5 4.5z" fill="currentColor"/></svg></button>
       <div class="wlbl" id="wlbl"></div>
-      <button class="btn2" onclick="shiftWeek(7)" title="Следующая неделя">▶</button>
-      <span class="mute" id="wnote"></span>
+      <button class="wbtn" onclick="shiftWeek(7)" title="Следующая неделя"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1.5 9 6l-5.5 4.5z" fill="currentColor"/></svg></button>
+      <button class="wbtn" onclick="openSet()" title="Настройки расчёта">⚙️</button>
       <span style="flex:1"></span>
       <span id="actions"></span>
     </div>
     <div class="steps" id="steps"></div>
-    <div class="toolbar"><input id="q" placeholder="Поиск по артикулу / названию / артикулу WB" oninput="render()"></div>
     <div class="cards" id="cards"></div>
-    <details class="box" id="ltBox">
-      <summary>⚙️ Настройки расчёта <span class="lock" id="ltLock"></span></summary>
-      <div class="inner" id="lt"></div>
-    </details>
-    <div class="sec" id="h1">Заявка менеджера</div>
-    <div class="note">Расчёт = (спрос × (покрытие + запас) − на складах WB − в поставках) ÷ штук в коробе, вверх до целого короба, − заявки прошлых недель. Всё по WB в целом (вместе с заграницей); спрос — заказы за 28 дней вместе с отменами.</div>
-    <div class="scroll"><table id="t1" class="pt"></table></div>
-    <div class="sec" id="h3">Распределение по СЦ</div>
-    <div class="note" id="n3"></div>
+
+    <div class="smodal" id="setModal" onclick="if(event.target===this)closeSet()">
+      <div class="spanel" role="dialog" aria-label="Настройки расчёта">
+        <div class="shead"><div><div class="stitle">⚙️ Настройки расчёта</div><div class="ssub" id="setSub"></div></div><button class="sx" onclick="closeSet()" title="Закрыть (Esc)">✕</button></div>
+        <div class="sbody" id="lt"></div>
+      </div>
+    </div>
+
+    <div class="sechead">
+      <div class="sec" id="h1">Заявка менеджера</div>
+      <div class="fwrap">
+        <button class="wbtn" id="fBtn" onclick="toggleFlt(event)" title="Отображение">⚙️</button>
+        <div class="fpop" id="fPop" onclick="event.stopPropagation()">
+          <div class="fl">Отображение</div>
+          <button class="btn2" id="devBtn" onclick="toggleDev()" title="Только размеры, где согласовано (с ФФ) ≠ заявлено">Только отклонения</button>
+        </div>
+      </div>
+      <button class="wbtn" id="autoBtn" onclick="autoDist()" title="Автораспределение: согласованное — по СЦ по долям спроса округов, с подгонкой паллет к норме 0,8–1,15 (шаг «Распределение»)">⚡</button>
+      <input id="q" placeholder="Поиск по артикулу / названию / артикулу WB" oninput="render()">
+    </div>
+    <div class="note" id="needNote"></div>
+    <div class="t1wrap"><table id="t1" class="pt"></table></div>
+    <div class="sec">Распределение по СЦ</div>
     <div class="scroll"><table id="t3" class="pt"></table></div>
     <div class="sec">Паллеты по СЦ</div>
-    <div class="note">Норма — средняя загрузка 0,8–1,15 на паллету. До распределения — по подсказке долей спроса.</div>
+    <div class="note">Норма — средняя загрузка 0,8–1,15 на паллету.</div>
     <div class="pal" id="pal"></div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="need_calc.js?v=20261027c"></script>
 <script src="../beautyart-home/auth.js?v=20261021"></script>
 <script>
 // Заявка на закупку WB (ИП) — шаг 4 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Заявка WB»).
 // Как заявка Ozon (purchase.html), но строка — размер WB (chrt_id), расчёт по WB в целом; после согласования обеспеченное
 // (ФФ + согласовано) делится по СЦ (решение владельца 13.11.2026) — по умолчанию по долям спроса округов за 28 дн (wb_okrug_sc).
+// 18.11.2026 (решение владельца): вид и возможности — как у заявки Ozon от 17.11.2026 (CLAUDE.md 5.11; purchasing.md, «Заявка WB»).
 const SUPABASE_URL='https://jvoofakrkhzoblhhuyvr.supabase.co';
 const ANON='sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE';
 const HD={apikey:ANON,Authorization:'Bearer '+ANON};
@@ -234,7 +346,7 @@ const DEMAND_DAYS=28;
 const SUP_TRANSIT=new Set([2,3,4,6]);
 const PSEUDO=/^В пути/;
 const STAGES=[['draft','Заявка менеджера · пн'],['at_buyer','Закупщик: ФФ и согласование · до чт'],['distribution','Распределение по СЦ'],['closed','Закрыта']];
-// «Согласовано», ФФ, согласовано и факт — в сводной заявке поставщику (beautyart-home/supply.html, 16.11.2026): здесь блок закупщика — только просмотр
+// «Согласовано», ФФ, согласовано и факт — в сводной заявке поставщику (beautyart-home/supply.html, 16.11.2026)
 const STAGE_BTN={draft:'Отправить закупщику',distribution:'Подтвердить распределение'};
 const SUPPLY_URL='https://maximsnz.github.io/beautyart-home/supply.html';
 const LT_F=['force_majeure_days','approval_days','supplier_to_ff_days','ff_assembly_days','ff_to_wb_days','acceptance_days'];
@@ -248,6 +360,8 @@ const addD=(s,n)=>{const d=parseISO(s);d.setDate(d.getDate()+n);return localISO(
 const keyOfMonday=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return localISO(x);};
 const ddmm=s=>{const d=parseISO(s);return `${pad(d.getDate())}.${pad(d.getMonth()+1)}`;};
 const mskDay=n=>new Date(Date.now()+3*36e5+n*864e5).toISOString().slice(0,10);
+const monthOfWeek=w=>addD(w,3).slice(0,7);
+function isoWeeksOfMonth(ym){const[y,m]=ym.split('-').map(Number);let w=keyOfMonday(new Date(y,m-1,1));if(monthOfWeek(w)!==ym)w=addD(w,7);const out=[];while(monthOfWeek(w)===ym){out.push(w);w=addD(w,7);}return out;}
 const art=r=>(r.vendor_code||'')+(r.tech_size&&r.tech_size!=='0'?' · '+r.tech_size:'');
 const S=(a,f)=>a.reduce((x,r)=>x+(f(r)||0),0);
 async function getAll(path){
@@ -259,6 +373,7 @@ async function getAll(path){
   }
   return out;
 }
+async function getOpt(path){ try{ return await getAll(path); }catch(e){ return null; } }
 async function upsert(table,rows,conflict){
   for(let i=0;i<rows.length;i+=500){
     const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${conflict}`,{method:'POST',headers:{...HD,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+500))});
@@ -271,9 +386,24 @@ async function patchWeek(body){
 }
 
 // ===== состояние =====
-let PROD=[],NOBOX=[],LIVE={},SNAP=null,BASE_LT=null,SCS=[],OKSC={},WEEKS={};
-let WEEK=addD(keyOfMonday(new Date()),7),OPEN=null,OPEN1=new Set(),OPEN2=new Set(),K1=[],K2=[];
+let PROD=[],NOBOX=[],LIVE={},SNAP=null,BASE_LT=null,SCS=[],OKSC={},WEEKS={},ORD=[],ORD_FROM='';
+let WEEK=addD(keyOfMonday(new Date()),7),OPEN1=new Set(),K1=[];
 let WLT=null,LT_SRC='',LINES=new Map(),PREV=new Map(),SUP={},DIST={},MODEL=[],DEBT={};
+// методики спроса, повышение, исключения (18.11.2026, как у Ozon): purchase_weeks → wb_purchase_weeks.demand_mode / demand_boost, wb_purchase_excluded
+const MODES=[['ads28','Продажи за 28 дней'],['best5','Лучшая неделя товара за 5 последних недель'],['last1','Последняя закрытая неделя']];
+let BEST={},BEST_W=[],HAS_MODE=false,MODE_NEW='ads28',MODE_FORCE=null,HAS_BOOST=false,BOOST_NEW={},EXCL=new Set(),HAS_EXCL=false;
+const MODE=()=>MODE_FORCE||(WEEKS[WEEK]?(WEEKS[WEEK].demand_mode||'ads28'):MODE_NEW);
+const weekQ=(bw,m)=>m==='best5'?(bw?.q||0):m==='last1'?(bw?.all?.[BEST_W[4]]||0):0;
+const BOOST=()=>WEEKS[WEEK]?(WEEKS[WEEK].demand_boost||{}):BOOST_NEW;
+const boostOf=p=>{const b=BOOST(), v=b['p:'+p.chrt_id]; return Number(v!=null?v:b[p.grp])||0;};
+// группы — как «Сводный отчёт» WB: свои группы по артикулу, иначе предмет WB
+const GRP_BY_OFFER=[[/^WIPE-/,'Салфетки хлопковые'],[/^GLV-NIT-/,'Перчатки нитриловые'],[/^GLV-VIN-/,'Перчатки виниловые'],[/^GLV-ELM-/,'Перчатки эластомерные'],[/^GLV-LAT-/,'Перчатки латексные']];
+const GRP_MERGE={'Маска косметическая':'Маски косметические и медицинские','Маска медицинская':'Маски косметические и медицинские'};
+function grpOf(p){ const r=GRP_BY_OFFER.find(([re])=>re.test(p.vendor_code||'')); if(r) return r[1]; const c=p.subject||'Без категории'; return GRP_MERGE[c]||c; }
+// выполнение к сегодня: потребность месяца WB и план продаж WB
+let SALES={},SPLAN={},SHARE=null,NEEDS={},MONTH_REQ={},NEED_ST=null,NEED_REQ={},DEM_AT='',MONTHS_DB={};
+let DEV_ONLY=false,BT_MODE='grp',BT_Q='',BT_PAGE=0,STEP_SEEN={},TIPS=[],PAL_TIPS=[];
+const LT_PER=5;
 
 async function go(){
   if(!await BA_AUTH.login(SUPABASE_URL,HD))return;
@@ -281,32 +411,55 @@ async function go(){
   document.getElementById('app').classList.remove('hide');
   try{ await loadBase(); await loadWeek(); }catch(e){ document.getElementById('err').textContent='Ошибка загрузки: '+e.message; }
 }
-// живые данные — как страница «Остатки WB» (wb-stock.html): склады последнего снимка, поставки в пути, заказы 28 дн до вчера
+// живые данные — как страница «Остатки WB» (wb-stock.html): склады последнего снимка, поставки в пути, заказы 28 дн до вчера (с отменами)
 async function loadBase(){
   const last=await getAll('/rest/v1/wb_stock_history?select=report_date&order=report_date.desc&limit=1');
   SNAP=last[0]?.report_date||null;
-  const from=mskDay(-DEMAND_DAYS), to=mskDay(-1);
-  const [pr,st,od,sp,sg,lt,ok,wk]=await Promise.all([
-    getAll('/rest/v1/wb_products?select=chrt_id,nm_id,vendor_code,tech_size,title,supplier,box_qty,boxes_per_pallet,archived,wb_archived,wb_trash&order=chrt_id'),
+  const thisMon=keyOfMonday(new Date()); BEST_W=[5,4,3,2,1].map(i=>addD(thisMon,-7*i));
+  const from28=mskDay(-DEMAND_DAYS), to=mskDay(-1), from=from28<BEST_W[0]?from28:BEST_W[0];
+  const [pr,st,od,sp,sg,lt,ok,wk,ms,ex]=await Promise.all([
+    getAll('/rest/v1/wb_products?select=chrt_id,nm_id,vendor_code,tech_size,title,subject,supplier,box_qty,boxes_per_pallet,archived,wb_archived,wb_trash&order=chrt_id'),
     SNAP?getAll(`/rest/v1/wb_stock_history?select=barcode,warehouse_name,chrt_id,qty&report_date=eq.${SNAP}&order=barcode,warehouse_name`):[],
-    getAll(`/rest/v1/wb_orders?select=srid,chrt_id,okrug&source=eq.feed&order_day=gte.${from}&order_day=lte.${to}&order=srid`),
+    getAll(`/rest/v1/wb_orders?select=srid,chrt_id,okrug,order_day,is_cancel&source=eq.feed&order_day=gte.${from}&order_day=lte.${to}&order=srid`),
     getAll('/rest/v1/wb_supplies?select=supply_id,status_id&order=supply_id'),
     getAll('/rest/v1/wb_supply_goods?select=supply_id,barcode,chrt_id,quantity,accepted_quantity&order=supply_id,barcode'),
     getAll('/rest/v1/wb_lead_times?select=*&region=eq.Россия'),
     getAll('/rest/v1/wb_okrug_sc?select=okrug,sc&order=okrug'),
-    getAll('/rest/v1/wb_purchase_weeks?select=*&order=week')
+    getAll('/rest/v1/wb_purchase_weeks?select=*&order=week'),
+    getAll('/rest/v1/wb_purchase_need_months?select=*&order=month'),
+    getOpt('/rest/v1/wb_purchase_excluded?select=chrt_id&order=chrt_id')
   ]);
   const act=pr.filter(p=>!p.archived&&!p.wb_archived&&!p.wb_trash);
-  PROD=act.map(p=>({...p,nobox:!(p.box_qty>0)})); NOBOX=PROD.filter(p=>p.nobox);
+  PROD=act.map(p=>({...p,nobox:!(p.box_qty>0)})); PROD.forEach(p=>p.grp=grpOf(p)); NOBOX=PROD.filter(p=>p.nobox);
   LIVE={}; const L=id=>LIVE[id]=LIVE[id]||{stock:0,transit:0,orders:0,ok:{}};
   st.forEach(x=>{ if(x.chrt_id==null||PSEUDO.test(x.warehouse_name))return; L(x.chrt_id).stock+=x.qty; });
-  od.forEach(x=>{ if(x.chrt_id==null)return; const o=L(x.chrt_id); o.orders++; const k=x.okrug||'не указан'; o.ok[k]=(o.ok[k]||0)+1; });
+  ORD=od; ORD_FROM=from; BEST={};
+  const wEnd=addD(BEST_W[4],6);
+  od.forEach(x=>{ if(x.chrt_id==null)return;
+    if(x.order_day>=from28){ const o=L(x.chrt_id); o.orders++; const k=x.okrug||'не указан'; o.ok[k]=(o.ok[k]||0)+1; }
+    // недели для методик «лучшая» и «последняя» — заказы с отменами, как спрос 28 дней
+    if(x.order_day>=BEST_W[0]&&x.order_day<=wEnd){ const w=keyOfMonday(parseISO(x.order_day)), b=BEST[x.chrt_id]||(BEST[x.chrt_id]={q:0,week:null,all:{}}); b.all[w]=(b.all[w]||0)+1; } });
+  Object.values(BEST).forEach(b=>Object.entries(b.all).forEach(([w,q])=>{ if(q>b.q){b.q=q;b.week=w;} }));
   const live=new Set(sp.filter(x=>SUP_TRANSIT.has(x.status_id)).map(x=>x.supply_id));
   sg.forEach(g=>{ if(!live.has(g.supply_id)||g.chrt_id==null)return; L(g.chrt_id).transit+=Math.max(0,(g.quantity||0)-(g.accepted_quantity||0)); });
   BASE_LT=lt[0]||null; OKSC={}; ok.forEach(x=>OKSC[x.okrug]=x.sc); SCS=[...new Set(ok.map(x=>x.sc))].sort((a,b)=>a.localeCompare(b,'ru'));
-  WEEKS={}; wk.forEach(w=>WEEKS[w.week]=w);
+  WEEKS={}; wk.forEach(w=>WEEKS[w.week]=w); HAS_MODE=wk.some(w=>'demand_mode' in w); HAS_BOOST=wk.some(w=>'demand_boost' in w);
+  MONTHS_DB={}; ms.forEach(m=>MONTHS_DB[m.month]=m);
+  EXCL=new Set(); HAS_EXCL=!!ex; (ex||[]).forEach(x=>EXCL.add(x.chrt_id));
+  DEM_AT=SNAP?new Date(new Date(SNAP+'T00:00').getTime()+864e5).toISOString():'';
+  // «в пути» для потребности — две последние недельные заявки WB в любом статусе (как wb-need.html)
+  const rw=wk.map(w=>w.week).sort().reverse().slice(0,2); NEED_REQ={};
+  if(rw.length){
+    const [ln,ds]=await Promise.all([getAll(`/rest/v1/wb_purchase_lines?select=week,chrt_id,requested_boxes&week=in.(${rw.join(',')})&order=week,chrt_id`),
+      getAll(`/rest/v1/wb_purchase_dist?select=week,chrt_id,sc,boxes&week=in.(${rw.join(',')})&order=week,chrt_id,sc`)]);
+    const dist={}; ds.forEach(d=>{ const k=d.week+'|'+d.chrt_id; dist[k]=(dist[k]||0)+(d.boxes||0); });
+    const seen=new Set();
+    ln.forEach(l=>{ const k=l.week+'|'+l.chrt_id; seen.add(k); NEED_REQ[l.chrt_id]=(NEED_REQ[l.chrt_id]||0)+(k in dist?dist[k]:(l.requested_boxes||0)); });
+    Object.entries(dist).forEach(([k,v])=>{ if(seen.has(k))return; const id=Number(k.split('|')[1]); NEED_REQ[id]=(NEED_REQ[id]||0)+v; });
+  }
 }
 const ST=()=>WEEKS[WEEK]?.status||null;
+const effOf=(a,b)=>{let e=0;for(let d=a;d<=b;d=addD(d,1)){const w=parseISO(d).getDay();e+=w===0||w===6?0.7:1;}return e;};
 async function loadWeek(){
   document.getElementById('err').textContent='';
   const w=WEEKS[WEEK];
@@ -314,13 +467,20 @@ async function loadWeek(){
   const prevW=Object.keys(WEEKS).filter(x=>x<WEEK).sort().pop();
   if(w){ WLT={...w}; LT_SRC='week'; } else if(prevW){ WLT={...WEEKS[prevW]}; LT_SRC='copy:'+prevW; } else { WLT={...(BASE_LT||{})}; LT_SRC='seed'; }
   const nPrev=Math.max(1,WLT.prev_weeks||2), prevWeeks=[...Array(nPrev)].map((_,i)=>addD(WEEK,-7*(i+1)));
-  const [ln,pv,pd,sp,fx,ds]=await Promise.all([
+  const month=monthOfWeek(WEEK), mWeeks=isoWeeksOfMonth(month).filter(x=>x<WEEK);
+  const first=month+'-01', last=localISO(new Date(+month.slice(0,4),+month.slice(5),0)), yest=mskDay(-1), end=yest<last?yest:last;
+  const [ln,pv,pd,sp,fx,ds,mr,nd,pl,xo]=await Promise.all([
     w?getAll(`/rest/v1/wb_purchase_lines?select=*&week=eq.${WEEK}&order=chrt_id`):[],
     getAll(`/rest/v1/wb_purchase_lines?select=week,chrt_id,requested_boxes&week=in.(${prevWeeks.join(',')})&order=week,chrt_id`),
     getAll(`/rest/v1/wb_purchase_dist?select=week,chrt_id,sc,boxes&week=in.(${prevWeeks.join(',')})&order=week,chrt_id,sc`),
     w?getAll(`/rest/v1/wb_purchase_supply?select=*&week=eq.${WEEK}&order=chrt_id`):[],
     getAll(`/rest/v1/wb_purchase_supply?select=week,chrt_id,agreed_boxes,fact_boxes&week=lt.${WEEK}&fact_boxes=not.is.null&order=week,chrt_id`),
-    w?getAll(`/rest/v1/wb_purchase_dist?select=chrt_id,sc,boxes&week=eq.${WEEK}&order=chrt_id,sc`):[]
+    w?getAll(`/rest/v1/wb_purchase_dist?select=chrt_id,sc,boxes&week=eq.${WEEK}&order=chrt_id,sc`):[],
+    mWeeks.length?getAll(`/rest/v1/wb_purchase_lines?select=week,chrt_id,requested_boxes&week=in.(${mWeeks.join(',')})&order=week,chrt_id`):[],
+    getAll(`/rest/v1/wb_purchase_needs?select=*&month=eq.${month}&order=chrt_id`),
+    getAll(`/rest/v1/wb_sales_plan?select=chrt_id,plan_qty&month=eq.${month}&order=chrt_id`),
+    // заказы месяца раньше загруженного окна — догружаем
+    end>=first&&first<ORD_FROM?getAll(`/rest/v1/wb_orders?select=srid,chrt_id,order_day,is_cancel&source=eq.feed&order_day=gte.${first}&order_day=lt.${ORD_FROM}&order=srid`):[]
   ]);
   LINES=new Map(); ln.forEach(l=>LINES.set(l.chrt_id,l));
   // прошлые заявки: распределено (сумма по СЦ), иначе заявлено — как у Ozon
@@ -330,12 +490,26 @@ async function loadWeek(){
   SUP={}; sp.forEach(s=>SUP[s.chrt_id]=s);
   DEBT={}; fx.forEach(s=>{ DEBT[s.chrt_id]=(DEBT[s.chrt_id]||0)+(s.agreed_boxes||0)-s.fact_boxes; });
   DIST={}; ds.forEach(d=>{ (DIST[d.chrt_id]=DIST[d.chrt_id]||{})[d.sc]=d.boxes; });
-  OPEN=null; build(); render();
+  MONTH_REQ={}; mr.forEach(l=>{ MONTH_REQ[l.chrt_id]=(MONTH_REQ[l.chrt_id]||0)+(l.requested_boxes||0); });
+  // потребность месяца: в черновике (или не создана) — расчёт need_calc.js, как на экране wb-need.html; иначе — согласовано, иначе заказ
+  NEED_ST=MONTHS_DB[month]?.status||null; NEEDS={};
+  SPLAN={}; pl.forEach(x=>{ if(x.plan_qty>0) SPLAN[x.chrt_id]=Number(x.plan_qty); });
+  if(!NEED_ST||NEED_ST==='draft'){
+    const ndb={}, dem={}; nd.forEach(n=>ndb[n.chrt_id]=n);
+    Object.entries(LIVE).forEach(([id,o])=>dem[id]={ads:o.orders/DEMAND_DAYS,stock:o.stock+o.transit});
+    const prod=PROD.map(p=>({product_id:p.chrt_id,offer_id:art(p),name:p.title||'',supplier:p.supplier,box_qty:p.box_qty,m:'m1'}));
+    needBuild({prod,dem,demAt:DEM_AT,plan:SPLAN,needs:ndb,turn:needTurnover(MONTHS_DB,month).turn,req:NEED_REQ,cost:{},month,live:true}).forEach(p=>{ if(!p.nobox) NEEDS[p.product_id]=p.ag??p.need; });
+  }else nd.forEach(n=>NEEDS[n.chrt_id]=n.agreed_boxes??n.need_boxes);
+  // план продаж к сегодня: заказы «Ленты заказов» без отмен с 1-го числа по вчера ÷ план × прошедшие эфф. дни ÷ эфф. дни месяца
+  SALES={}; SHARE=null;
+  if(end>=first){ [...xo,...ORD].forEach(x=>{ if(x.chrt_id==null||x.is_cancel||x.order_day<first||x.order_day>end) return; SALES[x.chrt_id]=(SALES[x.chrt_id]||0)+1; });
+    SHARE={done:effOf(first,end),all:effOf(first,last),end}; }
+  build(); render();
 }
 
 // ===== расчёт =====
 const cov=c=>LT_F.reduce((s,f)=>s+(Number(c?.[f])||0),0);
-// доли СЦ по спросу округов за 28 дн (справочник wb_okrug_sc); округа без СЦ (страны СНГ) делятся по тем же долям; нет заказов — всё в первый по спросу СЦ юрлица
+// доли СЦ по спросу округов за 28 дн (справочник wb_okrug_sc); округа без СЦ (страны СНГ) делятся по тем же долям; нет заказов — всё в первый по спросу СЦ
 let SC_TOTAL=null;
 function scShares(id){
   const ok=LIVE[id]?.ok||{}, s={}; Object.entries(ok).forEach(([k,v])=>{ const sc=OKSC[k]; if(sc) s[sc]=(s[sc]||0)+v; });
@@ -352,10 +526,12 @@ function splitBoxes(tot,shares){
   parts.forEach(p=>{ if(p.f) out[p.k]=p.f; }); return out;
 }
 function build(){
-  const st=ST(), live=!st||st==='draft';
-  MODEL=PROD.map(p=>{
-    const lv=LIVE[p.chrt_id]||{stock:0,transit:0,orders:0,ok:{}}, line=LINES.get(p.chrt_id);
-    const src=live||!line?{ads:lv.orders/DEMAND_DAYS,stock:lv.stock,transit:lv.transit}:{ads:Number(line.ads)||0,stock:line.stock||0,transit:line.transit||0};
+  const st=ST(), live=!st||st==='draft', md=MODE();
+  MODEL=PROD.filter(p=>!(live&&EXCL.has(p.chrt_id))).map(p=>{
+    const lv=LIVE[p.chrt_id]||{stock:0,transit:0,orders:0,ok:{}}, line=LINES.get(p.chrt_id), bw=BEST[p.chrt_id];
+    // спрос по методике (у WB расчёт по России целиком — делить по кластерам не нужно) × повышение группы / размера
+    const a28=lv.orders/DEMAND_DAYS, base=md==='ads28'?a28:weekQ(bw,md)/7, bst=live?boostOf(p):0;
+    const src=live||!line?{ads:live?base*(1+bst/100):a28,stock:lv.stock,transit:lv.transit}:{ads:Number(line.ads)||0,stock:line.stock||0,transit:line.transit||0};
     let prev=PREV.get(p.chrt_id)||0; if(!live&&line) prev=line.prev_boxes??prev;
     let calc=null;
     // коробы — вверх (как у Ozon, решение 21.10.2026)
@@ -366,82 +542,144 @@ function build(){
     const req=live?(manual?line.requested_boxes:(calc||0)):(line?.requested_boxes??0);
     const keep=!!(src.ads>0||src.stock>0||src.transit>0||prev>0||req>0||line);
     const s=SUP[p.chrt_id]||{};
-    return {...p,ads:src.ads,stock:src.stock,transit:src.transit,prev,calc,req,manual:live&&manual,keep,ff:s.ff_boxes||0,ag:s.agreed_boxes??null,fact:s.fact_boxes??null,debt:DEBT[p.chrt_id]||0,comment:s.comment||'',dist:DIST[p.chrt_id]||null};
+    return {...p,ads:src.ads,stock:src.stock,transit:src.transit,prev,calc,req,manual:live&&manual,keep,ff:s.ff_boxes||0,ag:s.agreed_boxes??null,fact:s.fact_boxes??null,debt:DEBT[p.chrt_id]||0,comment:s.comment||'',dist:DIST[p.chrt_id]||null,
+      dem:{a28,best:bw,mode:live?md:null,bst}};
   });
 }
 const buyOf=p=>Math.max(p.req-p.ff,0);
 const secOf=p=>p.ff+(p.ag||0);               // обеспечено = на ФФ + согласовано
 const distSum=p=>p.dist?Object.values(p.dist).reduce((a,b)=>a+(b||0),0):0;
 const supOf=p=>p.supplier||'—';
-const vis=()=>{const q=document.getElementById('q').value.toLowerCase();return MODEL.filter(p=>[p.vendor_code,p.title,String(p.nm_id)].some(x=>String(x||'').toLowerCase().includes(q))).sort((a,b)=>b.req-a.req||(b.calc||0)-(a.calc||0)||String(a.vendor_code).localeCompare(String(b.vendor_code)));};
+const isDev=p=>p.ag!=null&&secOf(p)!==p.req;
+const vis=(noDev)=>{const q=document.getElementById('q').value.toLowerCase();return MODEL.filter(p=>(noDev||!DEV_ONLY||isDev(p))&&[p.vendor_code,p.title,String(p.nm_id),p.tech_size].some(x=>String(x||'').toLowerCase().includes(q))).sort((a,b)=>b.req-a.req||(b.calc||0)-(a.calc||0)||String(a.vendor_code).localeCompare(String(b.vendor_code)));};
 function groupsOf(v,key){ const by=new Map(); v.forEach(p=>{const s=supOf(p); if(!by.has(s))by.set(s,[]); by.get(s).push(p);}); return [...by.entries()].sort((a,b)=>S(b[1],key)-S(a[1],key)||a[0].localeCompare(b[0],'ru')); }
-function toggleG(t,i){ const set=t===1?OPEN1:OPEN2, k=(t===1?K1:K2)[i]; set.has(k)?set.delete(k):set.add(k); renderT1(); }
+function toggleG(t,i){ const k=K1[i]; OPEN1.has(k)?OPEN1.delete(k):OPEN1.add(k); renderT1(); }
+
+// ===== выполнение к сегодня (как заявка Ozon) =====
+const mWasOf=p=>MONTH_REQ[p.chrt_id]||0, mNowOf=p=>mWasOf(p)+p.req, hasNeed=p=>NEEDS[p.chrt_id]!=null, mNeedOf=p=>NEEDS[p.chrt_id]??0;
+const nShare=()=>{const w=isoWeeksOfMonth(monthOfWeek(WEEK));return {i:w.indexOf(WEEK)+1,n:w.length};};
+const needTo=p=>{const {i,n}=nShare();return mNeedOf(p)*i/n;};
+const planTo=p=>SHARE&&SPLAN[p.chrt_id]?SPLAN[p.chrt_id]*SHARE.done/SHARE.all:0;
+const factS=p=>SALES[p.chrt_id]||0;
+const pctTxt=(f,t)=>t>0?Math.round(f/t*100)+'%':'—';
+const pctCls=(f,t)=>!(t>0)?'mute':f/t>1.1?'warn':f/t>=0.9?'ok':'bad';
+const tipCls=(f,t)=>!(t>0)?'':f/t>1.1?'y':f/t>=0.9?'g':'r';
+const sgn=x=>(x>0?'+':'')+nf.format(Math.round(x));
+const tip=o=>` data-ti="${TIPS.push(o)-1}"`;
+function needCells(p){
+  const now=mNowOf(p), {i,n}=nShare();
+  let a;
+  if(!hasNeed(p)) a=now>0?`<td class="n sep warn"${tip({h:'Нет в потребности месяца',rows:[['Заказано за месяц',now+' кор.','y']],m:'Размера нет в потребности (нет плана) — заказ сверх потребности'})}>нет в потр.</td>`:'<td class="n sep mute">—</td>';
+  else{
+    const need=mNeedOf(p), to=needTo(p);
+    a=`<td class="n sep ${pctCls(now,to)}"${tip({h:'Выполнение потребности к неделе '+ddmm(WEEK),rows:[['Потребность месяца',nf.format(need)+' кор.'],[`План к этой неделе (${i}/${n})`,nf.format(Math.round(to))+' кор.'],['Заказано за месяц',nf.format(now)+' кор.'],['  до этой недели',nf.format(mWasOf(p))+' кор.'],['  эта неделя',nf.format(p.req)+' кор.'],['Отклонение к плану недели',sgn(now-to)+' кор.',tipCls(now,to)],['Отклонение к месяцу',sgn(now-need)+' кор.',now<need?'':'y'],['Выполнение к сегодня',pctTxt(now,to),tipCls(now,to),1],['Выполнение месяца',pctTxt(now,need)]]})}>${pctTxt(now,to)}</td>`;
+  }
+  const pl=SPLAN[p.chrt_id], f=factS(p), to=planTo(p);
+  const b=!pl?`<td class="n mute"${tip({h:'План продаж',rows:[['Заказы с 1-го',nf.format(f)+' шт']],m:'Плана продаж WB на месяц нет'})}>—</td>`
+    :!SHARE?`<td class="n mute"${tip({h:'План продаж',rows:[['План месяца',nf.format(pl)+' шт']],m:'Месяц ещё не начался'})}>—</td>`
+    :`<td class="n ${pctCls(f,to)}"${tip({h:'Выполнение плана продаж к '+ddmm(SHARE.end),rows:[['План месяца',nf.format(pl)+' шт'],[`План к ${ddmm(SHARE.end)} (${nf.format(SHARE.done)} из ${nf.format(SHARE.all)} эфф. дн.)`,nf.format(Math.round(to))+' шт'],['Заказы с 1-го числа',nf.format(f)+' шт'],['Отклонение',sgn(f-to)+' шт',tipCls(f,to)],['Выполнение к сегодня',pctTxt(f,to),tipCls(f,to),1],['Выполнение месяца',pctTxt(f,pl)]],m:'Заказы — «Лента заказов» WB без отмен, выходной × 0,7'})}>${pctTxt(f,to)}</td>`;
+  return a+b;
+}
+function pctSum(v){const hn=v.filter(hasNeed), hp=v.filter(p=>SPLAN[p.chrt_id]);return {nF:S(hn,mNowOf),nT:S(hn,needTo),pF:S(hp,factS),pT:S(hp,planTo)};}
+function grpPct(g){const x=pctSum(g);return (x.nT>0?` · потребность ${pctTxt(x.nF,x.nT)}`:'')+(x.pT>0?` · план продаж ${pctTxt(x.pF,x.pT)}`:'');}
+// подсказка «Спрос»: методики строками, зелёным — та, что в расчёте; недели — под «Лучшей неделей»
+function demTip(p){
+  const d=p.dem||{}, b=d.best;
+  if(d.mode==null) return {h:'Спрос, шт/дн',m:'Снимок на момент отправки заявки'};
+  const used=d.mode, lw=b&&b.all[BEST_W[4]]!=null?b.all[BEST_W[4]]:0;
+  const rows=[['Продажи за 28 дней',nf.format(d.a28)+' шт/дн',used==='ads28'?'G':''],null,
+    ['Последняя закрытая неделя',nf.format(lw/7)+' шт/дн',used==='last1'?'G':''],null,
+    ['Лучшая неделя за 5 недель',b&&b.q?nf.format(b.q/7)+' шт/дн':'0 шт/дн',used==='best5'?'G':''],
+    ...BEST_W.map(w=>['  неделя '+ddmm(w),nf.format(b&&b.all[w]||0)+' шт'])];
+  if(d.bst){ const own=BOOST()['p:'+p.chrt_id]!=null; rows.push(null,[own?'Повышение спроса размера':'Повышение спроса группы','+'+d.bst+'%','G'],['В расчёте',nf.format(p.ads)+' шт/дн','G']); }
+  return {h:'Спрос',rows};
+}
+function ptipHtml(o){return `${o.t!=null?`<div>${esc(o.t)}</div>`:''}${o.h!=null?`<div class="h">${esc(o.h)}</div>`:''}${o.rows?`<table>${o.rows.map(r=>{if(!r) return '<tr class="gap"><td colspan="2"></td></tr>'; const [l,v,c,big]=r; return `<tr class="${[big?'big':'',c==='G'?'rg':''].join(' ').trim()}"><td>${esc(l).replace(/^ {2}/,'&nbsp;&nbsp;&nbsp;')}</td><td class="v ${c&&c!=='G'?c:''}">${esc(String(v))}</td></tr>`;}).join('')}</table>`:''}${o.m?`<div class="m">${esc(o.m)}</div>`:''}`;}
+function tipBind(boxId,sel,getO,hl){
+  const box=document.getElementById(boxId); if(box._tip) return; box._tip=1;
+  const tp=document.createElement('div'); tp.className='ptip'; document.body.appendChild(tp);
+  let cur=null; const off=()=>{if(cur&&hl)cur.classList.remove('hl');cur=null;tp.classList.remove('on');};
+  box.addEventListener('mouseover',e=>{
+    const td=e.target.closest(sel); if(td===cur) return; off(); if(!td||!box.contains(td)) return;
+    if(td.title){td.dataset.tt=td.title;td.removeAttribute('title');}
+    cur=td; if(hl) td.classList.add('hl');
+    const o=getO(td); if(!o) return;
+    tp.innerHTML=ptipHtml(o);
+    const r=td.getBoundingClientRect(), w=tp.offsetWidth, h=tp.offsetHeight; let x=r.left+r.width/2-w/2, y=r.top-h-10; if(y<8) y=r.bottom+10;
+    tp.style.left=Math.max(8,Math.min(innerWidth-w-8,x))+'px'; tp.style.top=y+'px'; requestAnimationFrame(()=>tp.classList.add('on'));
+  });
+  box.addEventListener('mouseleave',off); window.addEventListener('scroll',off,true);
+}
+const pkMiss=p=>{const m=[p.box_qty>0?'':'«в коробе»',p.boxes_per_pallet>0?'':'«на паллете»'].filter(Boolean);return m.length?` <span class="miss" style="font-size:.75em;padding:1px 5px;border-radius:4px" title="Не заполнено ${m.join(' и ')} — заполните в «Базе товаров WB»">нет ${m.join(', ')}</span>`:'';};
 
 // ===== отрисовка =====
 function render(){
   const st=ST();
   document.getElementById('wlbl').textContent=`${ddmm(WEEK)}–${ddmm(addD(WEEK,6))}`;
-  const thisMon=keyOfMonday(new Date());
-  document.getElementById('wnote').textContent=WEEK===addD(thisMon,7)?'заявка этой недели':WEEK===thisMon?'на согласовании':'';
   const stIdx=st?STAGES.findIndex(s=>s[0]===st):-1;
-  document.getElementById('steps').innerHTML=STAGES.map((s,i)=>`<div class="step ${i===stIdx?'on':i<stIdx?'done':''}">${i<stIdx?'✓ ':''}${s[1]}</div>`).join('');
-  const a=document.getElementById('actions');
-  if(!st) a.innerHTML=`<button onclick="createWeek()">Создать заявку на ${ddmm(WEEK)}</button>`;
-  else a.innerHTML=(STAGE_BTN[st]?`<button onclick="nextStage()">${STAGE_BTN[st]}</button> `:st==='at_buyer'?`<a href="${SUPPLY_URL}" target="_blank">Согласование — в сводной заявке поставщику ↗</a> `:'<span class="ok">Неделя закрыта</span> ')+(stIdx>0?`<button class="btn2" onclick="prevStage()">↩ Вернуть на шаг</button>`:'');
-  document.getElementById('meta').innerHTML=`Остатки WB — снимок за ${SNAP?ddmm(SNAP):'—'}; спрос — заказы ${ddmm(mskDay(-DEMAND_DAYS))}–${ddmm(mskDay(-1))} (${DEMAND_DAYS} дн)`
-    +(st&&st!=='draft'?' • показан снимок на момент отправки':'')+` • размеров в расчёте: ${PROD.length-NOBOX.length}`
-    +(NOBOX.length?` • <span class="warn">без «в коробе»: ${NOBOX.length}</span> (заполните в «Базе товаров WB»)`:'')
-    +(BASE_LT?'':' • <span class="bad">нет сроков WB (sql/2026-11-12_wb_lead_times.sql)</span>');
-  renderLT(); renderCards(); renderT1(); renderT3(); renderPal();
+  // стадии — щелчком (как заявка Ozon): следующая — вперёд, пройденная — назад; анимация смены стадии
+  const moved=STEP_SEEN.week===WEEK&&STEP_SEEN.st!==st, was=STEP_SEEN.st?STAGES.findIndex(x=>x[0]===STEP_SEEN.st):-1; STEP_SEEN={week:WEEK,st};
+  document.getElementById('steps').innerHTML=STAGES.map((s,i)=>{
+    const fwd=i===stIdx+1, back=i<stIdx;
+    const act=!st?(i===0?'＋ Создать заявку':''):fwd?(st==='at_buyer'?'Согласование — в сводной заявке ↗':STAGE_BTN[st]?STAGE_BTN[st]+' →':''):back?'↩ Вернуть сюда':'';
+    const cls=['step',i===stIdx?'on':i<stIdx?'done':'',act&&!back?'go':'',back?'back':'',moved&&(i===stIdx||(i<stIdx&&i>=was))?'pop':''].filter(Boolean).join(' ');
+    return `<div class="${cls}" data-i="${i}"${act?` onclick="stepClick(${i},this)" title="${esc(act)}"`:''}>${i<stIdx?'✓ ':''}${s[1]}</div>`;
+  }).join('');
+  document.getElementById('actions').innerHTML='';
+  // над заявкой — только тревоги
+  document.getElementById('meta').innerHTML=!BASE_LT?'<span class="bad">⚠️ Нет сроков WB (sql/2026-11-12_wb_lead_times.sql)</span>':'';
+  renderLT(); renderTools(); renderCards(); renderT1(); renderT3(); renderPal();
 }
+function renderTools(){
+  const st=ST(), hasAg=MODEL.some(p=>p.ag!=null), d=document.getElementById('devBtn'), a=document.getElementById('autoBtn');
+  if(!hasAg&&DEV_ONLY) DEV_ONLY=false;
+  d.disabled=!hasAg; d.classList.toggle('on',DEV_ONLY); d.textContent=DEV_ONLY?`Только отклонения (${MODEL.filter(isDev).length})`:'Только отклонения';
+  a.disabled=st!=='distribution';
+  document.getElementById('fBtn').classList.toggle('act',DEV_ONLY);
+}
+function toggleDev(){ DEV_ONLY=!DEV_ONLY; render(); }
+function toggleFlt(e){ e.stopPropagation(); document.getElementById('fPop').classList.toggle('on'); }
+document.addEventListener('click',()=>document.getElementById('fPop')?.classList.remove('on'));
 function renderCards(){
-  const v=vis(), b=S(v,buyOf), ag=S(v,p=>p.ag), has=v.some(p=>p.ag!=null);
-  document.getElementById('cards').innerHTML=[['Расчёт, кор.',nf.format(S(v,p=>p.calc))],['Заявлено, кор.',nf.format(S(v,p=>p.req))],['На ФФ, кор.',nf.format(S(v,p=>p.ff))],['Согласовано, кор.',has?nf.format(ag):'—',has&&b?Math.round(ag/b*100)+'% к закупке ('+nf.format(b)+' кор.)':'вносит закупщик в сводной заявке']]
-    .map(([l,x,sub])=>`<div class="card"><div class="l">${l}</div><div class="v">${x}</div>${sub?`<div class="l">${sub}</div>`:''}</div>`).join('');
+  const v=vis(true), b=S(v,buyOf), ag=S(v,p=>p.ag), has=v.some(p=>p.ag!=null), x=pctSum(v);   // «Только отклонения» на итоги не влияет
+  document.getElementById('cards').innerHTML=[['Заявлено, кор.',nf.format(S(v,p=>p.req))],['Согласовано, кор.',has?nf.format(ag):'—',has&&b?Math.round(ag/b*100)+'% к закупке ('+nf.format(b)+' кор.)':'вносит закупщик в сводной заявке'],
+    ['Потребность к сегодня',x.nT>0?pctTxt(x.nF,x.nT):'—',x.nT>0?'заказано '+nf.format(x.nF)+' из '+nf.format(Math.round(x.nT))+' кор.':''],['План продаж к сегодня',x.pT>0?pctTxt(x.pF,x.pT):'—',x.pT>0?'заказы '+nf.format(x.pF)+' из '+nf.format(Math.round(x.pT))+' шт':'']]
+    .map(([l,v2,sub])=>`<div class="card"><div class="l">${l}</div><div class="v">${v2}</div>${sub?`<div class="l">${sub}</div>`:''}</div>`).join('');
 }
-function renderLT(){
-  const st=ST(), ed=st==='draft';
-  document.getElementById('ltLock').textContent=ed?'— можно менять, пока заявка в черновике':!st?'— заявка не создана: при создании скопируются сроки '+(LT_SRC.startsWith('copy')?'недели '+ddmm(LT_SRC.slice(5)):'из справочника WB'):'— только просмотр';
-  if(!WLT){ document.getElementById('lt').innerHTML='<span class="bad">Сроки WB не заданы</span>'; return; }
-  const inp=f=>ed?`<input class="num" type="number" min="0" step="1" value="${WLT[f]??0}" onchange="setLT('${f}',this.value)">`:(WLT[f]??0);
-  document.getElementById('lt').innerHTML=`<table class="lt"><tr>${LT_H.map(x=>`<th class="n">${x}</th>`).join('')}<th class="n">Покрытие</th><th class="n">Запас</th><th class="n">Вычесть заявок</th></tr><tr>${LT_F.map(f=>`<td class="n">${inp(f)}</td>`).join('')}<td class="n"><b>${cov(WLT)}</b></td><td class="n">${inp('target_days')}</td><td class="n">${inp('prev_weeks')}</td></tr></table>`;
-}
-// «Согласовано» в таблице менеджера (16.11.2026, решение владельца): обеспечено (ФФ + согласовано) больше заявленного — зелёный, меньше — красный;
-// подсветка остаётся и после распределения. Вносит закупщик в сводной заявке поставщику.
+// «Согласовано»: обеспечено (ФФ + согласовано) больше заявленного — зелёный, меньше — красный; подсказка — «Заявка ±N»
 function agCell(p,req){
-  if(p.ag==null) return '<td class="n sep mute" title="Ещё не согласовано — вносит закупщик в сводной заявке поставщику">—</td>';
+  if(p.ag==null) return `<td class="n sep mute"${tip({h:'Согласовано, кор.',rows:[['Ещё не согласовано','—']]})}>—</td>`;
   const sec=(p.ff||0)+p.ag, d=sec-req, bg=d>0?'background:rgba(34,197,94,.22);':d<0?'background:rgba(227,61,120,.22);':'';
-  return `<td class="n sep" style="${bg}" title="Согласовано ${p.ag} кор.${p.ff?` + на ФФ ${p.ff}`:''} = ${sec} к заявленным ${req} (${d>0?'+':''}${d})"><b>${p.ag}</b>${p.ff?`<div class="mute" style="font-size:.75em">+ФФ ${p.ff}</div>`:''}</td>`;
+  return `<td class="n sep" style="${bg}"${tip({h:'Согласовано, кор.',rows:[['Заявка',(d>0?'+':d<0?'−':'')+nf.format(Math.abs(d))]]})}><b>${p.ag}</b>${p.ff?`<div class="mute" style="font-size:.75em">+ФФ ${p.ff}</div>`:''}</td>`;
 }
 function renderT1(){
-  const st=ST(), v=vis(), ed=st==='draft', q=document.getElementById('q').value.trim(), dash='<span class="mute">—</span>';
-  const showAg=!!st&&st!=='draft', NC=showAg?11:10;
-  let h=`<colgroup><col style="width:26%"><col span="${NC-1}"></colgroup><thead><tr><th rowspan="2" class="sub">Размер</th><th colspan="4" class="mhead sep">WB сейчас</th><th colspan="3" class="mhead sep">Заявка</th><th colspan="2" class="mhead sep">Упаковка</th>${showAg?'<th rowspan="2" class="sub sep n" title="ФФ + согласовано против заявленного: больше — зелёный, меньше — красный">Согласо&shy;вано, кор.</th>':''}</tr>
-    <tr><th class="sub sep n">Спрос, шт/дн</th><th class="sub n">На складах WB, шт</th><th class="sub n">В поставках, шт</th><th class="sub n" title="Заявки прошлых недель (распределено, иначе заявлено), в штуках">Прошлые заявки, шт</th><th class="sub sep n">Расчёт, кор.</th><th class="sub n">Заявлено, кор.</th><th class="sub n">Заявлено, шт</th><th class="sub sep n">В коробе, шт</th><th class="sub n">На паллете, кор.</th></tr></thead><tbody>`;
+  TIPS=[]; tipBind('t1','td.n',td=>td.dataset.ti!=null?TIPS[+td.dataset.ti]:td.dataset.tt?{t:td.dataset.tt}:null,true);
+  const st=ST(), v=vis(), ed=st==='draft', dist=st==='distribution'||st==='closed', q=document.getElementById('q').value.trim(), dash='<span class="mute">—</span>';
+  const NC=8, ym=monthOfWeek(WEEK), mlbl=ym.slice(5)+'.'+ym.slice(0,4);
+  let h=`<colgroup><col style="width:26%"><col span="${NC-1}"></colgroup><thead><tr><th rowspan="2" class="sub">Размер</th><th colspan="2" class="mhead sep">WB сейчас</th><th class="mhead sep">Заявка</th><th colspan="2" class="mhead sep" title="Выполнение к сегодня, ${mlbl}">Выполнение к сегодня</th><th rowspan="2" class="sub sep n">Согласо&shy;вано, кор.</th><th rowspan="2" class="sub sep n">Распре&shy;делено, кор.</th></tr>
+    <tr><th class="sub sep n">Спрос, шт/дн</th><th class="sub n">Остаток + в поставках, шт</th><th class="sub sep n">Заявлено, кор.</th><th class="sub sep n" title="Закупка: заказано за месяц с этой неделей ÷ потребность месяца × (номер недели ÷ недель в месяце)">Потреб&shy;ность, %</th><th class="sub n" title="Продажи: заказы с 1-го числа по вчера ÷ план месяца × (прошедшие эфф. дни ÷ эфф. дни месяца; выходной × 0,7)">План продаж, %</th></tr></thead><tbody>`;
   if(!v.length) h+=`<tr><td colspan="${NC}" class="mute">Нет товаров</td></tr>`;
   const G=groupsOf(v,p=>p.req); K1=G.map(g=>g[0]);
   G.forEach(([sup,g],gi)=>{
     const open=OPEN1.has(sup)||!!q;
-    h+=`<tr class="mgroup" onclick="toggleG(1,${gi})"><td colspan="${NC}"><span class="tg">${open?'▾':'▸'}</span>${esc(sup)} — ${g.length} разм. · расчёт ${nf.format(S(g,p=>p.calc))} кор. · заявлено ${nf.format(S(g,p=>p.req))} кор. · ${nf.format(S(g,p=>p.req*(p.box_qty||0)))} шт${showAg&&g.some(p=>p.ag!=null)?` · согласовано ${nf.format(S(g,p=>p.ag))} кор.`:''}</td></tr>`;
+    h+=`<tr class="mgroup" onclick="toggleG(1,${gi})"><td colspan="${NC}"><span class="tg">${open?'▾':'▸'}</span>${esc(sup)} — ${g.length} разм. · заявлено ${nf.format(S(g,p=>p.req))} кор. · ${nf.format(S(g,p=>p.req*(p.box_qty||0)))} шт${g.some(p=>p.ag!=null)?` · согласовано ${nf.format(S(g,p=>p.ag))} кор.`:''}${dist?` · распределено ${nf.format(S(g,distSum))} кор.`:''}${grpPct(g)}</td></tr>`;
     if(!open) return;
     for(const p of g){
       const bq=p.box_qty||0;
-      h+=`<tr class="prow${p.keep?'':' mute'}"><td><b>${esc(art(p))}</b><div class="pname">${esc(p.title)} · ${p.nm_id}</div></td>
-        <td class="n sep">${nf.format(p.ads)}</td><td class="n">${nf.format(p.stock)}</td><td class="n">${p.transit?nf.format(p.transit):dash}</td><td class="n" title="${p.prev} кор. × ${bq} шт">${nf.format(p.prev*bq)}</td>
-        <td class="n sep">${p.nobox?'<span class="bad" title="Нет «в коробе» — расчёт не идёт">—</span>':nf.format(p.calc)}</td>
-        <td class="n">${ed&&!p.nobox?`<input class="num" type="number" min="0" step="1" value="${p.req}" title="${p.manual?'Изменено вручную; очистите поле, чтобы вернуть к расчёту':'Идёт за расчётом'}" onchange="setReq(${p.chrt_id},this.value)">${p.manual?'<div class="mute" style="font-size:.75em">✎ вручную</div>':''}`:`<b>${p.req}</b>`}</td>
-        <td class="n mute">${nf.format(p.req*bq)}</td>
-        <td class="n sep${p.box_qty>0?'':' miss'}" title="${p.box_qty>0?'':'Не заполнено — заполните в «Базе товаров WB»'}">${p.box_qty>0?p.box_qty:''}</td><td class="n${p.boxes_per_pallet>0?'':' miss'}" title="${p.boxes_per_pallet>0?'':'Не заполнено — заполните в «Базе товаров WB»'}">${p.boxes_per_pallet>0?p.boxes_per_pallet:''}</td>${showAg?agCell(p,p.req):''}</tr>`;
+      h+=`<tr class="prow${p.keep?'':' mute'}"><td><b>${esc(art(p))}</b>${pkMiss(p)}<div class="pname">${esc(p.title)} · ${p.nm_id}</div></td>
+        <td class="n sep"${tip(demTip(p))}>${nf.format(p.ads)}</td>
+        <td class="n"${tip({h:'Остаток + в поставках',rows:[['На складах WB',nf.format(p.stock)+' шт'],['В поставках',nf.format(p.transit)+' шт']]})}>${nf.format(p.stock+p.transit)}</td>
+        <td class="n sep"${tip({h:'Заявлено',rows:[['Текущая заявка',nf.format(p.req)+' кор. / '+nf.format(p.req*bq)+' шт'],['Прошлые заявки',nf.format(p.prev)+' кор. / '+nf.format(p.prev*bq)+' шт'],null,['В коробе',bq?bq+' шт':'не заполнено',bq?'':'r'],['На паллете',p.boxes_per_pallet>0?p.boxes_per_pallet+' кор.':'не заполнено',p.boxes_per_pallet>0?'':'r']]})}>${ed&&!p.nobox?`<input class="num" type="number" min="0" step="1" value="${p.req}" onchange="setReq(${p.chrt_id},this.value)">${p.manual?'<div class="mute" style="font-size:.75em">✎ вручную</div>':''}`:`<b>${p.req}</b>`}</td>
+        ${needCells(p)}${agCell(p,p.req)}<td class="n sep">${dist?distSum(p):dash}</td></tr>`;
     }
   });
   document.getElementById('t1').innerHTML=h+'</tbody>';
+  document.getElementById('needNote').innerHTML=!NEED_ST||NEED_ST==='draft'?` <span class="warn">Потребность WB за ${mlbl} ${NEED_ST?'в черновике':'ещё не создана'} — показан расчёт на сегодня, как в «Потребности на месяц WB».</span>`:'';
 }
 // распределение по СЦ: до «Согласовано» — подсказка по долям спроса от заявленного; после — сохранённое, Илья правит на шаге «Распределение»
 function distOf(p){ const st=ST(); if((st==='distribution'||st==='closed')&&p.dist) return p.dist; return splitBoxes(st==='distribution'||st==='closed'?secOf(p):p.req,scShares(p.chrt_id)); }
 function renderT3(){
   const st=ST(), dist=st==='distribution'||st==='closed', ed=st==='distribution', v=vis().filter(p=>(dist?secOf(p):p.req)>0);
-  document.getElementById('h3').textContent=dist?'Распределение обеспеченного по СЦ':'Подсказка деления по СЦ';
-  document.getElementById('n3').textContent=dist?'Обеспечено = на ФФ + согласовано. По умолчанию — по долям спроса округов за 28 дней (справочник «округ → СЦ»); поправьте, сумма должна быть равна обеспеченному.':'Пока заявка не согласована — подсказка от заявленного по долям спроса округов покупателей за 28 дней. Делить по СЦ — после согласования.';
   let h=`<thead><tr><th class="sub">Размер</th><th class="sub n">${dist?'Обеспечено':'Заявлено'}, кор.</th>${SCS.map(s=>`<th class="sub n">${esc(s)}</th>`).join('')}<th class="sub n">Σ по СЦ</th></tr></thead><tbody>`;
   if(!v.length) h+=`<tr><td colspan="${SCS.length+3}" class="mute">Нет коробов для распределения</td></tr>`;
   for(const p of v){
@@ -460,11 +698,111 @@ function palStatus(x){
   const n=Math.floor(x), m=Math.ceil(x);
   return [`убрать ${(x-1.15*n).toFixed(2)} пал. или добавить ${(0.8*m-x).toFixed(2)} пал.`,'bad'];
 }
+// ===== карта паллет по СЦ (как заявка Ozon, 18.11.2026): кружок СЦ в его городе =====
+const SC_GEO=[[/коледино|подольск|чехов|электросталь|москв|внуково|белая дача|домодедово/i,[37.62,55.75]],[/рязан/i,[39.74,54.63]],[/тул/i,[37.62,54.19]],[/казан/i,[49.11,55.79]],[/краснодар/i,[38.98,45.04]],
+  [/невинномысск/i,[41.94,44.63]],[/екатеринбург/i,[60.6,56.84]],[/новосибирск/i,[82.92,55.03]],[/хабаровск/i,[135.07,48.48]],[/петербург|спб|шушары|уткина/i,[30.32,59.94]],[/самар/i,[50.15,53.2]],
+  [/ростов/i,[39.72,47.23]],[/воронеж/i,[39.2,51.67]],[/владимир/i,[40.4,56.13]],[/котовск/i,[41.51,52.59]],[/тамбов/i,[41.45,52.72]],[/волгоград/i,[44.52,48.71]],[/уфа/i,[55.97,54.73]],
+  [/красноярск/i,[92.87,56.01]],[/иркутск/i,[104.28,52.29]],[/омск/i,[73.37,54.99]],[/тюмен/i,[65.53,57.15]],[/пермь/i,[56.25,58.01]],[/нижн/i,[44.0,56.33]],[/ярославл/i,[39.89,57.63]],
+  [/калининград/i,[20.51,54.71]],[/саратов/i,[46.03,51.53]],[/оренбург/i,[55.1,51.77]],[/челябинск/i,[61.4,55.16]],[/владивосток/i,[131.89,43.12]],[/махачкал/i,[47.5,42.98]],[/минск/i,[27.56,53.9]],[/астан/i,[71.43,51.13]],[/алмат/i,[76.89,43.24]]];
+const scGeo=sc=>(SC_GEO.find(([re])=>re.test(sc))||[])[1];
+let RU_MAP=null, RU_MAP_LOAD=null;
+const loadJs=src=>new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error(src));document.head.appendChild(e);});
+function loadRuMap(){
+  if(RU_MAP_LOAD) return RU_MAP_LOAD;
+  return RU_MAP_LOAD=(async()=>{
+    if(!window.d3) await loadJs('https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js');
+    if(!window.topojson) await loadJs('https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js');
+    const topo=await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json')).json();
+    const ru=topojson.feature(topo,topo.objects.countries).features.find(f=>f.id==='643');
+    const W=1000,H=520, pr=d3.geoConicEqualArea().rotate([-100,0]).parallels([50,68]).fitExtent([[12,8],[W-12,H-28]],ru);
+    RU_MAP={W,H,pr,ru:d3.geoPath(pr)(ru)};
+  })().catch(e=>{ RU_MAP=false; });
+}
 function renderPal(){
-  const by={}, miss={};
-  MODEL.forEach(p=>{ const d=distOf(p); Object.entries(d).forEach(([s,k])=>{ if(!k) return; if(p.boxes_per_pallet>0) by[s]=(by[s]||0)+k/p.boxes_per_pallet; else miss[s]=(miss[s]||0)+1; }); });
+  const by={}, miss={}, box={}, n={};
+  MODEL.forEach(p=>{ const d=distOf(p); Object.entries(d).forEach(([s,k])=>{ if(!k) return; box[s]=(box[s]||0)+k; n[s]=(n[s]||0)+1; if(p.boxes_per_pallet>0) by[s]=(by[s]||0)+k/p.boxes_per_pallet; else miss[s]=(miss[s]||0)+1; }); });
   const cs=[...new Set([...Object.keys(by),...Object.keys(miss)])].sort((a,b)=>(by[b]||0)-(by[a]||0));
-  document.getElementById('pal').innerHTML=cs.map(c=>{const x=by[c]||0,[t,cl]=palStatus(x);return `<div class="card"><div class="l">${esc(c)}</div><div class="v">${x.toFixed(2)} пал.</div><div class="${cl}" style="font-size:.85em">${t}</div>${miss[c]?`<div class="warn" style="font-size:.8em">без «на паллете»: ${miss[c]} разм.</div>`:''}</div>`;}).join('')||'<div class="mute">Нет коробов</div>';
+  const el=document.getElementById('pal');
+  if(!cs.length){ el.className='pal'; el.innerHTML='<div class="mute">Нет коробов</div>'; return; }
+  if(RU_MAP==null){ loadRuMap().then(renderPal); }
+  if(!RU_MAP){ el.className='pal'; el.innerHTML=cs.map(c=>{const x=by[c]||0,[t,cl]=palStatus(x);return `<div class="card"><div class="l">${esc(c)}</div><div class="v">${x.toFixed(2)} пал.</div><div class="${cl}" style="font-size:.85em">${t}</div></div>`;}).join(''); return; }
+  const {W,H,pr}=RU_MAP, COL={ok:'#22c55e',warn:'#d97706',bad:'#E33D78',mute:'#94a3b8'};
+  PAL_TIPS=[]; const pts=[], off=[];
+  cs.forEach(c=>{ const x=by[c]||0,[t,cl]=palStatus(x), g=scGeo(c), xy=g&&pr(g);
+    const it={c,x,cl,ti:PAL_TIPS.push({h:c,rows:[['Паллет',x>0?nf.format(Math.round(x*100)/100):'— (нет «на паллете»)'],['Загрузка',t,{ok:'g',warn:'y',bad:'r'}[cl]||''],['Коробов',nf.format(box[c]||0)],['Размеров',nf.format(n[c]||0)]]})-1};
+    if(xy&&xy[0]>=0&&xy[0]<=W&&xy[1]>=0&&xy[1]<=H){ Object.assign(it,{ax:xy[0],ay:xy[1],px:xy[0],py:xy[1],r:Math.min(28,15+Math.sqrt(x)*3)}); pts.push(it); } else off.push(it); });
+  for(let k=0;k<120;k++){ let moved=false;
+    for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){ const a=pts[i],b=pts[j]; let dx=b.px-a.px, dy=b.py-a.py, d=Math.hypot(dx,dy)||0.01, need=a.r+b.r+3;
+      if(d<need){ const m=(need-d)/2; dx/=d; dy/=d; a.px-=dx*m; a.py-=dy*m; b.px+=dx*m; b.py+=dy*m; moved=true; } }
+    if(!moved) break; }
+  const fmt=x=>!(x>0)?'—':x<0.05?'<0,1':nf.format(Math.round(x*10)/10);
+  el.className='palmap';
+  el.innerHTML=`<svg class="rumap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Паллеты по СЦ на карте"><path class="ru" d="${RU_MAP.ru}"/>`
+    +pts.map(p=>(Math.hypot(p.px-p.ax,p.py-p.ay)>p.r?`<line class="pl" x1="${p.ax.toFixed(1)}" y1="${p.ay.toFixed(1)}" x2="${p.px.toFixed(1)}" y2="${p.py.toFixed(1)}"/>`:'')+`<circle class="pd" cx="${p.ax.toFixed(1)}" cy="${p.ay.toFixed(1)}" r="2"/>`).join('')
+    +pts.map(p=>`<g class="pm" data-ti="${p.ti}"><circle cx="${p.px.toFixed(1)}" cy="${p.py.toFixed(1)}" r="${p.r.toFixed(1)}" fill="${COL[p.cl]||COL.mute}"/><text x="${p.px.toFixed(1)}" y="${p.py.toFixed(1)}">${fmt(p.x)}</text></g>`).join('')
+    +`</svg>`+(off.length?`<div class="off">${off.map(p=>`<span class="pm" data-ti="${p.ti}" style="cursor:pointer;color:${COL[p.cl]||COL.mute}">${esc(p.c)}: ${fmt(p.x)} пал.</span>`).join(' · ')}</div>`:'');
+  tipBind('pal','.pm',g=>PAL_TIPS[+g.dataset.ti],false);
+}
+
+// ===== окно «⚙️ Настройки расчёта» (как заявка Ozon): методика, повышение спроса, сроки, исключённые размеры =====
+function openSet(){ document.getElementById('setModal').classList.add('on'); renderLT(); }
+function closeSet(){ document.getElementById('setModal').classList.remove('on'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSet(); document.getElementById('fPop')?.classList.remove('on'); } });
+function modeTotals(){
+  const out={};
+  for(const [k] of MODES){ MODE_FORCE=k; build(); let box=0,pal=0; MODEL.forEach(p=>{ const b=p.calc||0; box+=b; if(p.boxes_per_pallet>0) pal+=b/p.boxes_per_pallet; }); out[k]={box,pal}; }
+  MODE_FORCE=null; build(); return out;
+}
+function btPage(i){ BT_PAGE=i; renderLT(); }
+function btMode(m){ if(BT_MODE===m) return; BT_MODE=m; BT_PAGE=0; renderLT(); }
+function btSearch(v){ BT_Q=v; BT_PAGE=0; if(String(v).trim()) BT_MODE='prod'; renderLT(); const i=document.getElementById('btq'); if(i){ i.focus(); i.setSelectionRange(v.length,v.length); } }
+function pagerHtml(pg,pages,total,fn){ const nums=Array.from({length:pages},(_,i)=>i).filter(i=>pages<=9||i===0||i===pages-1||Math.abs(i-pg)<=2); let prev=-1; return `<div class="pager"><button ${pg?'':'disabled'} onclick="${fn}(${pg-1})" title="Назад">‹</button>${nums.map(i=>{const gap=i-prev>1?'<span>…</span>':''; prev=i; return gap+`<button class="${i===pg?'on':''}" onclick="${fn}(${i})">${i+1}</button>`;}).join('')}<button ${pg<pages-1?'':'disabled'} onclick="${fn}(${pg+1})" title="Вперёд">›</button><span>${pg*LT_PER+1}–${Math.min(total,(pg+1)*LT_PER)} из ${total}</span></div>`; }
+function renderLT(){
+  const st=ST(), ed=st==='draft', live=!st||st==='draft';
+  document.getElementById('setSub').innerHTML=live?'':'🔒 только просмотр — заявка отправлена';
+  if(!document.getElementById('setModal').classList.contains('on')) return;
+  const md=MODE(), mEd=HAS_MODE&&live, tot=live?modeTotals():null;
+  const MD={ads28:'Среднесуточные заказы WB за 28 дней (с отменами).',best5:'Лучшая неделя размера за период.',last1:'Последняя закрытая неделя размера.'};
+  let h=`<div class="ssec"><h4>Методика расчёта</h4>${HAS_MODE?'':'<div class="hint bad">Нужен SQL 2026-11-18_wb_purchase_settings.sql — до него только «Продажи за 28 дней».</div>'}<div class="modes">`
+    +MODES.map(([k,t])=>`<div class="mcard${k===md?' on':''}${mEd?'':' dis'}" ${mEd&&k!==md?`onclick="setMode('${k}')"`:''}><div class="mt"><span class="mdot"></span>${t}</div><div class="md">${MD[k]}</div>${tot?`<div class="mv"><div><b>${nf.format(tot[k].box)}</b><span>коробов</span></div><div><b>${nf.format(Math.round(tot[k].pal*10)/10)}</b><span>паллет</span></div></div>`:''}</div>`).join('')+`</div>`;
+  if(live){
+    // повышение спроса: «Группы | Товары», по 5 строк на странице; размер важнее группы
+    const bo=BOOST(), bEd=HAS_BOOST&&live, byG={}; MODEL.forEach(p=>{ const g=p.grp||'Без категории'; (byG[g]=byG[g]||[]).push(p); });
+    let items;
+    if(BT_MODE==='grp') items=Object.keys(byG).sort((a,b)=>S(byG[b],p=>p.calc)-S(byG[a],p=>p.calc)||a.localeCompare(b,'ru')).map(g=>({key:g,name:esc(g),title:'',v:Number(bo[g])||0,box:S(byG[g],p=>p.calc)}));
+    else{ const q=BT_Q.trim().toLowerCase();
+      items=MODEL.filter(p=>!q||[p.vendor_code,p.title,p.tech_size,String(p.nm_id)].some(x=>String(x||'').toLowerCase().includes(q))).sort((a,b)=>(b.calc||0)-(a.calc||0)||art(a).localeCompare(art(b)))
+        .map(p=>{ const own=bo['p:'+p.chrt_id]; return {key:'p:'+p.chrt_id,name:esc(art(p))+(own==null&&bo[p.grp]?` <span class="mute">· группа +${bo[p.grp]}%</span>`:''),title:esc(p.title),v:Number(own)||0,box:p.calc||0}; }); }
+    const pages=Math.max(1,Math.ceil(items.length/LT_PER)); BT_PAGE=Math.min(Math.max(0,BT_PAGE),pages-1);
+    const pg=items.slice(BT_PAGE*LT_PER,BT_PAGE*LT_PER+LT_PER);
+    h+=`<div class="boost">${HAS_BOOST?'':'<div class="hint bad">Нужен SQL 2026-11-18_wb_purchase_settings.sql — до него ползунки не сохраняются</div>'}`
+      +`<div class="bmode"><button class="btn2 ${BT_MODE==='grp'?'on':''}" onclick="btMode('grp')">Группы</button><button class="btn2 ${BT_MODE==='prod'?'on':''}" onclick="btMode('prod')">Товары</button><input id="btq" placeholder="Поиск по артикулу / названию" value="${esc(BT_Q)}" oninput="btSearch(this.value)"></div>`
+      +`<table class="bt"><colgroup><col style="width:40%"><col style="width:45%"><col style="width:15%"></colgroup><tr><th>${BT_MODE==='grp'?'Группа товаров':'Размер'}</th><th>Повышение спроса</th><th>Коробов</th></tr>`
+      +pg.map(it=>{ const k=it.key.replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+        return `<tr><td title="${it.title}">${it.name}</td><td><span class="bsl"><button type="button" ${bEd?'':'disabled'} onclick="setBoost('${k}',${it.v-5})">−</button><input type="range" min="0" max="100" step="5" value="${it.v}" ${bEd?'':'disabled'} oninput="this.parentNode.querySelector('b').textContent='+'+this.value+'%'" onchange="setBoost('${k}',this.value)"><button type="button" ${bEd?'':'disabled'} onclick="setBoost('${k}',${it.v+5})">+</button><b>+${it.v}%</b></span></td><td>${nf.format(it.box)}</td></tr>`; }).join('')
+      +(items.length>LT_PER?Array.from({length:LT_PER-pg.length},()=>'<tr class="pad"><td colspan="3"></td></tr>').join(''):'')
+      +(items.length?'':'<tr><td colspan="3" class="mute">Ничего не найдено</td></tr>')
+      +`</table>${items.length>LT_PER?pagerHtml(BT_PAGE,pages,items.length,'btPage'):''}</div>`;
+  }
+  h+=`</div>`;
+  // сроки: у WB одна строка — WB в целом
+  if(WLT){
+    const inp=f=>ed?`<input class="num" type="number" min="0" step="1" value="${WLT[f]??0}" onchange="setLT('${f}',this.value)">`:(WLT[f]??0);
+    h+=`<div class="ssec"><h4>Сроки реализации заявки</h4><div style="overflow-x:auto"><table class="lt2"><colgroup><col style="width:17%">${LT_F.map(()=>'<col style="width:9%">').join('')}<col style="width:7%"><col style="width:9%"><col style="width:9%"></colgroup>
+      <thead><tr><th rowspan="2">Склад</th><th class="grp vs" colspan="6">Этапы поставки</th><th class="grp vs" colspan="3">Расчёт</th></tr>
+      <tr>${LT_H.map((x,i)=>`<th${i?'':' class="vs"'}>${x}<span class="u">дн</span></th>`).join('')}<th class="vs">Покрытие<span class="u">дн</span></th><th>Запас<span class="u">дн</span></th><th>Вычесть заявок<span class="u">нед.</span></th></tr></thead><tbody>
+      <tr><td>WB в целом</td>${LT_F.map((f,i)=>`<td${i?'':' class="vs"'}>${inp(f)}</td>`).join('')}<td class="vs"><span class="cov">${cov(WLT)}</span></td><td>${inp('target_days')}</td><td>${inp('prev_weeks')}</td></tr></tbody></table></div></div>`;
+  }else h+=`<div class="ssec"><h4>Сроки реализации заявки</h4><span class="bad">Сроки WB не заданы</span></div>`;
+  // размеры, которые не заказываем: поиск → выбор → чип; ✕ — вернуть в расчёт
+  const xs=PROD.filter(p=>EXCL.has(p.chrt_id)).sort((a,b)=>art(a).localeCompare(art(b)));
+  h+=`<div class="ssec"><h4>🚫 Товары не заказываем</h4>${HAS_EXCL?`<div class="xsearch"><input id="xq" placeholder="Найти размер: артикул или название" autocomplete="off" oninput="xSearch(this.value)"><div class="xres" id="xres"></div></div>`:'<div class="hint bad">Нужен SQL 2026-11-18_wb_purchase_settings.sql</div>'}${xs.length?`<div class="chips">${xs.map(p=>`<span class="chip" title="${esc(p.title)}">${esc(art(p))}<button title="Вернуть в расчёт" onclick="setExcl(${p.chrt_id},false)">✕</button></span>`).join('')}</div>`:''}</div>`;
+  document.getElementById('lt').innerHTML=h;
+}
+function xSearch(q){
+  const el=document.getElementById('xres'); q=String(q||'').trim().toLowerCase();
+  if(q.length<2){ el.innerHTML=''; return; }
+  const hits=PROD.filter(p=>!EXCL.has(p.chrt_id)&&[p.vendor_code,p.title,p.tech_size,String(p.nm_id)].some(x=>String(x||'').toLowerCase().includes(q))).slice(0,8);
+  el.innerHTML=hits.length?hits.map(p=>`<div class="xi" onclick="setExcl(${p.chrt_id},true)"><b>${esc(art(p))}</b> <span>${esc(p.title)}</span></div>`).join(''):'<div class="xi mute">Ничего не найдено</div>';
 }
 
 // ===== действия =====
@@ -483,7 +821,7 @@ async function setDist(id,sc,v){
   if(ST()!=='distribution') return;
   const p=MODEL.find(x=>x.chrt_id===id); p.dist={...(p.dist||distOf(p))}; p.dist[sc]=toInt(v);
   try{ await upsert('wb_purchase_dist',SCS.map(s=>({week:WEEK,chrt_id:id,sc:s,boxes:p.dist[s]||0,updated_at:new Date().toISOString()})),'week,chrt_id,sc'); }catch(e){fail(e);}
-  renderT3(); renderPal();
+  renderT1(); renderT3(); renderPal();
 }
 async function setLT(f,v){
   if(ST()!=='draft') return;
@@ -491,13 +829,44 @@ async function setLT(f,v){
   try{ await patchWeek({[f]:WLT[f]}); WEEKS[WEEK]={...WEEKS[WEEK],[f]:WLT[f]}; }catch(e){fail(e);}
   build(); render();
 }
+async function setMode(v){
+  if(!HAS_MODE) return;
+  const st=ST();
+  if(!st){ MODE_NEW=v; build(); render(); return; }
+  if(st!=='draft') return;
+  try{ await patchWeek({demand_mode:v}); WEEKS[WEEK].demand_mode=v; build(); render(); }catch(e){fail(e);}
+}
+async function setBoost(g,v){
+  v=Math.max(0,Math.min(100,Math.round((Number(v)||0)/5)*5));
+  const st=ST(); if(!HAS_BOOST||(st&&st!=='draft')) return;
+  const nb={...BOOST()}; if(v) nb[g]=v; else delete nb[g];
+  if(!st){ BOOST_NEW=nb; build(); render(); return; }
+  try{ await patchWeek({demand_boost:nb}); WEEKS[WEEK].demand_boost=nb; build(); render(); }catch(e){fail(e);}
+}
+async function setExcl(id,v){
+  if(!HAS_EXCL) return;
+  const p=PROD.find(x=>x.chrt_id===id); if(!p) return;
+  if(!v&&!confirm(`Вернуть в расчёт «${art(p)}»? Действует сразу: черновики заявок пересчитаются.`)) return;
+  try{
+    if(v) await upsert('wb_purchase_excluded',[{chrt_id:id,user_email:BA_AUTH.email()||null,created_at:new Date().toISOString()}],'chrt_id');
+    else{ const r=await fetch(`${SUPABASE_URL}/rest/v1/wb_purchase_excluded?chrt_id=eq.${id}`,{method:'DELETE',headers:HD}); if(!r.ok) throw new Error('wb_purchase_excluded HTTP '+r.status); }
+    v?EXCL.add(id):EXCL.delete(id); build(); render();
+  }catch(e){ fail(e); }
+}
 async function createWeek(){
   if(!WLT){ fail(new Error('нет сроков WB')); return; }
   if(!confirm(`Создать заявку WB на неделю ${ddmm(WEEK)}–${ddmm(addD(WEEK,6))}? Сроки скопируются ${LT_SRC.startsWith('copy')?'с недели '+ddmm(LT_SRC.slice(5)):'из справочника WB'}.`)) return;
   try{
-    await upsert('wb_purchase_weeks',[{week:WEEK,status:'draft',...Object.fromEntries([...LT_F,'target_days','prev_weeks'].map(f=>[f,Number(WLT[f])||0]))}],'week');
+    await upsert('wb_purchase_weeks',[{week:WEEK,status:'draft',...Object.fromEntries([...LT_F,'target_days','prev_weeks'].map(f=>[f,Number(WLT[f])||0])),...(HAS_MODE?{demand_mode:MODE_NEW}:{}),...(HAS_BOOST?{demand_boost:BOOST_NEW}:{})}],'week');
     await loadBase(); await loadWeek();
   }catch(e){fail(e);}
+}
+async function stepClick(i,el){
+  const st=ST(), cur=st?STAGES.findIndex(s=>s[0]===st):-1;
+  if(!st){ if(i===0) return createWeek(); return; }
+  if(i===cur+1&&st==='at_buyer'){ window.open(SUPPLY_URL,'_blank'); return; }
+  el.classList.add('busy');
+  try{ if(i===cur+1) await nextStage(); else if(i<cur) await prevStage(i); }finally{ el.classList.remove('busy'); }
 }
 async function nextStage(){
   const st=ST(), err=document.getElementById('err'); err.textContent='';
@@ -507,28 +876,61 @@ async function nextStage(){
       const now=new Date().toISOString();
       await upsert('wb_purchase_lines',MODEL.filter(p=>p.keep).map(p=>lineRow(p,{updated_at:now})),'week,chrt_id');
       await patchWeek({status:'at_buyer',submitted_at:now});
-    }else if(st==='at_buyer'){
-      err.innerHTML=`Согласование — в <a href="${SUPPLY_URL}" target="_blank">сводной заявке поставщику</a>.`; return;
-      const miss=MODEL.filter(p=>buyOf(p)>0&&p.ag==null);
-      if(miss.length){ err.textContent=`Заполните «Согласовано» по всем товарам к закупке (не заполнено: ${miss.length}, напр. ${miss.slice(0,3).map(art).join(', ')})`; return; }
-      if(!confirm('Отметить заявку согласованной? Обеспеченное (ФФ + согласовано) разложится по СЦ по долям спроса — дальше его можно поправить.')) return;
-      const now=new Date().toISOString(), rows=[];
-      MODEL.forEach(p=>{ const tot=secOf(p); if(!tot) return; const d=splitBoxes(tot,scShares(p.chrt_id)); SCS.forEach(s=>rows.push({week:WEEK,chrt_id:p.chrt_id,sc:s,boxes:d[s]||0,updated_at:now})); });
-      await upsert('wb_purchase_dist',rows,'week,chrt_id,sc');
-      await patchWeek({status:'distribution',agreed_at:now});
     }else if(st==='distribution'){
       const bad=MODEL.filter(p=>secOf(p)>0&&distSum(p)!==secOf(p));
       if(bad.length){ err.textContent=`Сумма по СЦ не равна обеспеченному: ${bad.length} разм., напр. ${bad.slice(0,3).map(art).join(', ')}`; return; }
       if(!confirm('Подтвердить распределение и закрыть неделю?')) return;
       await patchWeek({status:'closed',confirmed_at:new Date().toISOString()});
-    }
+    }else return;
     await loadBase(); await loadWeek();
   }catch(e){fail(e);}
 }
-async function prevStage(){
+async function prevStage(to){
   const i=STAGES.findIndex(s=>s[0]===ST()); if(i<=0) return;
-  if(!confirm(`Вернуть неделю на шаг «${STAGES[i-1][1]}»?`)) return;
-  try{ await patchWeek({status:STAGES[i-1][0]}); await loadBase(); await loadWeek(); }catch(e){fail(e);}
+  const j=to==null?i-1:to; if(j<0||j>=i) return;
+  if(!confirm(`Вернуть неделю на шаг «${STAGES[j][1]}»?`)) return;
+  try{ await patchWeek({status:STAGES[j][0]}); await loadBase(); await loadWeek(); }catch(e){fail(e);}
+}
+// ===== автораспределение по СЦ (18.11.2026, как заявка Ozon; решение владельца) =====
+// Шаг 1 — обеспеченное размера (ФФ + согласовано) по СЦ в долях спроса округов за 28 дн (как по умолчанию при «Согласовано»).
+// Шаг 2 — паллеты: СЦ вне нормы 0,8–1,15 (меньше 0,8 — догрузить до 0,8) выравниваются переносом коробов одного размера между СЦ:
+//   донор — СЦ, где размера больше всего относительно его доли спроса, получатель — где меньше всего (и спрос там есть); итог размера не меняется;
+//   донор после переноса — не ниже получателя по этой мере; СЦ в норме из нормы не выводим. Остатков по СЦ у WB нет — запас в днях по СЦ не считается.
+function adNeed(x){ if(!(x>1e-9)) return 0; if(x<0.8) return 0.8-x; const lo=Math.ceil(x/1.15-1e-9), hi=Math.floor(x/0.8+1e-9); if(lo<=hi) return 0;
+  const n=Math.floor(x), m=Math.ceil(x), rem=x-1.15*n, add=0.8*m-x; return add<=rem?add:-rem; }
+function adPal(ps){ const P={}; ps.forEach(p=>{ if(!(p.boxes_per_pallet>0)) return; Object.entries(p.dist||{}).forEach(([s,k])=>{ if(k) P[s]=(P[s]||0)+k/p.boxes_per_pallet; }); }); return P; }
+function autoDistCalc(ps){
+  ps.forEach(p=>{ p.sh=scShares(p.chrt_id); p.dist=splitBoxes(secOf(p),p.sh); });
+  const ratio=(p,s,k)=>p.sh[s]>0?k/(p.sh[s]*secOf(p)):Infinity;
+  for(let it=0;it<4000;it++){
+    const P=adPal(ps), bad=SCS.map(c=>({c,n:adNeed(P[c]||0)})).filter(x=>Math.abs(x.n)>1e-9).sort((a,b)=>Math.abs(a.n)-Math.abs(b.n));
+    let moved=false;
+    for(const {c,n} of bad){
+      let best=null;
+      for(const p of ps){ const bpp=p.boxes_per_pallet; if(!(bpp>0)) continue;
+        for(const o of SCS){ if(o===c) continue;
+          const [from,to]=n>0?[o,c]:[c,o]; if(!((p.dist[from]||0)>0)||!(p.sh[to]>0)) continue;
+          const fA=ratio(p,from,(p.dist[from]||0)-1), tA=ratio(p,to,(p.dist[to]||0)+1);
+          if(fA<tA) continue;                                              // не оголяем донора
+          const po=P[o]||0, dpo=(n>0?-1:1)/bpp;
+          if(adNeed(po)===0&&po>1e-9&&adNeed(po+dpo)!==0&&!(po+dpo<1e-9)) continue; // соседа в норме не ломаем
+          const score=fA-tA; if(!best||score>best.score) best={p,from,to,score};
+        }
+      }
+      if(best){ best.p.dist[best.from]--; if(!best.p.dist[best.from]) delete best.p.dist[best.from]; best.p.dist[best.to]=(best.p.dist[best.to]||0)+1; moved=true; break; }
+    }
+    if(!moved) break;
+  }
+}
+async function autoDist(){
+  if(ST()!=='distribution') return;
+  const ps=MODEL.filter(p=>secOf(p)>0);
+  if(!confirm(`Автораспределение перезапишет распределение по СЦ у ${ps.length} размеров: по долям спроса округов, с подгонкой паллет к норме. Продолжить?`)) return;
+  autoDistCalc(ps);
+  const now=new Date().toISOString(), rows=[];
+  ps.forEach(p=>SCS.forEach(s=>rows.push({week:WEEK,chrt_id:p.chrt_id,sc:s,boxes:p.dist[s]||0,updated_at:now})));
+  try{ await upsert('wb_purchase_dist',rows,'week,chrt_id,sc'); }catch(e){ fail(e); }
+  render();
 }
 function stepNum(b,d){ const i=b.parentNode.querySelector('input'); if(!i||i.disabled) return; const x=Math.max(0,(Number(i.value)||0)+d); i.value=x; i.dispatchEvent(new Event('change',{bubbles:true})); }
 function wrapNums(root){ root.querySelectorAll('input.num:not([data-stp])').forEach(i=>{ i.dataset.stp=1; const s=document.createElement('span'); s.className='stp'; s.onclick=e=>e.stopPropagation(); i.replaceWith(s); s.innerHTML='<button type="button" title="−1" onclick="stepNum(this,-1)">−</button>'; s.appendChild(i); s.insertAdjacentHTML('beforeend','<button type="button" title="+1" onclick="stepNum(this,1)">+</button>'); }); }
