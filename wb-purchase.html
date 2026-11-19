@@ -401,7 +401,7 @@ const GRP_BY_OFFER=[[/^WIPE-/,'Салфетки хлопковые'],[/^GLV-NIT-
 const GRP_MERGE={'Маска косметическая':'Маски косметические и медицинские','Маска медицинская':'Маски косметические и медицинские'};
 function grpOf(p){ const r=GRP_BY_OFFER.find(([re])=>re.test(p.vendor_code||'')); if(r) return r[1]; const c=p.subject||'Без категории'; return GRP_MERGE[c]||c; }
 // выполнение к сегодня: потребность месяца WB и план продаж WB
-let SALES={},SPLAN={},SHARE=null,NEEDS={},MONTH_REQ={},NEED_ST=null,NEED_REQ={},DEM_AT='',MONTHS_DB={};
+let SALES={},SPLAN={},SHARE=null,NEEDS={},MONTH_REQ={},MONTH_W={},MWEEKS=[],NEED_ST=null,NEED_REQ={},DEM_AT='',MONTHS_DB={};
 let DEV_ONLY=false,BT_MODE='grp',BT_Q='',BT_PAGE=0,STEP_SEEN={},TIPS=[],PAL_TIPS=[];
 const LT_PER=5;
 
@@ -491,6 +491,7 @@ async function loadWeek(){
   DEBT={}; fx.forEach(s=>{ DEBT[s.chrt_id]=(DEBT[s.chrt_id]||0)+(s.agreed_boxes||0)-s.fact_boxes; });
   DIST={}; ds.forEach(d=>{ (DIST[d.chrt_id]=DIST[d.chrt_id]||{})[d.sc]=d.boxes; });
   MONTH_REQ={}; mr.forEach(l=>{ MONTH_REQ[l.chrt_id]=(MONTH_REQ[l.chrt_id]||0)+(l.requested_boxes||0); });
+  MONTH_W={}; MWEEKS=[...mWeeks].sort(); mr.forEach(l=>{ const o=MONTH_W[l.chrt_id]=MONTH_W[l.chrt_id]||{}; o[l.week]=(o[l.week]||0)+(l.requested_boxes||0); });
   // потребность месяца: в черновике (или не создана) — расчёт need_calc.js, как на экране wb-need.html; иначе — согласовано, иначе заказ
   NEED_ST=MONTHS_DB[month]?.status||null; NEEDS={};
   SPLAN={}; pl.forEach(x=>{ if(x.plan_qty>0) SPLAN[x.chrt_id]=Number(x.plan_qty); });
@@ -565,6 +566,7 @@ const pctTxt=(f,t)=>t>0?Math.round(f/t*100)+'%':'—';
 const pctCls=(f,t)=>!(t>0)?'mute':f/t>1.1?'warn':f/t>=0.9?'ok':'bad';
 const tipCls=(f,t)=>!(t>0)?'':f/t>1.1?'y':f/t>=0.9?'g':'r';
 const sgn=x=>(x>0?'+':'')+nf.format(Math.round(x));
+const wkLbl=w=>{const d=parseISO(w),e=new Date(d);e.setDate(e.getDate()+6);return (d.getMonth()===e.getMonth()?pad(d.getDate()):ddmm(w))+'–'+ddmm(localISO(e));};
 const dSgn=d=>(d>0?'+':d<0?'−':'±')+Math.abs(d);
 function needDisp(now,need){ if(!(need>0)) return '—'; const {i,n}=nShare(), f=Math.round(now/need*100), e=Math.round(i/n*100); return `${f}% (${dSgn(f-e)}%)`; }
 const tip=o=>` data-ti="${TIPS.push(o)-1}"`;
@@ -574,7 +576,7 @@ function needCells(p){
   if(!hasNeed(p)) a=now>0?`<td class="n sep warn"${tip({h:'Нет в потребности месяца',rows:[['Заказано за месяц',now+' кор.','y']],m:'Размера нет в потребности (нет плана) — заказ сверх потребности'})}>нет в потр.</td>`:'<td class="n sep mute">—</td>';
   else{
     const need=mNeedOf(p), to=needTo(p), e=Math.round(i/n*100), fm=Math.round(now/need*100);
-    a=`<td class="n sep ${pctCls(now,to)}"${tip({h:'Выполнение потребности к неделе '+ddmm(WEEK),rows:[['Потребность месяца',nf.format(need)+' кор.'],['Заказано за месяц',nf.format(now)+' кор.'],['  до этой недели',nf.format(mWasOf(p))+' кор.'],['  эта неделя',nf.format(p.req)+' кор.'],null,['Выполнение месяца',fm+'%','',1],[`Эталон к этой неделе (${i}/${n})`,e+'%'],['Отклонение от эталона',dSgn(fm-e)+'%',tipCls(now,to)],['Отклонение от эталона, кор.',sgn(now-to)+' кор.',tipCls(now,to)]]})}>${needDisp(now,need)}</td>`;
+    a=`<td class="n sep ${pctCls(now,to)}"${tip({h:'Выполнение потребности к неделе '+ddmm(WEEK),rows:[['Потребность месяца',nf.format(need)+' кор.'],['Заказано за месяц',nf.format(now)+' кор.'],...MWEEKS.filter(w=>w<WEEK).map(w=>['  '+wkLbl(w),nf.format(MONTH_W[p.chrt_id]?.[w]||0)+' кор.']),['  '+wkLbl(WEEK),nf.format(p.req)+' кор.'],null,['Выполнение месяца',fm+'%','',1],[`Эталон к этой неделе (${i}/${n})`,e+'%'],['Отклонение от эталона',dSgn(fm-e)+'%',tipCls(now,to)],['Отклонение от эталона, кор.',sgn(now-to)+' кор.',tipCls(now,to)]]})}>${needDisp(now,need)}</td>`;
   }
   const pl=SPLAN[p.chrt_id], f=factS(p), to=planTo(p);
   const b=!pl?`<td class="n mute"${tip({h:'План продаж',rows:[['Заказы с 1-го',nf.format(f)+' шт']],m:'Плана продаж WB на месяц нет'})}>—</td>`
