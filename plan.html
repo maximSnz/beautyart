@@ -3443,9 +3443,10 @@ const MKT_T=[['sum','Заказано, ₽','Заказано на сумму з
 function mktScales(vs){const S={};MKT_T.forEach(c=>{if(!c[4])return;const a=vs.map(v=>v&&v[c[0]]).filter(x=>x!=null&&isFinite(x)).map(Number).sort((x,y)=>x-y);
   if(a.length<2)return;const m=a.length>>1;S[c[0]]={min:a[0],med:a.length%2?a[m]:(a[m-1]+a[m])/2,max:a[a.length-1]};});return S;}
 const MKT_RGB={r:[247,197,214],y:[254,241,172],g:[185,227,201]};   // пастельные цвета «Руки на пульсе» на белом (06.11.2026, решение владельца)
-function mktColor(c,val,S){const s=S&&S[c[0]];if(!s||val==null||!isFinite(val)||s.max===s.min)return '';const v=Math.min(s.max,Math.max(s.min,Number(val)));
+function mktColor(c,val,S){const rgb=mktRGB(c,val,S);return rgb?`background:rgb(${rgb.join(',')})`:'';}
+function mktRGB(c,val,S){const s=S&&S[c[0]];if(!s||val==null||!isFinite(val)||s.max===s.min)return null;const v=Math.min(s.max,Math.max(s.min,Number(val)));
   const lo=c[4]>0?MKT_RGB.r:MKT_RGB.g,hi=c[4]>0?MKT_RGB.g:MKT_RGB.r,mix=(a,b,k)=>a.map((x,i)=>Math.round(x+(b[i]-x)*k));
-  const rgb=v<=s.med?mix(lo,MKT_RGB.y,s.med>s.min?(v-s.min)/(s.med-s.min):1):mix(MKT_RGB.y,hi,s.max>s.med?(v-s.med)/(s.max-s.med):0);return `background:rgb(${rgb.join(',')})`;}
+  return v<=s.med?mix(lo,MKT_RGB.y,s.med>s.min?(v-s.min)/(s.med-s.min):1):mix(MKT_RGB.y,hi,s.max>s.med?(v-s.med)/(s.max-s.med):0);}
 function mktCell(c,v,S){let val=v[c[0]];let t=val===Infinity?'∞':mktN(val,c[3]);
   if(c[0]==='nostock'&&val!=null&&v.nostockOf)t+=` <span class="mkof">из ${v.nostockOf}</span>`;if(c[0]==='promo'&&val!=null&&v.promoOf)t+=` <span class="mkof">из ${v.promoOf}</span>`;
   if(c[0]==='buy'&&v.buyOver!=null)return `<td class="num" title="Доставлено за эти 7 дней больше, чем заказано (${mktN(v.buyOver)}%): доезжают заказы прошлых недель — выкуп так не посчитать">—</td>`;
@@ -3514,9 +3515,11 @@ async function embedMarket(pid){const box=document.getElementById('embedMarket')
       rows.forEach(x=>{const s=SNAP.get(x.m.sku);if(x.v&&s){x.v.nowp=mktMinP(s);x.v.nowpS=s;}});
       const S=mktScales(rows.map(x=>x.v));   // шкала цвета — по строкам отчёта группы (как условное форматирование в Excel-разборе)
       const ed=MKT_EDIT.has(k);
-      html+=`<div class="mkgrp">${esc(shown)}${rd?` <span class="mkof">· отчёт ${mktD(rd)}</span>`:''} <button class="mkbtn" data-k="${esc(k)}" onclick="mktEditToggle(this.dataset.k,'${pid}')" title="Изменить состав группы: добавить или убрать товар, сменить роль (запись — в базы ИП и ООО)">${ed?'✓ Готово':'✎ Состав'}</button></div>`;
+      html+=`<div class="mkgrp">${esc(shown)}${rd?` <span class="mkof">· отчёт ${mktD(rd)}</span>`:''} <button class="mkbtn" data-k="${esc(k)}" onclick="mktEditToggle(this.dataset.k,'${pid}')" title="Изменить состав группы: добавить или убрать товар, сменить роль (запись — в базы ИП и ООО)">${ed?'✓ Готово':'✎ Состав'}</button>${rd?` <button class="mkbtn" data-k="${esc(k)}" onclick="mktXlsx(this.dataset.k)" title="Скачать таблицу группы в Excel (.xlsx)">⬇</button>`:''}</div>`;
       const ourSkus=M.filter(m=>m.role==='our').map(m=>m.sku).filter(s=>skus.includes(s));
+      const XL=MKT_XL[k]={shown,rd,snapDay,rows,skus,S,idx:[]};
       ourSkus.forEach(s=>{const p=ms.find(q=>String(q.raw?.sku)===s),x=p&&li.get(p.product_id);if(!x)return;
+        XL.idx.push(`${ms.length>1?p.offer_id+': ':''}Ценовой индекс на ${mktD(x.day)}: мин. цена у других продавцов Ozon ${mktN(x.ozon_min)} ₽${x.ozon_idx?` (индекс ${mktN(x.ozon_idx,2)})`:''} · на других площадках ${mktN(x.ext_min)} ₽${x.ext_idx?` (${mktN(x.ext_idx,2)})`:''} · индекс Ozon: ${x.color||'—'}`);
         html+=`<div class="mkidx" title="Ценовой индекс Ozon на ${mktD(x.day)}: индекс = наша цена ÷ минимальная">${ms.length>1?esc(p.offer_id)+': ':''}мин. цена такого же товара — у других продавцов Ozon <b>${mktN(x.ozon_min)} ₽</b>${x.ozon_idx?` (индекс ${mktN(x.ozon_idx,2)})`:''} · на других площадках <b>${mktN(x.ext_min)} ₽</b>${x.ext_idx?` (${mktN(x.ext_idx,2)})`:''} · индекс Ozon: ${esc(x.color||'—')}</div>`;});
       html+=`<table><thead><tr><th>Место</th><th>Роль</th><th>Продавец · бренд</th><th>Товар</th>${MKT_T.map(c=>`<th title="${esc(c[2])}">${c[0]==='nowp'?(snapDay?'Цена '+ddmm(snapDay)+', ₽':'Цена сейчас, ₽'):c[1]}</th>`).join('')}</tr></thead><tbody>`;
       rows.forEach((x,i)=>{const isOur=x.m.role==='our'&&skus.includes(x.m.sku),r=x.r&&x.r.report_date===rd?x.r:null;
@@ -3581,7 +3584,7 @@ function mktParse(wb,fname){const ws=wb.Sheets[wb.SheetNames[0]],A=XLSX.utils.sh
     const sku=String(o.link||'').match(/product\/(?:[^/]*-)?(\d+)/);if(!sku)return;o.sku=sku[1];delete o.link;o.uploaded_by=BA_AUTH.email()||null;out.set(o.sku,o);});
   return {date,cat,rows:[...out.values()],brand:meta['Бренд']?String(meta['Бренд']).trim():null,ncat:cat.split(';').filter(s=>s.trim()).length};}
 async function mktUpload(inp,pid){const st=document.getElementById('mktUp'),files=[...inp.files];inp.value='';if(!files.length)return;
-  try{if(!window.XLSX){st.textContent='загрузка библиотеки Excel…';await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=ok;s.onerror=()=>no(new Error('не загрузилась библиотека Excel'));document.head.appendChild(s);});}
+  try{if(!window.XLSX){st.textContent='загрузка библиотеки Excel…';await mktXlsxLib();}
     const P=[];for(const f of files)P.push(mktParse(XLSX.read(await f.arrayBuffer(),{type:'array'}),f.name));
     // проверка шапки (06.11.2026): фильтр по бренду — конкурентов нет; несколько категорий — топ-1000 раздела, наших товаров может не быть
     const warn=P.map(p=>[p.brand?`⚠️ ${p.cat.slice(0,50)}: отчёт отфильтрован по бренду «${p.brand}» — конкурентов в нём нет.`:'',p.ncat>1?`⚠️ ${p.cat.slice(0,50)}…: отчёт по ${p.ncat} категориям — это топ-1000 раздела, наших товаров в нём может не быть. Нужна одна категория 3 уровня.`:''].filter(Boolean).join('\n')).filter(Boolean);
@@ -3613,6 +3616,35 @@ async function mktCand(box){const cat=box.querySelector('.mkcat').value,list=box
 // редактор групп (06.11.2026, решение владельца): состав группы правится на столе 2 — добавить по SKU / ссылке или из кандидатов, сменить
 // роль, убрать; новая группа — «ручная:SKU». Каждая правка — сразу в обе базы (ИП и ООО), кто и когда — updated_by / updated_at.
 let MKT_EDIT=new Set(),MKT_OTHER=null;
+// выгрузка таблицы группы в Excel (20.11.2026): те же строки и столбцы, что на экране, числа — числами; цвета — как на экране (xlsx-js-style)
+const MKT_XL={};
+function mktXlsxLib(style){if(window.XLSX&&(!style||window.XLSX_STYLE))return Promise.resolve();
+  return new Promise((ok,no)=>{const s=document.createElement('script');s.src=style?'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js':'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=()=>{if(style)window.XLSX_STYLE=true;ok();};s.onerror=()=>no(new Error('не загрузилась библиотека Excel'));document.head.appendChild(s);});}
+async function mktXlsx(k){const X=MKT_XL[k];if(!X)return;
+  try{await mktXlsxLib(true);}catch(e){alert(e.message);return;}
+  const rnd=(v,d)=>v==null||v===''||!isFinite(v)?(v===Infinity?'∞':null):Math.round(Number(v)*10**d)/10**d;
+  const hdr=['Место','Роль','Продавец','Бренд','Товар','SKU','Ссылка'];
+  MKT_T.forEach(c=>{hdr.push(c[0]==='nowp'?(X.snapDay?'Цена '+ddmm(X.snapDay)+', ₽':'Цена сейчас, ₽'):c[1]);if(c[0]==='nostock'||c[0]==='promo')hdr.push('из, дней');});
+  const A=[[X.shown],['Отчёт «Аналитика рынка» Ozon от '+mktD(X.rd)+(X.snapDay?'; цены на витрине — '+mktD(X.snapDay):'')],...X.idx.map(t=>[t]),[],hdr];
+  X.rows.forEach((x,i)=>{const r=x.r&&x.r.report_date===X.rd?x.r:null,v=x.v;
+    const row=[v?i+1:null,MKT_ROLE[x.m.role]||x.m.role,r?.seller||null,r?.brand||null,r?r.name:'нет в отчёте '+mktD(X.rd),Number(x.m.sku)||x.m.sku,'https://www.ozon.ru/product/'+x.m.sku];
+    MKT_T.forEach(c=>{let val=v?v[c[0]]:null;if(c[0]==='buy'&&v&&v.buyOver!=null)val=null;row.push(rnd(val,c[3]));
+      if(c[0]==='nostock')row.push(v?.nostockOf??null);if(c[0]==='promo')row.push(v?.promoOf??null);});
+    A.push(row);});
+  const ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=hdr.map((h,j)=>({wch:j===4?60:j===6?36:j<4?20:Math.max(10,Math.min(18,h.length))}));
+  const hr=A.length-X.rows.length-1,hex=a=>a.map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase(),B={style:'thin',color:{rgb:'D9D3E3'}};
+  ws['A1'].s={font:{bold:true,sz:13}};
+  hdr.forEach((h,j)=>{const c=ws[XLSX.utils.encode_cell({r:hr,c:j})];if(c)c.s={font:{bold:true,color:{rgb:'544273'}},alignment:{wrapText:true,vertical:'bottom',horizontal:j<7?'left':'center'},border:{bottom:{style:'thin',color:{rgb:'94A3B8'}}}};});
+  X.rows.forEach((x,i)=>{const R=hr+1+i,v=x.v,isOur=x.m.role==='our'&&X.skus.includes(x.m.sku),ref=x.m.role==='etalon'||x.m.role==='nearest';
+    const rowFill=isOur?'FCE4EC':ref?'E2EFDA':null;let j=0;
+    const put=(fill,fmt)=>{const a=XLSX.utils.encode_cell({r:R,c:j++});const c=ws[a]||(ws[a]={t:'z'});c.s={border:{bottom:B},font:{bold:isOur},...(fill?{fill:{patternType:'solid',fgColor:{rgb:fill}}}:{})};if(fmt&&c.t==='n')c.z=fmt;};
+    for(let q=0;q<7;q++)put(rowFill,q===0||q===5?'0':null);
+    MKT_T.forEach(c=>{const val=v?v[c[0]]:null,rgb=v&&!(c[0]==='buy'&&v.buyOver!=null)?mktRGB(c,val,X.S):null;
+      put(rgb?hex(rgb):rowFill,c[3]?'#,##0.'+'0'.repeat(c[3]):'#,##0');if(c[0]==='nostock'||c[0]==='promo')put(rowFill,'0');});});
+  ws['!rows']=[];ws['!rows'][hr]={hpt:45};
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:hr,c:0},e:{r:A.length-1,c:hdr.length-1}})};
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Аналитика');
+  XLSX.writeFile(wb,`Аналитика категории — ${String(X.shown).replace(/[\\/:*?"<>|]/g,' ').slice(0,80)} — ${X.rd}.xlsx`);}
 async function mktOther(){if(MKT_OTHER)return MKT_OTHER;
   const O=SUPABASE_URL.includes('jvoofak')?{name:'ООО',url:'https://jaruwkpugxybwcsalhgr.supabase.co',anon:'sb_publishable_09rFaH3adGXnEO3-cybX9A_eK_mCnW0'}:{name:'ИП',url:'https://jvoofakrkhzoblhhuyvr.supabase.co',anon:'sb_publishable_IA4ReUU9xTL7hb_sbsHaFA_LPATJazE'};
   const hd={apikey:O.anon,Authorization:'Bearer '+O.anon},ok=await BA_AUTH.login(O.url,hd);return MKT_OTHER={...O,hd,ok};}
