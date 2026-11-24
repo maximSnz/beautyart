@@ -1,0 +1,18 @@
+name: wb-prices-probe
+# Проба официального API цен WB («Цены и скидки», discounts-prices-api.wildberries.ru): путь, поля размера,
+# пагинация, лимит запросов, доступность категории у токена. Только чтение из WB, в базу не пишет;
+# в лог — только имена полей и число строк, БЕЗ цен и артикулов (репозиторий публичный).
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: WB prices probe
+        run: node scripts/wb_prices_probe.mjs
+        env:
+          WB_API_TOKEN: ${{ secrets.WB_API_TOKEN }}

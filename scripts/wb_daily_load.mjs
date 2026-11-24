@@ -3,7 +3,8 @@
 // Таблицы — sql/2026-11-10_wb_daily_load.sql (beautyart-docs): wb_orders, wb_stock_history, wb_supplies, wb_supply_goods;
 // финансовый отчёт (шаг 4, 13.11.2026) — sql/2026-11-13_wb_charges.sql: wb_charges; реклама (шаг 5) — sql/2026-11-13_wb_ad_spend.sql: wb_ad_spend;
 // маржа по размеру и дню (шаг 6) — sql/2026-11-13_wb_cf_daily.sql: wb_cf_daily; лимиты ДРР (шаг 7) — sql/2026-11-13_wb_drr_limits.sql: wb_drr_limits;
-// фиксация факта SMART-гипотез WB (шаг 8) — sql/2026-11-13_wb_protocol.sql: wb_protocol; план «Протокола работ» WB (шаг 9) — sql/2026-11-13_wb_protocol_plan.sql: wb_protocol_plan.
+// фиксация факта SMART-гипотез WB (шаг 8) — sql/2026-11-13_wb_protocol.sql: wb_protocol; план «Протокола работ» WB (шаг 9) — sql/2026-11-13_wb_protocol_plan.sql: wb_protocol_plan;
+// наши цены WB по официальному API «Цены и скидки» (шаг 10, 24.11.2026) — sql/2026-11-24_wb_market_prices.sql: wb_own_price_snapshot.
 // Режимы: WRITE=1 — запись (upsert) в базу ИП; иначе ПРОВЕРКА: всё читается и собирается, в базу ничего не пишется.
 // Репозиторий публичный: в лог — только число строк, названия складов и округов, поля ответов; штуки и рубли не печатаем.
 const T = process.env.WB_API_TOKEN, SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -417,5 +418,36 @@ else try {
   await upsert('wb_protocol_plan', 'day,pos_key', rows);
   note(`План протокола WB: ${W.counts.all} позиций (сравнение ${P.yKey.slice(8)}.${P.yKey.slice(5, 7)} к ${P.pKey.slice(8)}.${P.pKey.slice(5, 7)})`);
 } catch (e) { console.log(`⚠️ план протокола WB: ${e.message}`); note(`⚠️ План протокола WB не зафиксирован: ${e.message.slice(0, 160)}`); }
+
+// 10) Наши цены WB по официальному API «Цены и скидки» (24.11.2026; sql/2026-11-24_wb_market_prices.sql) → wb_own_price_snapshot.
+//     GET discounts-prices-api /api/v2/list/goods/filter (страница до 1000, offset = offset + limit): по каждому размеру
+//     sizeID — это chrt_id карточки контента (в ценах WB то же поле); price — цена до скидки, discountedPrice — со скидкой;
+//     скидка, % — на карточке (discount). Снимок на сегодня по Москве, только при загрузке за вчера — как ценовой индекс
+//     Ozon (шаг 11 ozon_daily_load). Лимит категории «Цены и скидки» — 10 запросов / 6 с (пауза 700 мс между страницами).
+//     Репозиторий публичный — в лог только число строк и имена полей, без цен. Нет таблицы или ошибка — предупреждение.
+if (!SNAPSHOT) console.log('\n10) Наши цены WB (API): день ≠ вчера — пропущено');
+else try {
+  const t0 = await fetch(`${SB}/rest/v1/wb_own_price_snapshot?select=chrt_id&limit=1`, { headers: SR });
+  if (!t0.ok) throw new Error(`нет таблицы wb_own_price_snapshot (HTTP ${t0.status}) — запустить sql/2026-11-24_wb_market_prices.sql в базе ИП`);
+  const TODAY = shift(D, 1), goods = [];
+  for (let off = 0; off < 100000; ) {
+    if (off) await sleep(700);
+    const j = need(await call('GET', `https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter?limit=1000&offset=${off}`), 'list/goods/filter');
+    const list = j?.data?.listGoods || [];
+    goods.push(...list); off += list.length;
+    if (list.length < 1000) break;
+  }
+  const rows = []; let noPrice = 0, noChrt = 0;
+  for (const g of goods) for (const s of (g.sizes || [])) {
+    if (s.sizeID == null) { noChrt++; continue; }
+    if (s.price == null && s.discountedPrice == null) noPrice++;
+    rows.push({ chrt_id: Number(s.sizeID), nm_id: g.nmID ?? null, day: TODAY, price: num(s.price), price_disc: num(s.discountedPrice), discount: num(g.discount) });
+  }
+  const chrt = new Set(prod.map(p => p.chrt_id));
+  console.log(`\n10) Наши цены WB (API, снимок за ${TODAY}): товаров ${goods.length}, размеров ${rows.length}, в «Базе товаров WB» ${rows.filter(r => chrt.has(r.chrt_id)).length}, без цены ${noPrice}; поля размера: ${fields(goods.flatMap(g => g.sizes || []))}`);
+  if (!rows.length) throw new Error('API цен вернул пустой список — запись остановлена');
+  await upsert('wb_own_price_snapshot', 'chrt_id,day', rows);
+  note(`Наши цены WB (API): ${rows.length} размеров, товаров ${goods.length}${noPrice ? `, без цены ${noPrice}` : ''}${noChrt ? `, без sizeID ${noChrt}` : ''}`);
+} catch (e) { console.log(`⚠️ наши цены WB (API): ${e.message}`); note(`⚠️ Наши цены WB (API) не загружены: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
