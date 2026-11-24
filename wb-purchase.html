@@ -336,7 +336,7 @@
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="need_calc.js?v=20261027c"></script>
+<script src="need_calc.js?v=20261120b"></script>
 <script src="../beautyart-home/auth.js?v=20261021"></script>
 <script>
 // Заявка на закупку WB (ИП) — шаг 4 плана переноса WB (ROADMAP, этап 1; purchasing.md, «Заявка WB»).
@@ -500,10 +500,8 @@ async function loadWeek(){
   NEED_ST=MONTHS_DB[month]?.status||null; NEEDS={};
   PLANS={}; pl.forEach(x=>{ if(x.plan_qty>0) (PLANS[x.month]=PLANS[x.month]||{})[x.chrt_id]=Number(x.plan_qty); }); SPLAN=PLANS[month]||{};
   if(!NEED_ST||NEED_ST==='draft'){
-    const ndb={}, dem={}; nd.forEach(n=>ndb[n.chrt_id]=n);
-    Object.entries(LIVE).forEach(([id,o])=>dem[id]={ads:o.orders/DEMAND_DAYS,stock:o.stock+o.transit});
-    const prod=PROD.map(p=>({product_id:p.chrt_id,offer_id:art(p),name:p.title||'',supplier:p.supplier,box_qty:p.box_qty,m:'m1'}));
-    needBuild({prod,dem,demAt:DEM_AT,plan:SPLAN,needs:ndb,turn:needTurnover(MONTHS_DB,month).turn,req:NEED_REQ,cost:{},month,live:true}).forEach(p=>{ if(!p.nobox) NEEDS[p.product_id]=p.ag??p.need; });
+    // новая формула (20.11.2026): needFetchWB загружает всё сам — план ISO-месяца, сроки и настройки потребности месяца, как wb-need.html
+    (await needFetchWB(SUPABASE_URL,HD,month)).model.forEach(p=>{ if(!p.nobox) NEEDS[p.product_id]=p.ag??p.need; });
   }else nd.forEach(n=>NEEDS[n.chrt_id]=n.agreed_boxes??n.need_boxes);
   // план продаж: заказы «Ленты заказов» без отмен по дням ISO-месяца, по вчера
   SALESD={}; ISO=R; if(R.end) [...xo,...ORD].forEach(x=>{ if(x.chrt_id==null||x.is_cancel||x.order_day<R.from||x.order_day>R.end) return; const o=SALESD[x.chrt_id]=SALESD[x.chrt_id]||{}; o[x.order_day]=(o[x.order_day]||0)+1; });
