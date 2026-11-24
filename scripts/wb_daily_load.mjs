@@ -54,7 +54,7 @@ for (const t of ['wb_orders', 'wb_stock_history', 'wb_supplies', 'wb_supply_good
 // 0) «База товаров WB»: ШК → размер (chrt_id); только чтение
 const prod = [];
 for (let off = 0; ; off += 1000) {
-  const r = await fetch(`${SB}/rest/v1/wb_products?select=chrt_id,nm_id,tech_size,vendor_code,barcodes&order=chrt_id&limit=1000&offset=${off}`, { headers: SR });
+  const r = await fetch(`${SB}/rest/v1/wb_products?select=chrt_id,nm_id,tech_size,vendor_code,barcodes,wb_archived,wb_trash&order=chrt_id&limit=1000&offset=${off}`, { headers: SR });
   if (!r.ok) throw new Error(`supabase wb_products -> HTTP ${r.status}: ${await r.text()}`);
   const p = await r.json(); prod.push(...p); if (p.length < 1000) break;
 }
@@ -421,9 +421,10 @@ else try {
 
 // 10) Наши цены WB по официальному API «Цены и скидки» (24.11.2026; sql/2026-11-24_wb_market_prices.sql) → wb_own_price_snapshot.
 //     GET discounts-prices-api /api/v2/list/goods/filter (страница до 1000, offset = offset + limit): по каждому размеру
-//     sizeID — это chrt_id карточки контента (в ценах WB то же поле); price — цена до скидки, discountedPrice — со скидкой;
-//     скидка, % — на карточке (discount). Снимок на сегодня по Москве, только при загрузке за вчера — как ценовой индекс
-//     Ozon (шаг 11 ozon_daily_load). Лимит категории «Цены и скидки» — 10 запросов / 6 с (пауза 700 мс между страницами).
+//     sizeID — это chrt_id карточки контента (в ценах WB то же поле); price — цена до скидки (цена продавца), discountedPrice —
+//     со скидкой продавца (СПП / скидку WB API не отдаёт — она только на витрине, этап 4); скидка, % — на карточке (discount).
+//     Карточки в корзине и архиве (wb_trash / wb_archived) не пишутся. Снимок на сегодня по Москве, только при загрузке за вчера —
+//     как ценовой индекс Ozon (шаг 11 ozon_daily_load). Лимит категории «Цены и скидки» — 10 запросов / 6 с (пауза 700 мс между страницами).
 //     Репозиторий публичный — в лог только число строк и имена полей, без цен. Нет таблицы или ошибка — предупреждение.
 if (!SNAPSHOT) console.log('\n10) Наши цены WB (API): день ≠ вчера — пропущено');
 else try {
@@ -437,17 +438,19 @@ else try {
     goods.push(...list); off += list.length;
     if (list.length < 1000) break;
   }
-  const rows = []; let noPrice = 0, noChrt = 0;
+  const SKIP = new Set(prod.filter(p => p.wb_archived || p.wb_trash).map(p => p.chrt_id));
+  const rows = []; let noPrice = 0, noChrt = 0, skip = 0;
   for (const g of goods) for (const s of (g.sizes || [])) {
     if (s.sizeID == null) { noChrt++; continue; }
+    if (SKIP.has(Number(s.sizeID))) { skip++; continue; }
     if (s.price == null && s.discountedPrice == null) noPrice++;
     rows.push({ chrt_id: Number(s.sizeID), nm_id: g.nmID ?? null, day: TODAY, price: num(s.price), price_disc: num(s.discountedPrice), discount: num(g.discount) });
   }
   const chrt = new Set(prod.map(p => p.chrt_id));
-  console.log(`\n10) Наши цены WB (API, снимок за ${TODAY}): товаров ${goods.length}, размеров ${rows.length}, в «Базе товаров WB» ${rows.filter(r => chrt.has(r.chrt_id)).length}, без цены ${noPrice}; поля размера: ${fields(goods.flatMap(g => g.sizes || []))}`);
+  console.log(`\n10) Наши цены WB (API, снимок за ${TODAY}): товаров ${goods.length}, размеров ${rows.length}, в «Базе товаров WB» ${rows.filter(r => chrt.has(r.chrt_id)).length}, без цены ${noPrice}, корзина/архив пропущено ${skip}; поля размера: ${fields(goods.flatMap(g => g.sizes || []))}`);
   if (!rows.length) throw new Error('API цен вернул пустой список — запись остановлена');
   await upsert('wb_own_price_snapshot', 'chrt_id,day', rows);
-  note(`Наши цены WB (API): ${rows.length} размеров, товаров ${goods.length}${noPrice ? `, без цены ${noPrice}` : ''}${noChrt ? `, без sizeID ${noChrt}` : ''}`);
+  note(`Наши цены WB (API): ${rows.length} размеров, товаров ${goods.length}${noPrice ? `, без цены ${noPrice}` : ''}${noChrt ? `, без sizeID ${noChrt}` : ''}${skip ? `, корзина/архив ${skip}` : ''}`);
 } catch (e) { console.log(`⚠️ наши цены WB (API): ${e.message}`); note(`⚠️ Наши цены WB (API) не загружены: ${e.message.slice(0, 200)}`); }
 
 console.log(`\n${WRITE ? 'Записано' : 'Режим проверки — в базу НЕ записано. Было бы выполнено'}:`); DONE.forEach(x => console.log('  ' + x));
